@@ -47,7 +47,7 @@ export function JsonPane() {
   };
 
   return (
-    <div style={{ padding: 16 }}>
+    <div style={{ padding: 16, height: "calc(100vh - 100px)" }}>
       <Card
         size="small"
         title="Form schema JSON"

@@ -12,7 +12,7 @@ export function PreviewPane({ schema }: PreviewPaneProps) {
   const [submitted, setSubmitted] = useState<Record<string, unknown> | null>(null);
 
   return (
-    <Row gutter={16} style={{ padding: 16 }}>
+    <Row gutter={16} style={{ padding: 16, height: "calc(100vh - 100px)" }}>
       <Col xs={24} lg={14}>
         <Card size="small" title="Rendered form">
           <FormRenderer schema={schema} onSubmit={setSubmitted} />
