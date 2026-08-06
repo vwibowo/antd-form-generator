@@ -1,0 +1,65 @@
+import { Card, Col, Empty, Row, Typography } from 'antd';
+import { useState } from 'react';
+import { FormRenderer } from '@/renderer/FormRenderer';
+import type { FormSchema } from '@/schema/schema';
+
+export interface PreviewPaneProps {
+  schema: FormSchema;
+}
+
+/** Live form plus the payload it produced, so submissions are verifiable. */
+export function PreviewPane({ schema }: PreviewPaneProps) {
+  const [submitted, setSubmitted] = useState<Record<string, unknown> | null>(null);
+
+  return (
+    <Row gutter={16} style={{ padding: 16 }}>
+      <Col xs={24} lg={14}>
+        <Card size="small" title="Rendered form">
+          <FormRenderer schema={schema} onSubmit={setSubmitted} />
+        </Card>
+      </Col>
+      <Col xs={24} lg={10}>
+        <Card size="small" title="Submitted values">
+          {submitted ? (
+            <pre
+              data-testid="submitted-values"
+              style={{
+                margin: 0,
+                fontSize: 12,
+                lineHeight: 1.6,
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word',
+              }}
+            >
+              {JSON.stringify(submitted, replacer, 2)}
+            </pre>
+          ) : (
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description={
+                <Typography.Text type="secondary">
+                  Submit the form to see its payload
+                </Typography.Text>
+              }
+            />
+          )}
+        </Card>
+      </Col>
+    </Row>
+  );
+}
+
+/** dayjs objects and File handles are not JSON — show something readable. */
+function replacer(_key: string, value: unknown): unknown {
+  if (value && typeof value === 'object') {
+    const maybeDayjs = value as { isValid?: () => boolean; toISOString?: () => string };
+    if (typeof maybeDayjs.isValid === 'function' && typeof maybeDayjs.toISOString === 'function') {
+      return maybeDayjs.toISOString();
+    }
+    if ('originFileObj' in value || 'uid' in value) {
+      const file = value as { name?: string; uid?: string };
+      return `[file: ${file.name ?? file.uid ?? 'unknown'}]`;
+    }
+  }
+  return value;
+}

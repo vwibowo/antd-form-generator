@@ -1,0 +1,146 @@
+import { Card, Col, Divider, Form, Row, Typography } from 'antd';
+import type { FieldNode } from '@/schema/schema';
+import { isPresentationalType, isTransparentContainer } from '@/schema/schema';
+import type { NamePath } from './condition';
+import { useFieldVisibility } from './useFieldVisibility';
+import {
+  cardSize,
+  cardVariant,
+  getValueFromEventFor,
+  renderControl,
+  valuePropNameFor,
+} from './controls';
+import { ListRenderer } from './ListRenderer';
+import { compileRules } from './rules';
+
+export interface FieldRendererProps {
+  node: FieldNode;
+  /** `[]` at root, `[listName, rowIndex]` inside a repeatable row. */
+  scopePath: NamePath;
+  /** Prefix for `Form.Item` names — `[]` at root, `[rowIndex]` inside a row. */
+  namePrefix: NamePath;
+  gutter: number;
+}
+
+export function FieldRenderer({ node, scopePath, namePrefix, gutter }: FieldRendererProps) {
+  // Subscribes to this field's own visibility only, so a keystroke elsewhere
+  // in the form does not re-render it. Must run before any early return.
+  const visible = useFieldVisibility(node.condition, scopePath);
+
+  // A failed condition unmounts the field entirely; combined with
+  // `preserve={false}` below, its value also leaves the submitted payload.
+  if (!visible) {
+    return null;
+  }
+
+  if (node.type === 'divider') {
+    return (
+      <Col span={24} key={node.id}>
+        <Divider titlePlacement="start" plain={!node.label}>
+          {node.label}
+        </Divider>
+      </Col>
+    );
+  }
+
+  if (node.type === 'title') {
+    const level = (node.props?.level as 1 | 2 | 3 | 4 | 5) ?? 4;
+    return (
+      <Col xs={24} sm={node.span} key={node.id}>
+        <Typography.Title level={level} style={{ marginBottom: 8 }}>
+          {node.label}
+        </Typography.Title>
+        {node.extra ? <Typography.Text type="secondary">{node.extra}</Typography.Text> : null}
+      </Col>
+    );
+  }
+
+  if (isTransparentContainer(node.type)) {
+    // `scopePath` and `namePrefix` pass straight through: these containers are
+    // chrome, so their children keep whatever scope the container itself sits
+    // in. That is what keeps their names at the top level of the payload.
+    const children = (
+      <Row gutter={gutter}>
+        {(node.children ?? []).map((child) => (
+          <FieldRenderer
+            key={child.id}
+            node={child}
+            scopePath={scopePath}
+            namePrefix={namePrefix}
+            gutter={gutter}
+          />
+        ))}
+      </Row>
+    );
+
+    if (node.type === 'card') {
+      return (
+        <Col xs={24} sm={node.span} key={node.id}>
+          <Card
+            title={node.label || undefined}
+            extra={node.extra || undefined}
+            size={cardSize(node.props)}
+            // antd 6 deprecates `bordered` in favour of `variant`.
+            variant={cardVariant(node.props)}
+            style={{ marginBottom: 16 }}
+          >
+            {children}
+          </Card>
+        </Col>
+      );
+    }
+
+    return (
+      <Col xs={24} sm={node.span} key={node.id}>
+        <fieldset
+          style={{
+            border: '1px solid rgba(5, 5, 5, 0.1)',
+            borderRadius: 8,
+            padding: '12px 16px 0',
+            margin: '0 0 16px',
+          }}
+        >
+          {node.label ? (
+            <legend style={{ fontSize: 13, padding: '0 6px', width: 'auto', marginBottom: 0 }}>
+              {node.label}
+            </legend>
+          ) : null}
+          {children}
+        </fieldset>
+      </Col>
+    );
+  }
+
+  if (node.type === 'list') {
+    return <ListRenderer node={node} gutter={gutter} />;
+  }
+
+  const control = renderControl(node);
+  if (!control) return null;
+
+  const item = (
+    <Form.Item
+      name={[...namePrefix, node.name]}
+      label={isPresentationalType(node.type) ? undefined : node.label}
+      tooltip={node.tooltip}
+      extra={node.extra}
+      rules={compileRules(node.rules, node.type)}
+      valuePropName={valuePropNameFor(node)}
+      getValueFromEvent={getValueFromEventFor(node)}
+      hidden={node.hidden}
+      // Drop the value when the field unmounts, so conditionally hidden
+      // fields do not leak stale data into the submitted payload.
+      preserve={false}
+    >
+      {control}
+    </Form.Item>
+  );
+
+  // `span` is breakpoint-agnostic in antd, so an authored half-width field
+  // would stay half-width on a phone. Below `sm`, everything goes full width.
+  return (
+    <Col xs={node.hidden ? 0 : 24} sm={node.hidden ? 0 : node.span} key={node.id}>
+      {item}
+    </Col>
+  );
+}
