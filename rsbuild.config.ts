@@ -13,6 +13,12 @@ export default defineConfig({
       index: './src/index.tsx',
     },
   },
+  output: {
+    // Resolve assets relative to the page rather than the domain root, so the
+    // same bundle works at a root domain and under /<repo>/ on GitHub Pages.
+    // Only affects production builds — `dev.assetPrefix` is separate.
+    assetPrefix: 'auto',
+  },
   server: {
     port: Number(process.env.PORT) || 3000,
   },
