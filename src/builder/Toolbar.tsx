@@ -1,14 +1,26 @@
 import {
   ClearOutlined,
+  DownOutlined,
   DownloadOutlined,
   ExperimentOutlined,
   RedoOutlined,
   UndoOutlined,
   UploadOutlined,
 } from '@ant-design/icons';
-import { App, Button, Modal, Popconfirm, Space, Tooltip, Typography, Upload } from 'antd';
+import type { MenuProps } from 'antd';
+import {
+  App,
+  Button,
+  Dropdown,
+  Modal,
+  Popconfirm,
+  Space,
+  Tooltip,
+  Typography,
+  Upload,
+} from 'antd';
 import { useState } from 'react';
-import { createSampleSchema } from '@/schema/sample';
+import { DEFAULT_SAMPLE_PRESET, SAMPLE_PRESETS } from '@/schema/samples';
 import { parseFormSchema } from '@/schema/schema';
 import {
   selectCanRedo,
@@ -27,6 +39,36 @@ export function Toolbar() {
   const canRedo = useSchemaStore(selectCanRedo);
 
   const [importErrors, setImportErrors] = useState<string[] | null>(null);
+
+  const applyPreset = (key: string) => {
+    const preset = SAMPLE_PRESETS.find((entry) => entry.key === key);
+    if (!preset) return;
+    // No confirmation: `setSchema` pushes the old schema onto the undo stack,
+    // so the button two along is a complete recovery.
+    setSchema(preset.create());
+    message.success(`Loaded "${preset.label}" — Undo restores your form`);
+  };
+
+  const sampleMenu: MenuProps = {
+    items: SAMPLE_PRESETS.map((preset) => ({
+      key: preset.key,
+      // antd menu items are a fixed-height nowrap line with an ellipsis, so a
+      // two-line label needs these overrides or the description is clipped.
+      style: { height: 'auto', lineHeight: 1.4, paddingBlock: 6, whiteSpace: 'normal' },
+      label: (
+        <div style={{ maxWidth: 280 }}>
+          <div style={{ fontWeight: 500 }}>{preset.label}</div>
+          <Typography.Text
+            type="secondary"
+            style={{ fontSize: 12, whiteSpace: 'normal', display: 'block' }}
+          >
+            {preset.description}
+          </Typography.Text>
+        </div>
+      ),
+    })),
+    onClick: ({ key }) => applyPreset(key),
+  };
 
   const handleExport = () => {
     const blob = new Blob([JSON.stringify(schema, null, 2)], { type: 'application/json' });
@@ -84,13 +126,19 @@ export function Toolbar() {
           />
         </Tooltip>
 
-        <Button
-          size="small"
-          icon={<ExperimentOutlined />}
-          onClick={() => setSchema(createSampleSchema())}
-        >
-          Sample
-        </Button>
+        {/* Space.Compact rather than Dropdown.Button, which antd 6 deprecates. */}
+        <Space.Compact>
+          <Button
+            size="small"
+            icon={<ExperimentOutlined />}
+            onClick={() => applyPreset(DEFAULT_SAMPLE_PRESET.key)}
+          >
+            Sample
+          </Button>
+          <Dropdown menu={sampleMenu} trigger={['click']} placement="bottomRight">
+            <Button size="small" icon={<DownOutlined />} aria-label="Choose a sample preset" />
+          </Dropdown>
+        </Space.Compact>
 
         <Upload
           accept="application/json,.json"

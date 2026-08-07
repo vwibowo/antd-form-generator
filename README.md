@@ -14,7 +14,15 @@ pnpm install
 pnpm dev
 ```
 
-Then open http://localhost:3000. Click **Sample** in the header to load a demo form that exercises every feature.
+Then open http://localhost:3000. Click **Sample** in the header for the flagship demo, or use the arrow beside it to pick one of three presets:
+
+| Preset | What it shows |
+| --- | --- |
+| **Purchase request** | A procurement flow that grows as you fill it in — a remote catalogue cascade, repeatable line items, and rules that only appear once the total passes 5,000. Opening the Preview fires exactly one request; every other one is caused by something you did. |
+| **Remote data** | Every API response shape the option mapper handles, side by side: a bare array of objects, a bare array of plain strings, a nested `dataPath`, and a dot-path label. Plus cascading, debounced server-side search, and the HTTP error state. |
+| **Kitchen sink** | Reference form. One of every field type, every per-type setting, every validation rule, and all nine condition operators. Horizontal layout with a fixed label column. |
+
+Between them the presets cover every feature documented below, so they double as a manual regression suite.
 
 | Command | What it does |
 | --- | --- |
@@ -122,12 +130,15 @@ Two things to know before pointing it at a real API:
 
 The builder canvas never fetches — it shows an inert placeholder while you drag and edit. Live requests happen in the Preview tab.
 
+The **Remote data** sample preset is the live reference for all of this: each field in it reads a differently shaped response, so open its Options panel in the Builder to see how a given API maps onto `dataPath` / `labelKey` / `valueKey`.
+
 ## Layout
 
 ```
 src/
   schema/      zod definitions (the single source of truth for shape, TS types, and validation),
                the field registry, node factory, and tree helpers
+               samples/ the three demo presets behind the Sample button
   renderer/    schema -> antd <Form>. No builder imports.
                remote/  the app's only network layer: URL templating, response
                         mapping, and a TTL body cache for remote options
