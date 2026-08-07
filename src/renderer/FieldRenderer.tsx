@@ -1,4 +1,4 @@
-import { Card, Col, Divider, Form, Row, Typography } from 'antd';
+import { Card, Col, Divider, Form, Row, Spin, Typography } from 'antd';
 import type { FieldNode } from '@/schema/schema';
 import { isPresentationalType, isTransparentContainer } from '@/schema/schema';
 import type { NamePath } from './condition';
@@ -11,6 +11,8 @@ import {
   valuePropNameFor,
 } from './controls';
 import { ListRenderer } from './ListRenderer';
+import { RemoteStatus } from './remote/RemoteStatus';
+import { useRemoteOptions } from './remote/useRemoteOptions';
 import { compileRules } from './rules';
 
 export interface FieldRendererProps {
@@ -26,6 +28,10 @@ export function FieldRenderer({ node, scopePath, namePrefix, gutter }: FieldRend
   // Subscribes to this field's own visibility only, so a keystroke elsewhere
   // in the form does not re-render it. Must run before any early return.
   const visible = useFieldVisibility(node.condition, scopePath);
+  // Hooks cannot be conditional, so this runs for every node type. It is inert
+  // unless the node carries a `dataSource`, and `visible` keeps a conditionally
+  // hidden field from firing a request it would never show.
+  const remote = useRemoteOptions(node, scopePath, visible);
 
   // A failed condition unmounts the field entirely; combined with
   // `preserve={false}` below, its value also leaves the submitted payload.
@@ -115,7 +121,19 @@ export function FieldRenderer({ node, scopePath, namePrefix, gutter }: FieldRend
     return <ListRenderer node={node} gutter={gutter} />;
   }
 
-  const control = renderControl(node);
+  const control = renderControl(
+    node,
+    remote.active
+      ? {
+          options: remote.options,
+          loading: remote.loading,
+          onSearch: remote.onSearch,
+          // A dependency is still blank — there is nothing to choose from yet.
+          disabled: remote.missingDeps.length > 0,
+          notFoundContent: remote.loading ? <Spin size="small" /> : undefined,
+        }
+      : undefined,
+  );
   if (!control) return null;
 
   const item = (
@@ -123,7 +141,7 @@ export function FieldRenderer({ node, scopePath, namePrefix, gutter }: FieldRend
       name={[...namePrefix, node.name]}
       label={isPresentationalType(node.type) ? undefined : node.label}
       tooltip={node.tooltip}
-      extra={node.extra}
+      extra={remote.active ? <RemoteStatus node={node} state={remote} /> : node.extra}
       rules={compileRules(node.rules, node.type)}
       valuePropName={valuePropNameFor(node)}
       getValueFromEvent={getValueFromEventFor(node)}

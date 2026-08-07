@@ -63,6 +63,18 @@ function DefaultValueInput({ node, onPatch }: { node: FieldNode; onPatch: Common
 
     case 'select':
     case 'radio':
+      // With a remote source the builder has no option list to pick from — the
+      // canvas deliberately does not fetch — so fall back to typing the value.
+      if (node.dataSource) {
+        return (
+          <Input
+            size="small"
+            placeholder="Value to preselect"
+            value={node.defaultValue === undefined ? '' : String(node.defaultValue)}
+            onChange={(event) => set(event.target.value || undefined)}
+          />
+        );
+      }
       return (
         <Select
           size="small"
@@ -78,11 +90,12 @@ function DefaultValueInput({ node, onPatch }: { node: FieldNode; onPatch: Common
       return (
         <Select
           size="small"
-          mode="multiple"
+          // Same reason as above: with no option list, values are typed in.
+          mode={node.dataSource ? 'tags' : 'multiple'}
           allowClear
           style={{ width: '100%' }}
           value={(Array.isArray(node.defaultValue) ? node.defaultValue : []) as string[]}
-          options={node.options ?? []}
+          options={node.dataSource ? [] : (node.options ?? [])}
           onChange={(value) => set(value.length > 0 ? value : undefined)}
         />
       );
@@ -171,7 +184,14 @@ export function CommonProps({ node, onPatch, duplicateName }: CommonPropsProps) 
       </Labeled>
 
       {meta.supports.defaultValue ? (
-        <Labeled label="Default value">
+        <Labeled
+          label="Default value"
+          help={
+            node.dataSource
+              ? 'Options load at runtime, so type the raw value to preselect.'
+              : undefined
+          }
+        >
           <DefaultValueInput node={node} onPatch={onPatch} />
         </Labeled>
       ) : null}

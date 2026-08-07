@@ -122,6 +122,43 @@ export const selectOptionSchema = z.object({
 });
 export type SelectOption = z.infer<typeof selectOptionSchema>;
 
+/** Server-side search settings. Honoured only for `select`. */
+export const remoteSearchSchema = z.object({
+  /** Query parameter carrying the typed term, e.g. `q`. */
+  param: z.string().default('q'),
+  /** Milliseconds to settle after the last keystroke before firing. */
+  debounceMs: z.number().int().min(0).max(5000).default(300),
+  /** Do not fire until the term is at least this long. */
+  minChars: z.number().int().min(0).max(10).default(0),
+});
+export type RemoteSearch = z.infer<typeof remoteSearchSchema>;
+
+/**
+ * Where a field's options come from when they are not authored inline.
+ * Fetched by the browser at render time — see `src/renderer/remote/`.
+ *
+ * Deliberately GET-only, with no headers/auth/body field: everything here is
+ * persisted to localStorage and included in exported JSON, so a token typed
+ * into the inspector would leak into every share. Auth, if it is ever needed,
+ * belongs on a runtime prop of `FormRenderer` — never in the schema.
+ */
+export const dataSourceSchema = z.object({
+  // Literal + default: leaves room for a future discriminated union without
+  // forcing hand-authored JSON to spell it out today.
+  kind: z.literal('remote').default('remote'),
+  /** http(s) URL. `{{fieldName}}` is replaced with a live form value. */
+  url: z.string().default(''),
+  /** Dot path to the array inside the response. Blank = the response itself. */
+  dataPath: z.string().default(''),
+  /** Dot path within each item for the option label. */
+  labelKey: z.string().default('label'),
+  /** Dot path within each item for the option value. */
+  valueKey: z.string().default('value'),
+  /** Present = server-side search. Absent = fetch once, filter client-side. */
+  search: remoteSearchSchema.optional(),
+});
+export type DataSource = z.infer<typeof dataSourceSchema>;
+
 export const listConfigSchema = z.object({
   addText: z.string().default('Add item'),
   minItems: z.number().int().nonnegative().optional(),
@@ -148,6 +185,8 @@ const fieldNodeBase = z.object({
   rules: z.array(ruleSpecSchema).default([]),
   condition: conditionGroupSchema.optional(),
   options: z.array(selectOptionSchema).optional(),
+  /** Remote option source. When present it supersedes `options` at render time. */
+  dataSource: dataSourceSchema.optional(),
   /** Escape hatch for per-type antd control props (rows, step, mode, ...). */
   props: z.record(z.string(), z.unknown()).default({}),
   listConfig: listConfigSchema.optional(),

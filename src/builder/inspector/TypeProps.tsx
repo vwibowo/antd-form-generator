@@ -1,4 +1,4 @@
-import { Checkbox, Input, InputNumber, Select } from 'antd';
+import { Checkbox, Input, InputNumber, Select, Tooltip } from 'antd';
 import type { FieldNode } from '@/schema/schema';
 import { Labeled } from './Labeled';
 
@@ -146,12 +146,21 @@ export function TypeProps({ node, onPatch }: TypePropsProps) {
               onChange={(value) => setProp('mode', value === 'single' ? undefined : value)}
             />
           </Labeled>
-          <Checkbox
-            checked={boolProp('showSearch')}
-            onChange={(event) => setProp('showSearch', event.target.checked || undefined)}
+          <Tooltip
+            title={
+              node.dataSource?.search
+                ? 'Always on while the options are searched on the server.'
+                : undefined
+            }
           >
-            Searchable
-          </Checkbox>
+            <Checkbox
+              checked={boolProp('showSearch') || !!node.dataSource?.search}
+              disabled={!!node.dataSource?.search}
+              onChange={(event) => setProp('showSearch', event.target.checked || undefined)}
+            >
+              Searchable
+            </Checkbox>
+          </Tooltip>
         </>
       );
 

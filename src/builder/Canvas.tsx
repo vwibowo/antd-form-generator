@@ -39,14 +39,34 @@ function FieldPreview({ node }: { node: FieldNode }) {
     );
   }
 
-  const control = renderControl(node);
+  // Remote options are resolved by a hook in the renderer, and there is no hook
+  // here — by design. The canvas must never issue a request while the user is
+  // dragging fields around, so it shows an inert placeholder instead.
+  const control = renderControl(
+    node,
+    node.dataSource
+      ? { disabled: true, options: [], notFoundContent: 'Loads at runtime' }
+      : undefined,
+  );
   if (!control) return null;
 
   return (
     <Form.Item
       label={node.label}
       tooltip={node.tooltip}
-      extra={node.extra}
+      extra={
+        node.dataSource ? (
+          <>
+            {node.extra}
+            {node.extra ? <br /> : null}
+            <Typography.Text type="secondary" style={{ fontSize: 11 }}>
+              Remote · {node.dataSource.url || 'no URL set'}
+            </Typography.Text>
+          </>
+        ) : (
+          node.extra
+        )
+      }
       rules={compileRules(node.rules, node.type)}
       required={node.rules.some((rule) => rule.kind === 'required')}
       style={{ marginBottom: 0 }}

@@ -47,7 +47,8 @@ export function resolveConditionValue(
   return resolvePath(values, [field]).value;
 }
 
-function isEmpty(value: unknown): boolean {
+/** Shared by conditions and by remote-URL dependency resolution. */
+export function isEmpty(value: unknown): boolean {
   if (value === null || value === undefined || value === '') return true;
   if (Array.isArray(value)) return value.length === 0;
   return false;

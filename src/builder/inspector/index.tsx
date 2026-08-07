@@ -7,7 +7,7 @@ import { useSchemaStore } from '@/store/useSchemaStore';
 import { FormSettings } from '../FormSettings';
 import { CommonProps } from './CommonProps';
 import { ConditionEditor } from './ConditionEditor';
-import { OptionsEditor } from './OptionsEditor';
+import { OptionsSource } from './OptionsSource';
 import { RulesEditor } from './RulesEditor';
 import { TypeProps, hasTypeProps } from './TypeProps';
 
@@ -81,10 +81,7 @@ export function Inspector() {
       key: 'options',
       label: 'Options',
       children: (
-        <OptionsEditor
-          options={selected.options ?? []}
-          onChange={(options) => onPatch({ options })}
-        />
+        <OptionsSource node={selected} onPatch={onPatch} fieldChoices={fieldChoices} />
       ),
     });
   }

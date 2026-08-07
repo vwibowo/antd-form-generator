@@ -94,6 +94,34 @@ Operators: `eq`, `neq`, `in`, `notIn`, `gt`, `lt`, `contains`, `empty`, `notEmpt
 
 Inside a repeatable row a condition resolves against that row first, then falls back to the top level — so a row field can react to its own sibling *and* to a form-level field.
 
+**Remote options** — `select`, `radio`, and `checkboxGroup` can pull their options from an API instead of an inline `options` array. Add a `dataSource` block (the Options section of the inspector has a Static | Remote toggle):
+
+```jsonc
+"dataSource": {
+  "kind": "remote",
+  "url": "https://dummyjson.com/products/category/{{category}}",
+  "dataPath": "products",         // dot path to the array; blank = the response itself
+  "labelKey": "title",            // dot paths allowed, e.g. "name.common"
+  "valueKey": "id",
+  "search": {                     // omit for a single fetch filtered client-side
+    "param": "q",
+    "debounceMs": 300,
+    "minChars": 2
+  }
+}
+```
+
+`{{fieldName}}` interpolates another field's live value, which is what makes cascading selects work. The dependent field stays disabled until every `{{...}}` has a value, refetches when one changes, and clears its own selection so a stale choice cannot be submitted. Dependencies resolve row-first then top-level, exactly like conditions, so a cascade works inside a repeatable row.
+
+`search` is honoured by `select` only. It turns on antd's `showSearch` with `filterOption` off — the list *is* the server's answer — and appends the typed term as `?param=`.
+
+Two things to know before pointing it at a real API:
+
+- **Requests run in the browser.** There is no proxy, so the API must send `Access-Control-Allow-Origin`. A blocked read is indistinguishable from being offline and surfaces as "Network or CORS error".
+- **Never put a token in the URL.** The schema is saved to `localStorage`, shown in the JSON tab, and included in every export. There is deliberately no headers, auth, or method field for the same reason; requests are GET with `credentials: 'omit'`. If you need authenticated option loading, pass it at runtime from the app embedding `FormRenderer`.
+
+The builder canvas never fetches — it shows an inert placeholder while you drag and edit. Live requests happen in the Preview tab.
+
 ## Layout
 
 ```
@@ -101,6 +129,8 @@ src/
   schema/      zod definitions (the single source of truth for shape, TS types, and validation),
                the field registry, node factory, and tree helpers
   renderer/    schema -> antd <Form>. No builder imports.
+               remote/  the app's only network layer: URL templating, response
+                        mapping, and a TTL body cache for remote options
   builder/     palette, canvas, inspector, toolbar, drag-and-drop
   panes/       preview and JSON tabs
   store/       zustand store with localStorage persistence and undo/redo

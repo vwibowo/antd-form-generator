@@ -13,8 +13,8 @@ import {
   TimePicker,
   Upload,
 } from 'antd';
-import type { ReactElement } from 'react';
-import type { FieldNode } from '@/schema/schema';
+import type { ReactElement, ReactNode } from 'react';
+import type { FieldNode, SelectOption } from '@/schema/schema';
 
 const { RangePicker } = DatePicker;
 
@@ -36,16 +36,36 @@ function bool(props: Props, key: string, fallback = false): boolean {
 }
 
 /**
+ * Anything the caller had to resolve asynchronously. Keeping these as an
+ * argument is what lets `renderControl` stay a pure function: the builder
+ * canvas calls it with no overrides and therefore cannot fire a request.
+ */
+export interface ControlOverrides {
+  /** Replaces `node.options` when options come from a remote source. */
+  options?: SelectOption[];
+  loading?: boolean;
+  /** Present only in server-search mode; wires antd `onSearch`. */
+  onSearch?: (term: string) => void;
+  /** Disables on top of `node.disabled` — e.g. a dependency is still blank. */
+  disabled?: boolean;
+  notFoundContent?: ReactNode;
+}
+
+/**
  * Map a node to its antd control. The control receives no `value`/`onChange` —
  * `Form.Item` injects those.
  */
-export function renderControl(node: FieldNode): ReactElement | null {
+export function renderControl(
+  node: FieldNode,
+  overrides?: ControlOverrides,
+): ReactElement | null {
   const props = node.props ?? {};
+  const disabled = node.disabled || overrides?.disabled === true;
   const common = {
-    disabled: node.disabled,
+    disabled,
     placeholder: node.placeholder,
   };
-  const options = node.options ?? [];
+  const options = overrides?.options ?? node.options ?? [];
 
   switch (node.type) {
     case 'input':
@@ -67,7 +87,7 @@ export function renderControl(node: FieldNode): ReactElement | null {
     case 'number':
       return (
         <InputNumber
-          disabled={node.disabled}
+          disabled={disabled}
           placeholder={node.placeholder}
           style={{ width: '100%' }}
           min={num(props, 'min')}
@@ -77,39 +97,47 @@ export function renderControl(node: FieldNode): ReactElement | null {
         />
       );
 
-    case 'select':
+    case 'select': {
+      // In server-search mode the list already IS the search result, so antd
+      // must not filter it again — and must show a spinner rather than "No data".
+      const serverSearch = overrides?.onSearch !== undefined;
       return (
         <Select
           {...common}
           allowClear
-          showSearch={bool(props, 'showSearch')}
+          showSearch={serverSearch || bool(props, 'showSearch')}
+          filterOption={serverSearch ? false : undefined}
+          onSearch={overrides?.onSearch}
+          loading={overrides?.loading}
+          notFoundContent={overrides?.notFoundContent}
           mode={str(props, 'mode') as 'multiple' | 'tags' | undefined}
           options={options}
         />
       );
+    }
 
     case 'radio':
       return (
         <Radio.Group
-          disabled={node.disabled}
+          disabled={disabled}
           options={options}
           optionType={bool(props, 'button') ? 'button' : 'default'}
         />
       );
 
     case 'checkboxGroup':
-      return <Checkbox.Group disabled={node.disabled} options={options} />;
+      return <Checkbox.Group disabled={disabled} options={options} />;
 
     case 'checkbox':
-      return <Checkbox disabled={node.disabled}>{str(props, 'text', node.label)}</Checkbox>;
+      return <Checkbox disabled={disabled}>{str(props, 'text', node.label)}</Checkbox>;
 
     case 'switch':
-      return <Switch disabled={node.disabled} />;
+      return <Switch disabled={disabled} />;
 
     case 'date':
       return (
         <DatePicker
-          disabled={node.disabled}
+          disabled={disabled}
           placeholder={node.placeholder}
           style={{ width: '100%' }}
           picker={str(props, 'picker', 'date') as 'date' | 'week' | 'month' | 'quarter' | 'year'}
@@ -118,12 +146,12 @@ export function renderControl(node: FieldNode): ReactElement | null {
       );
 
     case 'dateRange':
-      return <RangePicker disabled={node.disabled} style={{ width: '100%' }} />;
+      return <RangePicker disabled={disabled} style={{ width: '100%' }} />;
 
     case 'time':
       return (
         <TimePicker
-          disabled={node.disabled}
+          disabled={disabled}
           placeholder={node.placeholder}
           style={{ width: '100%' }}
         />
@@ -132,7 +160,7 @@ export function renderControl(node: FieldNode): ReactElement | null {
     case 'slider':
       return (
         <Slider
-          disabled={node.disabled}
+          disabled={disabled}
           min={num(props, 'min', 0)}
           max={num(props, 'max', 100)}
           step={num(props, 'step', 1)}
@@ -140,13 +168,13 @@ export function renderControl(node: FieldNode): ReactElement | null {
       );
 
     case 'rate':
-      return <Rate disabled={node.disabled} count={num(props, 'count', 5)} allowHalf={bool(props, 'allowHalf')} />;
+      return <Rate disabled={disabled} count={num(props, 'count', 5)} allowHalf={bool(props, 'allowHalf')} />;
 
     case 'upload':
       return (
         // No backend in this app — keep files client-side.
         <Upload beforeUpload={() => false} multiple={bool(props, 'multiple')} maxCount={num(props, 'maxCount')}>
-          <Button icon={<UploadOutlined />} disabled={node.disabled}>
+          <Button icon={<UploadOutlined />} disabled={disabled}>
             {str(props, 'buttonText', 'Select file')}
           </Button>
         </Upload>
