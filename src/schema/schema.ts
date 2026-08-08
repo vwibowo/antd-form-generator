@@ -29,6 +29,9 @@ export const FIELD_TYPES = [
   'group',
   'card',
   'list',
+  // Host-supplied control. `props.component` names an entry in the runtime
+  // component registry — the JSON never carries code, only that name.
+  'custom',
 ] as const;
 
 export const fieldTypeSchema = z.enum(FIELD_TYPES);

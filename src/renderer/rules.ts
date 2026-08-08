@@ -3,8 +3,10 @@ import type { FieldType, RuleSpec } from '@/schema/schema';
 
 export type AntdRule = NonNullable<FormItemProps['rules']>[number];
 
+export type ValueKind = 'number' | 'array' | 'string';
+
 /** antd applies min/max/len differently per value kind. */
-function valueKind(fieldType: FieldType): 'number' | 'array' | 'string' {
+function valueKind(fieldType: FieldType): ValueKind {
   switch (fieldType) {
     case 'number':
     case 'slider':
@@ -27,8 +29,13 @@ function withMessage<T extends object>(rule: T, message?: string): T {
  * When no message is set the rule is left bare so antd's own default message
  * (which interpolates the field label) applies.
  */
-export function compileRules(specs: RuleSpec[], fieldType: FieldType): AntdRule[] {
-  const kind = valueKind(fieldType);
+export function compileRules(
+  specs: RuleSpec[],
+  fieldType: FieldType,
+  /** Custom components declare their own kind — the type alone cannot say. */
+  kindOverride?: ValueKind,
+): AntdRule[] {
+  const kind = kindOverride ?? valueKind(fieldType);
   const rules: AntdRule[] = [];
 
   for (const spec of specs) {

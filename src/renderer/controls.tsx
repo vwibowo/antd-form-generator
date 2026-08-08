@@ -15,6 +15,8 @@ import {
 } from 'antd';
 import type { ReactElement, ReactNode } from 'react';
 import type { FieldNode, SelectOption } from '@/schema/schema';
+import type { CustomComponentRegistry } from './custom';
+import { MissingCustomComponent, customDefFor, customKeyOf } from './custom';
 import { parseDateValue } from './dateValue';
 import { numberFormatters } from './numberFormat';
 
@@ -128,6 +130,8 @@ export interface ControlOverrides {
 export function renderControl(
   node: FieldNode,
   overrides?: ControlOverrides,
+  /** Host-supplied controls. Only consulted for `custom` nodes. */
+  registry?: CustomComponentRegistry,
 ): ReactElement | null {
   const props = node.props ?? {};
   const disabled = node.disabled || overrides?.disabled === true;
@@ -371,6 +375,22 @@ export function renderControl(
         </Upload>
       );
 
+    case 'custom': {
+      const def = customDefFor(node, registry);
+      if (!def) return <MissingCustomComponent componentKey={customKeyOf(node)} />;
+      const Component = def.component;
+      // `value` and `onChange` are not passed here — `Form.Item` clones this
+      // element and injects them, exactly as it does for the antd controls.
+      return (
+        <Component
+          node={node}
+          disabled={disabled}
+          placeholder={node.placeholder}
+          options={options}
+        />
+      );
+    }
+
     default:
       return null;
   }
@@ -415,9 +435,13 @@ export function titleProps(props: Props | undefined) {
 }
 
 /** Controls whose value lives on `checked` rather than `value`. */
-export function valuePropNameFor(node: FieldNode): string | undefined {
+export function valuePropNameFor(
+  node: FieldNode,
+  registry?: CustomComponentRegistry,
+): string | undefined {
   if (node.type === 'checkbox' || node.type === 'switch') return 'checked';
   if (node.type === 'upload') return 'fileList';
+  if (node.type === 'custom') return customDefFor(node, registry)?.valuePropName;
   return undefined;
 }
 

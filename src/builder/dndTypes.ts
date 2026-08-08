@@ -4,6 +4,8 @@ import type { FieldType } from '@/schema/schema';
 export interface PaletteDragData {
   source: 'palette';
   fieldType: FieldType;
+  /** For `custom` entries: which registered component the drop should create. */
+  componentKey?: string;
 }
 
 /** Payload attached to an existing field being reordered. */
@@ -26,8 +28,10 @@ export type DragData = PaletteDragData | FieldDragData | ContainerDropData;
 export const PALETTE_ID_PREFIX = 'palette:';
 export const CONTAINER_ID_PREFIX = 'container:';
 
-export function paletteDraggableId(type: FieldType): string {
-  return `${PALETTE_ID_PREFIX}${type}`;
+export function paletteDraggableId(type: FieldType, componentKey?: string): string {
+  return componentKey
+    ? `${PALETTE_ID_PREFIX}${type}:${componentKey}`
+    : `${PALETTE_ID_PREFIX}${type}`;
 }
 
 export function containerDroppableId(containerId: string): string {

@@ -402,6 +402,28 @@ export const kitchenSinkPreset = {
             listType: 'picture',
           },
         },
+        { id: 'ks_div_custom', type: 'divider', name: 'divCustom', label: 'Custom components' },
+        {
+          // Host-supplied controls — see `src/custom/`. The schema only names
+          // them; the components themselves come from the app.
+          id: 'ks_brand_colour',
+          type: 'custom',
+          name: 'brandColour',
+          label: 'Brand colour',
+          span: 12,
+          defaultValue: '#1677ff',
+          props: { component: 'colorPicker', showText: true },
+        },
+        {
+          // Holds an array while editing, submits an object — see its
+          // `serialize` hook in the registry.
+          id: 'ks_metadata',
+          type: 'custom',
+          name: 'metadata',
+          label: 'Metadata',
+          span: 12,
+          props: { component: 'keyValue', keyPlaceholder: 'Header', maxRows: 3 },
+        },
         { id: 'ks_div_layout', type: 'divider', name: 'divLayout', label: 'Layout' },
         {
           // One top-level card holding both kinds of container.

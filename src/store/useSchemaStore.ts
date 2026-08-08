@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
+import type { CreateFieldSeed } from '@/schema/factory';
 import { createField, duplicateField } from '@/schema/factory';
 import type { FieldNode, FieldType, FormSchema } from '@/schema/schema';
 import { createEmptySchema, isContainerType, parseFormSchema } from '@/schema/schema';
@@ -21,7 +22,12 @@ export interface SchemaState {
   past: FormSchema[];
   future: FormSchema[];
 
-  addField: (type: FieldType, containerId?: string, index?: number) => void;
+  addField: (
+    type: FieldType,
+    containerId?: string,
+    index?: number,
+    seed?: CreateFieldSeed,
+  ) => void;
   moveField: (id: string, toContainerId: string, toIndex: number) => void;
   updateField: (id: string, patch: Partial<FieldNode>) => void;
   duplicateNode: (id: string) => void;
@@ -80,11 +86,11 @@ export const useSchemaStore = create<SchemaState>()(
         past: [],
         future: [],
 
-        addField: (type, containerId = ROOT_CONTAINER_ID, index) => {
+        addField: (type, containerId = ROOT_CONTAINER_ID, index, seed) => {
           const state = get();
           if (!canDropInto(state.schema, type, containerId)) return;
 
-          const node = createField(type, state.schema.fields);
+          const node = createField(type, state.schema.fields, seed);
           commit((draft) => {
             const children = getContainerChildren(draft, containerId);
             if (!children) return;

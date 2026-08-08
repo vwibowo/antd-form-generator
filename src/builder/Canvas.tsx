@@ -11,6 +11,7 @@ import {
   renderControl,
   titleProps,
 } from '@/renderer/controls';
+import { useCustomComponents } from '@/renderer/custom';
 import { compileRules } from '@/renderer/rules';
 import { metaFor } from '@/schema/registry';
 import type { FieldNode } from '@/schema/schema';
@@ -28,6 +29,10 @@ import { type ContainerDropData, type FieldDragData, containerDroppableId } from
  * without binding to any form store.
  */
 function FieldPreview({ node }: { node: FieldNode }) {
+  // Custom components render for real on the canvas — the registry is app code,
+  // so there is nothing to defer to runtime the way remote options are.
+  const customComponents = useCustomComponents();
+
   if (node.type === 'divider') {
     return (
       <Divider {...dividerProps(node.props, Boolean(node.label))} style={{ margin: '8px 0' }}>
@@ -52,6 +57,7 @@ function FieldPreview({ node }: { node: FieldNode }) {
     node.dataSource
       ? { disabled: true, options: [], notFoundContent: 'Loads at runtime' }
       : undefined,
+    customComponents,
   );
   if (!control) return null;
 

@@ -3,8 +3,10 @@ import { Layout, Space, Tabs, Typography } from 'antd';
 import { useState } from 'react';
 import { BuilderLayout } from '@/builder/BuilderLayout';
 import { Toolbar } from '@/builder/Toolbar';
+import { appCustomComponents } from '@/custom';
 import { JsonPane } from '@/panes/JsonPane';
 import { PreviewPane } from '@/panes/PreviewPane';
+import { CustomComponentsProvider } from '@/renderer/custom';
 import { useSchemaStore } from '@/store/useSchemaStore';
 
 const HEADER_HEIGHT = 56;
@@ -13,7 +15,7 @@ export function App() {
   const schema = useSchemaStore((state) => state.schema);
   const [activeKey, setActiveKey] = useState('builder');
 
-  return (
+  const workspace = (
     <Layout style={{ height: '100vh' }}>
       <Layout.Header
         className="fg-header"
@@ -85,5 +87,11 @@ export function App() {
         />
       </Layout.Content>
     </Layout>
+  );
+
+  // One registry for the whole app, so the palette, the canvas preview and the
+  // rendered form all resolve `custom` fields the same way.
+  return (
+    <CustomComponentsProvider components={appCustomComponents}>{workspace}</CustomComponentsProvider>
   );
 }

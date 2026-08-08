@@ -1,7 +1,6 @@
 import dayjs, { type Dayjs } from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
-import type { FieldNode, FieldType, FormSchema } from '@/schema/schema';
-import { isPresentationalType, isTransparentContainer } from '@/schema/schema';
+import type { FieldNode, FieldType } from '@/schema/schema';
 
 // Needed to read a default value back from a custom pattern like `DD/MM/YYYY`.
 dayjs.extend(customParseFormat);
@@ -72,54 +71,11 @@ export function serializeDateValue(value: unknown, valueFormat?: string): unknow
   return value.toISOString();
 }
 
-function serializeField(node: FieldNode, value: unknown): unknown {
+/** dayjs → JSON for one field, honouring `dateRange`'s two-element value. */
+export function serializeDateField(node: FieldNode, value: unknown): unknown {
   const valueFormat = valueFormatOf(node);
   if (node.type === 'dateRange' && Array.isArray(value)) {
     return value.map((entry) => serializeDateValue(entry, valueFormat));
   }
   return serializeDateValue(value, valueFormat);
-}
-
-/**
- * Rewrite every date/time value in a submitted payload into its configured
- * `valueFormat`. Walks the schema rather than the values so nothing else is
- * touched — uploads, tag arrays and plain objects come back as they went in.
- *
- * Mirrors the traversal in `initialValues.ts`: transparent containers flatten,
- * a `list` recurses once per row.
- */
-export function serializeValues(
-  schema: FormSchema,
-  values: Record<string, unknown>,
-): Record<string, unknown> {
-  const out = { ...values };
-  applyNodes(schema.fields, out);
-  return out;
-}
-
-function applyNodes(nodes: FieldNode[], target: Record<string, unknown>): void {
-  for (const node of nodes) {
-    if (isPresentationalType(node.type)) continue;
-
-    if (isTransparentContainer(node.type)) {
-      applyNodes(node.children ?? [], target);
-      continue;
-    }
-
-    if (node.type === 'list') {
-      const rows = target[node.name];
-      if (!Array.isArray(rows)) continue;
-      target[node.name] = rows.map((row) => {
-        if (!row || typeof row !== 'object') return row;
-        const copy = { ...(row as Record<string, unknown>) };
-        applyNodes(node.children ?? [], copy);
-        return copy;
-      });
-      continue;
-    }
-
-    if (!isDateFieldType(node.type)) continue;
-    if (!(node.name in target)) continue;
-    target[node.name] = serializeField(node, target[node.name]);
-  }
 }

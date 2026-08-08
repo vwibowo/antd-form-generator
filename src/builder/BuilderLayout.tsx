@@ -17,9 +17,10 @@ import type { FieldType } from '@/schema/schema';
 import { isContainerType } from '@/schema/schema';
 import { ROOT_CONTAINER_ID } from '@/schema/walk';
 import { useSchemaStore } from '@/store/useSchemaStore';
+import { useCustomComponents } from '@/renderer/custom';
 import { Canvas } from './Canvas';
 import { Inspector } from './inspector';
-import { Palette, paletteIcon } from './Palette';
+import { Palette, customSeed, paletteIcon } from './Palette';
 import type { DragData } from './dndTypes';
 
 interface ActiveDrag {
@@ -70,6 +71,7 @@ function resolveDropTarget(over: DragData | undefined): { containerId: string; i
 export function BuilderLayout() {
   const addField = useSchemaStore((state) => state.addField);
   const moveField = useSchemaStore((state) => state.moveField);
+  const customComponents = useCustomComponents();
   const [active, setActive] = useState<ActiveDrag | null>(null);
 
   const sensors = useSensors(
@@ -82,7 +84,8 @@ export function BuilderLayout() {
     const data = event.active.data.current as DragData | undefined;
     if (!data) return;
     if (data.source === 'palette') {
-      setActive({ label: metaFor(data.fieldType).label, type: data.fieldType });
+      const custom = data.componentKey ? customComponents[data.componentKey] : undefined;
+      setActive({ label: custom?.label ?? metaFor(data.fieldType).label, type: data.fieldType });
     } else if (data.source === 'field') {
       setActive({ label: metaFor(data.fieldType).label, type: data.fieldType });
     }
@@ -104,7 +107,15 @@ export function BuilderLayout() {
     };
 
     if (activeData?.source === 'palette') {
-      addField(activeData.fieldType, target.containerId, target.index);
+      addField(
+        activeData.fieldType,
+        target.containerId,
+        target.index,
+        customSeed(
+          activeData.componentKey,
+          activeData.componentKey ? customComponents[activeData.componentKey] : undefined,
+        ),
+      );
       return;
     }
 

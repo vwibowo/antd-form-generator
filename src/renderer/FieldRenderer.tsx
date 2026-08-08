@@ -2,6 +2,7 @@ import { Card, Col, Divider, Form, Row, Spin, Typography } from 'antd';
 import type { FieldNode } from '@/schema/schema';
 import { isPresentationalType, isTransparentContainer } from '@/schema/schema';
 import type { NamePath } from './condition';
+import { customDefFor, useCustomComponents } from './custom';
 import { useFieldVisibility } from './useFieldVisibility';
 import {
   cardSize,
@@ -34,6 +35,7 @@ export function FieldRenderer({ node, scopePath, namePrefix, gutter }: FieldRend
   // unless the node carries a `dataSource`, and `visible` keeps a conditionally
   // hidden field from firing a request it would never show.
   const remote = useRemoteOptions(node, scopePath, visible);
+  const customComponents = useCustomComponents();
 
   // A failed condition unmounts the field entirely; combined with
   // `preserve={false}` below, its value also leaves the submitted payload.
@@ -132,6 +134,7 @@ export function FieldRenderer({ node, scopePath, namePrefix, gutter }: FieldRend
           notFoundContent: remote.loading ? <Spin size="small" /> : undefined,
         }
       : undefined,
+    customComponents,
   );
   if (!control) return null;
 
@@ -141,8 +144,8 @@ export function FieldRenderer({ node, scopePath, namePrefix, gutter }: FieldRend
       label={isPresentationalType(node.type) ? undefined : node.label}
       tooltip={node.tooltip}
       extra={remote.active ? <RemoteStatus node={node} state={remote} /> : node.extra}
-      rules={compileRules(node.rules, node.type)}
-      valuePropName={valuePropNameFor(node)}
+      rules={compileRules(node.rules, node.type, customDefFor(node, customComponents)?.valueKind)}
+      valuePropName={valuePropNameFor(node, customComponents)}
       getValueFromEvent={getValueFromEventFor(node)}
       hidden={node.hidden}
       // Drop the value when the field unmounts, so conditionally hidden

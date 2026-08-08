@@ -798,13 +798,19 @@ export const TYPE_PROP_SPECS: Record<FieldType, PropSpec[]> = {
   // Repeatable rows are configured through `listConfig`, not `props` — the
   // inspector renders that section by hand.
   list: [],
+  // A custom field's rows come from the registered component's own `propSpecs`,
+  // which are only known at runtime — see `CustomSettings` in the inspector.
+  custom: [],
 };
 
 export function specsFor(type: FieldType): PropSpec[] {
   return TYPE_PROP_SPECS[type] ?? [];
 }
 
-/** Does this type have a settings section at all? Keeps the inspector blank-free. */
+/**
+ * Does this type have a settings section at all? Keeps the inspector blank-free.
+ * `list` and `custom` render sections that do not come from the spec table.
+ */
 export function hasTypeProps(type: FieldType): boolean {
-  return type === 'list' || specsFor(type).length > 0;
+  return type === 'list' || type === 'custom' || specsFor(type).length > 0;
 }

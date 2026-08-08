@@ -6,7 +6,13 @@ import type { FieldNode, FieldType } from './schema';
  * independent of builder concerns.
  */
 
-export type FieldCategory = 'Basic' | 'Choice' | 'Date & time' | 'Advanced' | 'Layout';
+export type FieldCategory =
+  | 'Basic'
+  | 'Choice'
+  | 'Date & time'
+  | 'Advanced'
+  | 'Layout'
+  | 'Custom';
 
 export interface FieldSupports {
   /** Shows the placeholder input in the inspector. */
@@ -237,6 +243,16 @@ export const FIELD_REGISTRY: Record<FieldType, FieldMeta> = {
       listConfig: { addText: 'Add item' },
     },
   },
+  custom: {
+    type: 'custom',
+    label: 'Custom component',
+    category: 'Custom',
+    namePrefix: 'custom',
+    // The component decides what it needs; the inspector still offers the
+    // common wrapper settings plus whatever the component's own specs declare.
+    supports: base,
+    defaults: { label: 'Custom field' },
+  },
 };
 
 export const FIELD_CATEGORIES: FieldCategory[] = [
@@ -245,6 +261,7 @@ export const FIELD_CATEGORIES: FieldCategory[] = [
   'Date & time',
   'Advanced',
   'Layout',
+  'Custom',
 ];
 
 export function fieldsByCategory(category: FieldCategory): FieldMeta[] {

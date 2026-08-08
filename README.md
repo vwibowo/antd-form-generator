@@ -48,6 +48,7 @@ Work is saved to `localStorage` as you go, and **Export** / **Import** move it i
 | Date & time | date, date range, time |
 | Advanced | slider, rate, upload |
 | Layout | divider, heading, group, card, repeatable |
+| Custom | whatever the host app registers — see [Custom components](#custom-components) |
 
 `group` (a plain fieldset) and `card` (an antd `Card` with a title) are **chrome only** — their children keep top-level names and do not nest in the payload. `repeatable` is a `Form.List`: it owns its name and its children become an array of objects.
 
@@ -167,6 +168,50 @@ The builder canvas never fetches — it shows an inert placeholder while you dra
 
 The **Remote data** sample preset is the live reference for all of this: each field in it reads a differently shaped response, so open its Options panel in the Builder to see how a given API maps onto `dataPath` / `labelKey` / `valueKey`.
 
+## Custom components
+
+When a use case outgrows the built-in types, the host app can supply its own control. The schema only ever names it:
+
+```jsonc
+{
+  "id": "f_colour", "type": "custom", "name": "brandColour", "label": "Brand colour",
+  "props": { "component": "colorPicker", "showText": true }
+}
+```
+
+The component itself is registered in app code and passed to the renderer:
+
+```tsx
+import { FormRenderer } from '@/renderer/FormRenderer';
+import type { CustomComponentRegistry } from '@/renderer/custom';
+
+const components: CustomComponentRegistry = {
+  colorPicker: {
+    label: 'Colour',                       // palette entry + inspector picker
+    component: ColorField,                 // gets { value, onChange, disabled, placeholder, node, options }
+    icon: <BgColorsOutlined />,
+    defaults: { label: 'Brand colour', namePrefix: 'colour' },
+    propSpecs: [                           // inspector rows, same shape the built-ins use
+      { key: 'showText', label: 'Show the hex value', group: 'Appearance', editor: { kind: 'bool' }, default: false },
+    ],
+    valueKind: 'array',                    // how min/max rules are read; default 'string'
+    valuePropName: 'checked',              // only for controls whose value is not `value`
+    serialize: (value, node) => /* -> JSON */,
+  },
+};
+
+<FormRenderer schema={schema} components={components} />
+```
+
+`value` and `onChange` are injected by `Form.Item`, exactly as for the antd controls — a component just reads one and calls the other. Anything else it needs comes from `node.props`, and each key it wants editable gets a `propSpecs` entry.
+
+Wrap a subtree in `CustomComponentsProvider` instead of passing the prop, and the builder picks the registry up too: registered components appear in the palette's **Custom** group, and the canvas renders the real component rather than a stand-in. `src/App.tsx` does exactly that with the two demos in `src/custom/` — a colour picker, and a key/value editor that holds an array while editing and submits an object through its `serialize` hook.
+
+Two things worth knowing:
+
+- **A schema never carries code.** `props.component` is a name, resolved against a registry the app controls. An imported `.json` cannot introduce a component, only ask for one.
+- **Unknown names degrade, they do not throw.** A form exported from an app that registered `signaturePad` and opened somewhere that did not shows a "not registered" notice in that field's place; every other field keeps working, and the inspector flags the missing name rather than silently rewriting it.
+
 ## Layout
 
 ```
@@ -179,6 +224,7 @@ src/
                remote/  the app's only network layer: URL templating, response
                         mapping, and a TTL body cache for remote options
   builder/     palette, canvas, inspector, toolbar, drag-and-drop
+  custom/      the demo component registry this app passes to the renderer
   panes/       preview and JSON tabs
   store/       zustand store with localStorage persistence and undo/redo
 ```
