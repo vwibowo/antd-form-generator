@@ -1,9 +1,9 @@
 import { Alert, Button, Input, Segmented, Tag, Typography } from 'antd';
 import { useEffect, useState } from 'react';
 import { extractDependencies } from '@/renderer/remote/url';
-import { useRemoteRows } from '@/renderer/table/useRemoteRows';
 import { useTableStore } from '@/store/useTableStore';
 import { Labeled } from '../inspector/Labeled';
+import { useSampleRows } from './useSampleRows';
 
 /**
  * Where the rows come from — the left panel of the table builder.
@@ -19,18 +19,7 @@ export function TableDataPanel() {
   const detectColumns = useTableStore((state) => state.detectColumns);
   const source = schema.source;
 
-  // The same hook the preview uses, asking for the same first page: bodies are
-  // cached by resolved URL, so reading rows here for "Detect columns" resolves
-  // from the preview's own request rather than issuing a second one.
-  const previewPageSize =
-    typeof schema.props?.pageSize === 'number' ? schema.props.pageSize : 10;
-  const remote = useRemoteRows(schema, {
-    page: 1,
-    pageSize: previewPageSize,
-    sortKey: null,
-    sortOrder: null,
-  });
-  const sampleRows = source.kind === 'remote' ? remote.rows : source.rows;
+  const { rows: sampleRows } = useSampleRows(schema);
 
   return (
     <div style={{ padding: 12 }}>

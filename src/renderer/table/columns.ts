@@ -1,5 +1,6 @@
 import type { TableColumnsType } from 'antd';
 import type { TableColumn, TableSchema } from '@/schema/table';
+import { readPath } from '../remote/mapOptions';
 import { compareRows, formatCell } from './cells';
 
 export type TableRow = Record<string, unknown>;
@@ -26,7 +27,16 @@ export function buildColumns(
       align: column.align,
       fixed: column.fixed,
       ellipsis: column.ellipsis,
-      render: (value: unknown) => formatCell(value, column),
+      // Read from the record rather than antd's resolved `dataIndex` value, so
+      // the cell and `compareRows` — which also uses `readPath` — cannot
+      // disagree about what a path means. Indexed array segments are exactly
+      // where two resolvers would drift.
+      //
+      // A blank path is guarded because `readPath` treats it as "the whole
+      // object": a column that has not been pointed at anything yet would
+      // otherwise dump the entire row into every cell.
+      render: (_value: unknown, record: TableRow) =>
+        formatCell(column.key ? readPath(record, column.key) : undefined, column),
       // Server paging sorts at the source; the browser must not reorder a page.
       sorter: column.sortable
         ? options.serverSort

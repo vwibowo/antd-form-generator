@@ -1,9 +1,12 @@
-import { Checkbox, Input, InputNumber, Select, Tag, Typography } from 'antd';
-import { CELL_FORMATS, type TableColumn } from '@/schema/table';
+import { AutoComplete, Checkbox, Input, InputNumber, Select, Tag, Typography } from 'antd';
+import { useMemo } from 'react';
+import { formatCell } from '@/renderer/table/cells';
+import { CELL_FORMATS, collectRowPaths, type TableColumn } from '@/schema/table';
 import { specsForFormat, TABLE_PROP_SPECS } from '@/schema/tablePropSpecs';
 import { useTableStore } from '@/store/useTableStore';
 import { Labeled } from '../inspector/Labeled';
 import { PropSection } from '../inspector/PropRow';
+import { useSampleRows } from './useSampleRows';
 
 /**
  * The right-hand panel: the selected column, or the table itself when nothing
@@ -52,13 +55,7 @@ function ColumnSettings({ column }: { column: TableColumn }) {
           />
         </Labeled>
 
-        <Labeled label="Field" help="Dot path into a row, e.g. `user.name`.">
-          <Input
-            size="small"
-            value={column.key}
-            onChange={(event) => patch({ key: event.target.value })}
-          />
-        </Labeled>
+        <FieldPicker column={column} onChange={(key) => patch({ key })} />
 
         <Labeled label="Value format">
           <Select
@@ -135,6 +132,90 @@ function ColumnSettings({ column }: { column: TableColumn }) {
       </div>
     </>
   );
+}
+
+/**
+ * Which value in a row the column shows.
+ *
+ * A dot path has always worked; what was missing was seeing which ones exist.
+ * The options come from the rows already loaded, so nested objects and the
+ * first element of an array are picked rather than guessed at — and free text
+ * still applies, because a document authored elsewhere may name a path this
+ * particular sample happens not to contain.
+ */
+function FieldPicker({
+  column,
+  onChange,
+}: {
+  column: TableColumn;
+  onChange: (key: string) => void;
+}) {
+  const schema = useTableStore((state) => state.schema);
+  const { rows } = useSampleRows(schema);
+
+  const paths = useMemo(() => collectRowPaths(rows), [rows]);
+
+  const options = paths.map((entry) => ({
+    value: entry.path,
+    label: (
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+        <span>{entry.path}</span>
+        <Typography.Text type="secondary" style={{ fontSize: 11, maxWidth: 120 }} ellipsis>
+          {entry.container ? describeContainer(entry.sample) : formatCell(entry.sample, column)}
+        </Typography.Text>
+      </div>
+    ),
+  }));
+
+  // The hint reuses the cell formatter, so what it promises is what renders.
+  const match = paths.find((entry) => entry.path === column.key);
+  const help =
+    rows.length === 0
+      ? 'Dot path into a row, e.g. `user.name`.'
+      : match
+        ? `Sample: ${match.container ? describeContainer(match.sample) : formatCell(match.sample, column)} · looks like ${match.format}`
+        : column.key === ''
+          ? 'Pick a value, or type a dot path.'
+          : 'No value at this path in the loaded rows.';
+
+  return (
+    <Labeled
+      label="Field"
+      help={help}
+      status={rows.length > 0 && column.key !== '' && !match ? 'warning' : undefined}
+    >
+      <AutoComplete
+        size="small"
+        style={{ width: '100%' }}
+        value={column.key}
+        options={options}
+        placeholder="reviews.path"
+        status={rows.length > 0 && column.key !== '' && !match ? 'warning' : undefined}
+        filterOption={(input, option) => {
+          // Reopening a box that already holds a complete path should offer
+          // every path, not narrow the list down to the one already chosen.
+          if (paths.some((entry) => entry.path === input)) return true;
+          // Match on the path itself; the label is a node, so antd cannot.
+          return String(option?.value ?? '')
+            .toLowerCase()
+            .includes(input.toLowerCase());
+        }}
+        onChange={(value) => onChange(value ?? '')}
+      />
+    </Labeled>
+  );
+}
+
+/** `{3 keys}` / `[2 items]` — a container's shape, not its contents. */
+function describeContainer(value: unknown): string {
+  if (Array.isArray(value)) {
+    return `[${value.length} item${value.length === 1 ? '' : 's'}]`;
+  }
+  if (value && typeof value === 'object') {
+    const count = Object.keys(value).length;
+    return `{${count} key${count === 1 ? '' : 's'}}`;
+  }
+  return '';
 }
 
 function TableSettings() {

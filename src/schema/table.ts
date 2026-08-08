@@ -181,3 +181,80 @@ export function inferColumns(rows: unknown[]): TableColumn[] {
 
   return columns;
 }
+
+/* -------------------------------------------------------------------------- */
+/* Path collection                                                             */
+/* -------------------------------------------------------------------------- */
+
+export interface RowPath {
+  /** Dot path, e.g. `reviews.0.rating`. */
+  path: string;
+  /** First non-empty value seen there, shown beside the path in the picker. */
+  sample: unknown;
+  /** What the sample looks like. Reported to the author, never applied. */
+  format: CellFormat;
+  /** An object or array offered whole — picking it renders the raw shape. */
+  container: boolean;
+}
+
+/** Rows scanned for shape. More than one, so a null in the first cannot hide a path. */
+const SAMPLE_ROWS = 5;
+
+/**
+ * Every path addressable in these rows, for the column Field picker.
+ *
+ * Depth and count are capped because this runs against whatever an API returned:
+ * a deeply nested or very wide response must not lock the panel. Arrays are
+ * sampled through their first element (`tags.0.name`), which `readPath` resolves
+ * because a numeric segment indexes an array just as a key indexes an object.
+ */
+export function collectRowPaths(
+  rows: unknown[],
+  options?: { maxDepth?: number; limit?: number },
+): RowPath[] {
+  const maxDepth = options?.maxDepth ?? 4;
+  const limit = options?.limit ?? 200;
+
+  const found = new Map<string, RowPath>();
+
+  const record = (path: string, sample: unknown, container: boolean) => {
+    const existing = found.get(path);
+    if (existing) {
+      // Keep the first non-empty sample — an early null should not win.
+      if (existing.sample === undefined || existing.sample === null) {
+        found.set(path, { path, sample, format: guessFormat(sample), container });
+      }
+      return;
+    }
+    if (found.size >= limit) return;
+    found.set(path, { path, sample, format: guessFormat(sample), container });
+  };
+
+  const visit = (value: unknown, prefix: string, depth: number) => {
+    if (found.size >= limit || depth > maxDepth) return;
+
+    if (isPlainObject(value)) {
+      // The container itself is a legitimate choice: a cell renders it as JSON.
+      if (prefix) record(prefix, value, true);
+      for (const [key, child] of Object.entries(value)) {
+        visit(child, prefix ? `${prefix}.${key}` : key, depth + 1);
+      }
+      return;
+    }
+
+    if (Array.isArray(value)) {
+      if (prefix) record(prefix, value, true);
+      if (value.length > 0) visit(value[0], `${prefix}.0`, depth + 1);
+      return;
+    }
+
+    if (prefix) record(prefix, value, false);
+  };
+
+  for (const row of rows.slice(0, SAMPLE_ROWS)) {
+    if (!isPlainObject(row)) continue;
+    visit(row, '', 0);
+  }
+
+  return [...found.values()];
+}

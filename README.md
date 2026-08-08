@@ -207,6 +207,23 @@ list, and hidden with the eye toggle — a hide keeps the column in the document
 level into nested objects as dotted paths, title-casing the key and guessing the format from the
 value. It is the fastest way from "here is my data" to a table.
 
+**A column's `key` is a dot path**, so nested values are addressed directly — and the inspector's
+**Field** box lists every path found in the rows already loaded, each with a sample value, rather
+than leaving you to type one blind:
+
+```jsonc
+// [{ "id": 1, "reviews": { "path": "asdas" }, "tags": [{ "name": "new" }] }]
+"key": "reviews.path"     // "asdas"
+"key": "tags.0.name"      // "new"      — a numeric segment indexes an array
+"key": "reviews"          // the object itself, rendered as JSON
+```
+
+The list is capped at four levels and 200 paths, since it runs against whatever an API returned.
+Typing still works, so a document written elsewhere can name a path this sample happens not to
+contain — the hint under the box then says so, and the cells show an em dash instead of silently
+looking empty. Choosing a path sets the field and nothing else: the hint reports what the value
+looks like, and you pick the format.
+
 `render` is a function and cannot live in a JSON document, so each column carries a `format` name
 plus options instead — the same declarative trick the number and date fields use, and literally the
 same helpers (`formatNumber`, `parseDateValue`). A blank or unreadable cell renders an em dash
