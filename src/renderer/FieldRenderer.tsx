@@ -6,8 +6,10 @@ import { useFieldVisibility } from './useFieldVisibility';
 import {
   cardSize,
   cardVariant,
+  dividerProps,
   getValueFromEventFor,
   renderControl,
+  titleProps,
   valuePropNameFor,
 } from './controls';
 import { ListRenderer } from './ListRenderer';
@@ -42,18 +44,15 @@ export function FieldRenderer({ node, scopePath, namePrefix, gutter }: FieldRend
   if (node.type === 'divider') {
     return (
       <Col span={24} key={node.id}>
-        <Divider titlePlacement="start" plain={!node.label}>
-          {node.label}
-        </Divider>
+        <Divider {...dividerProps(node.props, Boolean(node.label))}>{node.label}</Divider>
       </Col>
     );
   }
 
   if (node.type === 'title') {
-    const level = (node.props?.level as 1 | 2 | 3 | 4 | 5) ?? 4;
     return (
       <Col xs={24} sm={node.span} key={node.id}>
-        <Typography.Title level={level} style={{ marginBottom: 8 }}>
+        <Typography.Title {...titleProps(node.props)} style={{ marginBottom: 8 }}>
           {node.label}
         </Typography.Title>
         {node.extra ? <Typography.Text type="secondary">{node.extra}</Typography.Text> : null}

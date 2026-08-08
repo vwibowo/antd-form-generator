@@ -85,6 +85,41 @@ Cards are page sections, so a card can hold other containers — including a rep
 }
 ```
 
+**Per-type control options** — `props` is a free-form bag holding the antd props for that field's control. Everything editable lives in `src/schema/propSpecs.ts`, which drives the inspector's settings panel; the renderer reads the same keys in `src/renderer/controls.tsx`. Adding a new prop means one spec entry and one read.
+
+| Type | `props` keys |
+| --- | --- |
+| input | `prefix`, `suffix`, `variant`, `size`, `maxLength`, `inputType`, `allowClear`, `readOnly` |
+| password | `prefix`, `variant`, `size`, `maxLength`, `visibilityToggle`, `readOnly` |
+| textarea | `variant`, `size`, `rows`, `autoSize` + `minRows` / `maxRows`, `maxLength`, `showCount`, `allowClear`, `readOnly` |
+| number | `prefix`, `suffix`, `variant`, `size`, `min`, `max`, `step`, `controls`, `keyboard`, `readOnly`, `precision`, `thousandSeparator`, `decimalSeparator`, `stringMode` |
+| select | `prefix`, `variant`, `size`, `mode`, `showSearch`, `maxTagCount`, `maxCount`, `placement`, `allowClear`, `readOnly` |
+| radio | `button`, `buttonStyle`, `size`, `block` |
+| checkbox | `text` |
+| switch | `checkedChildren`, `unCheckedChildren`, `size` |
+| date | `prefix`, `variant`, `size`, `allowClear`, `picker`, `showTime`, `minDate`, `maxDate`, `readOnly`, `inputReadOnly`, `format`, `valueFormat` |
+| dateRange | all of `date`, plus `startPlaceholder`, `endPlaceholder`, `separator`, `order` |
+| time | `variant`, `size`, `allowClear`, `use12Hours`, `hourStep`, `minuteStep`, `secondStep`, `readOnly`, `inputReadOnly`, `format`, `valueFormat` |
+| slider | `min`, `max`, `step`, `unit`, `dots`, `reverse`, `vertical` |
+| rate | `count`, `character`, `allowHalf`, `allowClear` |
+| upload | `buttonText`, `listType`, `showUploadList`, `accept`, `maxCount`, `multiple` |
+| title | `level`, `type`, `italic`, `underline` |
+| divider | `titlePlacement`, `variant`, `size`, `plain` |
+| card | `size`, `variant` |
+
+An absent key means antd's own default, so a field only carries what it deliberately changes. `prefix`, `suffix`, `checkedChildren`, `unCheckedChildren` and `character` are ReactNode props authored as plain text. `readOnly` keeps the value visible *and* submitted (unlike `disabled`); on `select` and the pickers it is emulated — no popup, no typing, no clear button. `thousandSeparator` / `decimalSeparator` are display only: the submitted value stays a plain number, so `min` / `max` rules keep working.
+
+**Date formats** — two independent settings on `date`, `dateRange` and `time`:
+
+```jsonc
+"props": {
+  "format": "DD/MM/YYYY",       // how the input displays it — any dayjs pattern
+  "valueFormat": "YYYY-MM-DD"   // what lands in the submitted JSON
+}
+```
+
+`valueFormat` accepts a dayjs pattern, `timestamp` (milliseconds), `unix` (seconds), or nothing at all for ISO 8601 — the default, and what the generator emitted before the setting existed. It also decides how the field's `defaultValue` is read back, so an authored default is written in the same format the form submits. A `dateRange` default is an array of two such strings.
+
 **Validation rules** — `required`, `min`, `max`, `len`, `pattern` (a regex source string), and `type` (`email` / `url` / `number` / `integer`). Each takes an optional `message`; leave it off and antd's own default is used. `min` and `max` mean length for text, magnitude for numbers, and item count for multi-select and upload.
 
 **Conditional visibility** — any field can carry a `condition`:
@@ -137,7 +172,8 @@ The **Remote data** sample preset is the live reference for all of this: each fi
 ```
 src/
   schema/      zod definitions (the single source of truth for shape, TS types, and validation),
-               the field registry, node factory, and tree helpers
+               the field registry, the per-type prop specs behind the settings
+               panel, node factory, and tree helpers
                samples/ the three demo presets behind the Sample button
   renderer/    schema -> antd <Form>. No builder imports.
                remote/  the app's only network layer: URL templating, response

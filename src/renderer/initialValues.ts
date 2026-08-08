@@ -1,9 +1,6 @@
-import dayjs from 'dayjs';
 import type { FieldNode, FormSchema } from '@/schema/schema';
 import { isPresentationalType, isTransparentContainer } from '@/schema/schema';
-
-/** Types whose default value is authored as an ISO string but consumed as dayjs. */
-const DATE_TYPES = new Set(['date', 'time']);
+import { isDateFieldType, parseDateValue, valueFormatOf } from './dateValue';
 
 /**
  * Convert an authored `defaultValue` into what the antd control expects.
@@ -13,9 +10,15 @@ export function toControlDefault(node: FieldNode): unknown {
   const raw = node.defaultValue;
   if (raw === undefined || raw === '') return undefined;
 
-  if (DATE_TYPES.has(node.type)) {
-    const parsed = dayjs(String(raw));
-    return parsed.isValid() ? parsed : undefined;
+  if (isDateFieldType(node.type)) {
+    // Authored in the field's own `valueFormat` — ISO unless it says otherwise.
+    const valueFormat = valueFormatOf(node);
+    if (node.type === 'dateRange') {
+      if (!Array.isArray(raw)) return undefined;
+      const range = raw.map((entry) => parseDateValue(entry, valueFormat));
+      return range.length === 2 && range.every(Boolean) ? range : undefined;
+    }
+    return parseDateValue(raw, valueFormat);
   }
 
   return raw;

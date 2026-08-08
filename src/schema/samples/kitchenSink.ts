@@ -154,6 +154,43 @@ export const kitchenSinkPreset = {
           placeholder: 'https://example.com',
           rules: [{ kind: 'type', value: 'url' }],
         },
+        {
+          // Separators are display only — the payload still carries 1250.5.
+          id: 'ks_price',
+          type: 'number',
+          name: 'price',
+          label: 'Price',
+          span: 12,
+          defaultValue: 1250.5,
+          props: { prefix: '$', min: 0, precision: 2, thousandSeparator: ',', controls: false },
+        },
+        {
+          id: 'ks_weight',
+          type: 'number',
+          name: 'weight',
+          label: 'Weight',
+          span: 12,
+          props: { suffix: 'kg', min: 0, step: 0.5, precision: 1, variant: 'filled' },
+        },
+        {
+          id: 'ks_site',
+          type: 'input',
+          name: 'site',
+          label: 'Site',
+          span: 12,
+          placeholder: 'my-shop',
+          props: { prefix: 'https://', suffix: '.com' },
+        },
+        {
+          // Read-only still submits its value — unlike disabled.
+          id: 'ks_reference',
+          type: 'input',
+          name: 'reference',
+          label: 'Reference',
+          span: 12,
+          defaultValue: 'REF-000-421',
+          props: { readOnly: true, variant: 'filled', allowClear: false },
+        },
         { id: 'ks_div_choice', type: 'divider', name: 'divChoice', label: 'Choice' },
         {
           id: 'ks_single',
@@ -253,6 +290,7 @@ export const kitchenSinkPreset = {
           label: 'Enabled',
           span: 12,
           defaultValue: true,
+          props: { checkedChildren: 'On', unCheckedChildren: 'Off' },
         },
         { id: 'ks_div_dates', type: 'divider', name: 'divDates', label: 'Date & time' },
         {
@@ -274,12 +312,22 @@ export const kitchenSinkPreset = {
           props: { picker: 'week' },
         },
         {
+          // Shown European style, saved as a plain calendar date.
+          id: 'ks_delivery',
+          type: 'date',
+          name: 'deliveryDate',
+          label: 'Delivery',
+          span: 12,
+          defaultValue: '2026-03-15',
+          props: { picker: 'date', format: 'DD/MM/YYYY', valueFormat: 'YYYY-MM-DD' },
+        },
+        {
           id: 'ks_when_month',
           type: 'date',
           name: 'whenMonth',
           label: 'Month',
           span: 8,
-          props: { picker: 'month' },
+          props: { picker: 'month', format: 'MMMM YYYY', valueFormat: 'YYYY-MM' },
         },
         {
           id: 'ks_when_quarter',
@@ -297,8 +345,30 @@ export const kitchenSinkPreset = {
           span: 8,
           props: { picker: 'year' },
         },
-        { id: 'ks_period', type: 'dateRange', name: 'period', label: 'Period', span: 12 },
-        { id: 'ks_start_time', type: 'time', name: 'startTime', label: 'Start time', span: 12 },
+        {
+          // Both ends land in the payload as millisecond timestamps.
+          id: 'ks_period',
+          type: 'dateRange',
+          name: 'period',
+          label: 'Period',
+          span: 12,
+          props: {
+            format: 'DD/MM/YYYY',
+            valueFormat: 'timestamp',
+            startPlaceholder: 'From',
+            endPlaceholder: 'To',
+            separator: '→',
+          },
+        },
+        {
+          id: 'ks_start_time',
+          type: 'time',
+          name: 'startTime',
+          label: 'Start time',
+          span: 12,
+          defaultValue: '09:30:00',
+          props: { format: 'HH:mm', valueFormat: 'HH:mm:ss', minuteStep: 5 },
+        },
         { id: 'ks_div_advanced', type: 'divider', name: 'divAdvanced', label: 'Advanced' },
         {
           id: 'ks_volume',
@@ -307,7 +377,7 @@ export const kitchenSinkPreset = {
           label: 'Volume',
           span: 12,
           defaultValue: 60,
-          props: { min: 0, max: 200, step: 10 },
+          props: { min: 0, max: 200, step: 10, unit: ' dB', dots: false },
         },
         {
           id: 'ks_stars',
@@ -316,7 +386,7 @@ export const kitchenSinkPreset = {
           label: 'Rating',
           span: 12,
           defaultValue: 3.5,
-          props: { count: 10, allowHalf: true },
+          props: { count: 10, allowHalf: true, character: '♥' },
         },
         {
           id: 'ks_attachments',
@@ -324,7 +394,13 @@ export const kitchenSinkPreset = {
           name: 'attachments',
           label: 'Attachments',
           span: 24,
-          props: { buttonText: 'Add files', multiple: true, maxCount: 3 },
+          props: {
+            buttonText: 'Add files',
+            multiple: true,
+            maxCount: 3,
+            accept: 'image/*,.pdf',
+            listType: 'picture',
+          },
         },
         { id: 'ks_div_layout', type: 'divider', name: 'divLayout', label: 'Layout' },
         {

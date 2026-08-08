@@ -4,7 +4,13 @@ import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-
 import { CSS } from '@dnd-kit/utilities';
 import { Button, Card, Col, Divider, Empty, Form, Row, Tag, Tooltip, Typography } from 'antd';
 import type { CSSProperties } from 'react';
-import { cardSize, cardVariant, renderControl } from '@/renderer/controls';
+import {
+  cardSize,
+  cardVariant,
+  dividerProps,
+  renderControl,
+  titleProps,
+} from '@/renderer/controls';
 import { compileRules } from '@/renderer/rules';
 import { metaFor } from '@/schema/registry';
 import type { FieldNode } from '@/schema/schema';
@@ -24,16 +30,15 @@ import { type ContainerDropData, type FieldDragData, containerDroppableId } from
 function FieldPreview({ node }: { node: FieldNode }) {
   if (node.type === 'divider') {
     return (
-      <Divider titlePlacement="start" plain={!node.label} style={{ margin: '8px 0' }}>
+      <Divider {...dividerProps(node.props, Boolean(node.label))} style={{ margin: '8px 0' }}>
         {node.label}
       </Divider>
     );
   }
 
   if (node.type === 'title') {
-    const level = (node.props?.level as 1 | 2 | 3 | 4 | 5) ?? 4;
     return (
-      <Typography.Title level={level} style={{ margin: 0 }}>
+      <Typography.Title {...titleProps(node.props)} style={{ margin: 0 }}>
         {node.label || 'Heading'}
       </Typography.Title>
     );

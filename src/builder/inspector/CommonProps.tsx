@@ -1,5 +1,10 @@
-import { Checkbox, DatePicker, Input, InputNumber, Select, Slider, Switch } from 'antd';
-import dayjs from 'dayjs';
+import { Checkbox, DatePicker, Input, InputNumber, Select, Slider, Switch, TimePicker } from 'antd';
+import {
+  displayFormatOf,
+  parseDateValue,
+  serializeDateValue,
+  valueFormatOf,
+} from '@/renderer/dateValue';
 import { metaFor } from '@/schema/registry';
 import type { FieldNode } from '@/schema/schema';
 import { Labeled } from './Labeled';
@@ -47,16 +52,60 @@ function DefaultValueInput({ node, onPatch }: { node: FieldNode; onPatch: Common
       );
 
     case 'date':
-    case 'time': {
-      // Stored as an ISO string in the JSON; converted to dayjs at render time.
-      const parsed = node.defaultValue ? dayjs(String(node.defaultValue)) : null;
+    case 'time':
+    case 'dateRange': {
+      // Stored in the field's own `valueFormat` (ISO unless it says otherwise)
+      // and converted to dayjs at render time.
+      const valueFormat = valueFormatOf(node);
+      const format = displayFormatOf(node);
+      const write = (value: unknown) => set(serializeDateValue(value, valueFormat) ?? undefined);
+
+      if (node.type === 'dateRange') {
+        const raw = Array.isArray(node.defaultValue) ? node.defaultValue : [];
+        const from = parseDateValue(raw[0], valueFormat) ?? null;
+        const to = parseDateValue(raw[1], valueFormat) ?? null;
+        return (
+          <DatePicker.RangePicker
+            size="small"
+            style={{ width: '100%' }}
+            showTime={node.props?.showTime === true}
+            format={format}
+            value={from && to ? [from, to] : null}
+            onChange={(values) =>
+              set(
+                values?.[0] && values[1]
+                  ? [
+                      serializeDateValue(values[0], valueFormat),
+                      serializeDateValue(values[1], valueFormat),
+                    ]
+                  : undefined,
+              )
+            }
+          />
+        );
+      }
+
+      const parsed = parseDateValue(node.defaultValue, valueFormat) ?? null;
+      if (node.type === 'time') {
+        return (
+          <TimePicker
+            size="small"
+            style={{ width: '100%' }}
+            format={format}
+            value={parsed}
+            onChange={(value) => write(value)}
+          />
+        );
+      }
+
       return (
         <DatePicker
           size="small"
           style={{ width: '100%' }}
-          showTime={node.type === 'time'}
-          value={parsed?.isValid() ? parsed : null}
-          onChange={(value) => set(value ? value.toISOString() : undefined)}
+          showTime={node.props?.showTime === true}
+          format={format}
+          value={parsed}
+          onChange={(value) => write(value)}
         />
       );
     }

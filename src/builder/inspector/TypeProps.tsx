@@ -1,37 +1,26 @@
-import { Checkbox, Input, InputNumber, Select, Tooltip } from 'antd';
+import { AutoComplete, Checkbox, Input, InputNumber, Select, Tooltip, Typography } from 'antd';
+import type { PropSpec } from '@/schema/propSpecs';
+import { PROP_GROUPS, specsFor } from '@/schema/propSpecs';
 import type { FieldNode } from '@/schema/schema';
 import { Labeled } from './Labeled';
+
+export { hasTypeProps } from '@/schema/propSpecs';
 
 export interface TypePropsProps {
   node: FieldNode;
   onPatch: (patch: Partial<FieldNode>) => void;
 }
 
-/** Types with a non-empty settings section — keeps the inspector free of blanks. */
-const TYPES_WITH_PROPS = new Set([
-  'input',
-  'password',
-  'textarea',
-  'number',
-  'select',
-  'radio',
-  'checkbox',
-  'date',
-  'slider',
-  'rate',
-  'upload',
-  'title',
-  'card',
-  'list',
-]);
-
-export function hasTypeProps(type: FieldNode['type']): boolean {
-  return TYPES_WITH_PROPS.has(type);
-}
-
-/** Per-type antd control options, stored in the node's free-form `props` bag. */
+/**
+ * Per-type antd control options, stored in the node's free-form `props` bag.
+ *
+ * The rows are not written by hand: `src/schema/propSpecs.ts` describes every
+ * editable prop, and this file turns that description into controls. Adding a
+ * setting means one spec entry plus one read in `src/renderer/controls.tsx`.
+ */
 export function TypeProps({ node, onPatch }: TypePropsProps) {
   const props = node.props ?? {};
+
   const setProp = (key: string, value: unknown) => {
     const next = { ...props };
     if (value === undefined || value === '') {
@@ -42,353 +31,186 @@ export function TypeProps({ node, onPatch }: TypePropsProps) {
     onPatch({ props: next });
   };
 
-  const numberProp = (key: string) => (typeof props[key] === 'number' ? (props[key] as number) : undefined);
-  const stringProp = (key: string) => (typeof props[key] === 'string' ? (props[key] as string) : undefined);
-  const boolProp = (key: string) => props[key] === true;
+  const specs = specsFor(node.type).filter((spec) => !spec.when || spec.when(node));
 
-  switch (node.type) {
-    case 'input':
-    case 'password':
+  return (
+    <>
+      {PROP_GROUPS.map((group) => {
+        const rows = specs.filter((spec) => spec.group === group);
+        if (rows.length === 0) return null;
+        return (
+          <div key={group} style={{ marginBottom: 4 }}>
+            <Typography.Text
+              type="secondary"
+              style={{
+                fontSize: 10,
+                letterSpacing: 0.6,
+                textTransform: 'uppercase',
+                display: 'block',
+                marginBottom: 8,
+              }}
+            >
+              {group}
+            </Typography.Text>
+            {rows.map((spec) => (
+              <PropRow
+                key={spec.key}
+                spec={spec}
+                node={node}
+                value={props[spec.key]}
+                // Storing the default would only bloat the JSON — and a prop
+                // that is absent keeps following antd if the default changes.
+                onChange={(value) => setProp(spec.key, value === spec.default ? undefined : value)}
+              />
+            ))}
+          </div>
+        );
+      })}
+
+      {node.type === 'list' ? <ListSettings node={node} onPatch={onPatch} /> : null}
+    </>
+  );
+}
+
+interface PropRowProps {
+  spec: PropSpec;
+  node: FieldNode;
+  value: unknown;
+  onChange: (value: unknown) => void;
+}
+
+function PropRow({ spec, node, value, onChange }: PropRowProps) {
+  const locked = spec.lockedWhen?.(node);
+  const disabled = locked !== undefined;
+
+  switch (spec.editor.kind) {
+    case 'bool': {
+      const checked = disabled ? true : value === true || (value === undefined && spec.default === true);
+      const checkbox = (
+        <Checkbox
+          checked={checked}
+          disabled={disabled}
+          onChange={(event) => onChange(event.target.checked)}
+        >
+          {spec.label}
+        </Checkbox>
+      );
       return (
-        <Labeled label="Max length">
-          <InputNumber
+        <div style={{ marginBottom: 12 }}>
+          {locked ? <Tooltip title={locked}>{checkbox}</Tooltip> : checkbox}
+          {spec.help ? (
+            <Typography.Text
+              type="secondary"
+              style={{ fontSize: 11, display: 'block', marginTop: 4 }}
+            >
+              {spec.help}
+            </Typography.Text>
+          ) : null}
+        </div>
+      );
+    }
+
+    case 'text':
+      return (
+        <Labeled label={spec.label} help={spec.help}>
+          <Input
             size="small"
-            style={{ width: '100%' }}
-            min={1}
-            value={numberProp('maxLength')}
-            onChange={(value) => setProp('maxLength', value ?? undefined)}
+            disabled={disabled}
+            placeholder={spec.editor.placeholder}
+            value={typeof value === 'string' ? value : (spec.default as string | undefined) ?? ''}
+            onChange={(event) => onChange(event.target.value)}
           />
         </Labeled>
-      );
-
-    case 'textarea':
-      return (
-        <>
-          <Labeled label="Rows">
-            <InputNumber
-              size="small"
-              style={{ width: '100%' }}
-              min={1}
-              value={numberProp('rows') ?? 4}
-              onChange={(value) => setProp('rows', value ?? 4)}
-            />
-          </Labeled>
-          <Labeled label="Max length">
-            <InputNumber
-              size="small"
-              style={{ width: '100%' }}
-              min={1}
-              value={numberProp('maxLength')}
-              onChange={(value) => setProp('maxLength', value ?? undefined)}
-            />
-          </Labeled>
-          <Checkbox
-            checked={boolProp('showCount')}
-            onChange={(event) => setProp('showCount', event.target.checked || undefined)}
-          >
-            Show character count
-          </Checkbox>
-        </>
       );
 
     case 'number':
       return (
-        <>
-          <Labeled label="Minimum">
-            <InputNumber
-              size="small"
-              style={{ width: '100%' }}
-              value={numberProp('min')}
-              onChange={(value) => setProp('min', value ?? undefined)}
-            />
-          </Labeled>
-          <Labeled label="Maximum">
-            <InputNumber
-              size="small"
-              style={{ width: '100%' }}
-              value={numberProp('max')}
-              onChange={(value) => setProp('max', value ?? undefined)}
-            />
-          </Labeled>
-          <Labeled label="Step">
-            <InputNumber
-              size="small"
-              style={{ width: '100%' }}
-              value={numberProp('step') ?? 1}
-              onChange={(value) => setProp('step', value ?? 1)}
-            />
-          </Labeled>
-          <Labeled label="Decimal places">
-            <InputNumber
-              size="small"
-              style={{ width: '100%' }}
-              min={0}
-              value={numberProp('precision')}
-              onChange={(value) => setProp('precision', value ?? undefined)}
-            />
-          </Labeled>
-        </>
+        <Labeled label={spec.label} help={spec.help}>
+          <InputNumber
+            size="small"
+            style={{ width: '100%' }}
+            disabled={disabled}
+            min={spec.editor.min}
+            max={spec.editor.max}
+            step={spec.editor.step}
+            value={typeof value === 'number' ? value : (spec.default as number | undefined)}
+            onChange={(next) => onChange(next ?? undefined)}
+          />
+        </Labeled>
       );
 
     case 'select':
       return (
-        <>
-          <Labeled label="Selection mode">
-            <Select
-              size="small"
-              style={{ width: '100%' }}
-              value={stringProp('mode') ?? 'single'}
-              options={[
-                { label: 'Single', value: 'single' },
-                { label: 'Multiple', value: 'multiple' },
-                { label: 'Tags (free text)', value: 'tags' },
-              ]}
-              onChange={(value) => setProp('mode', value === 'single' ? undefined : value)}
-            />
-          </Labeled>
-          <Tooltip
-            title={
-              node.dataSource?.search
-                ? 'Always on while the options are searched on the server.'
-                : undefined
-            }
-          >
-            <Checkbox
-              checked={boolProp('showSearch') || !!node.dataSource?.search}
-              disabled={!!node.dataSource?.search}
-              onChange={(event) => setProp('showSearch', event.target.checked || undefined)}
-            >
-              Searchable
-            </Checkbox>
-          </Tooltip>
-        </>
-      );
-
-    case 'radio':
-      return (
-        <Checkbox
-          checked={boolProp('button')}
-          onChange={(event) => setProp('button', event.target.checked || undefined)}
-        >
-          Render as button group
-        </Checkbox>
-      );
-
-    case 'checkbox':
-      return (
-        <Labeled label="Checkbox text">
-          <Input
-            size="small"
-            value={stringProp('text') ?? ''}
-            onChange={(event) => setProp('text', event.target.value || undefined)}
-          />
-        </Labeled>
-      );
-
-    case 'date':
-      return (
-        <>
-          <Labeled label="Granularity">
-            <Select
-              size="small"
-              style={{ width: '100%' }}
-              value={stringProp('picker') ?? 'date'}
-              options={[
-                { label: 'Date', value: 'date' },
-                { label: 'Week', value: 'week' },
-                { label: 'Month', value: 'month' },
-                { label: 'Quarter', value: 'quarter' },
-                { label: 'Year', value: 'year' },
-              ]}
-              onChange={(value) => setProp('picker', value)}
-            />
-          </Labeled>
-          <Checkbox
-            checked={boolProp('showTime')}
-            onChange={(event) => setProp('showTime', event.target.checked || undefined)}
-          >
-            Include time
-          </Checkbox>
-        </>
-      );
-
-    case 'slider':
-      return (
-        <>
-          <Labeled label="Minimum">
-            <InputNumber
-              size="small"
-              style={{ width: '100%' }}
-              value={numberProp('min') ?? 0}
-              onChange={(value) => setProp('min', value ?? 0)}
-            />
-          </Labeled>
-          <Labeled label="Maximum">
-            <InputNumber
-              size="small"
-              style={{ width: '100%' }}
-              value={numberProp('max') ?? 100}
-              onChange={(value) => setProp('max', value ?? 100)}
-            />
-          </Labeled>
-          <Labeled label="Step">
-            <InputNumber
-              size="small"
-              style={{ width: '100%' }}
-              min={1}
-              value={numberProp('step') ?? 1}
-              onChange={(value) => setProp('step', value ?? 1)}
-            />
-          </Labeled>
-        </>
-      );
-
-    case 'rate':
-      return (
-        <>
-          <Labeled label="Star count">
-            <InputNumber
-              size="small"
-              style={{ width: '100%' }}
-              min={1}
-              max={10}
-              value={numberProp('count') ?? 5}
-              onChange={(value) => setProp('count', value ?? 5)}
-            />
-          </Labeled>
-          <Checkbox
-            checked={boolProp('allowHalf')}
-            onChange={(event) => setProp('allowHalf', event.target.checked || undefined)}
-          >
-            Allow half stars
-          </Checkbox>
-        </>
-      );
-
-    case 'upload':
-      return (
-        <>
-          <Labeled label="Button text">
-            <Input
-              size="small"
-              value={stringProp('buttonText') ?? ''}
-              onChange={(event) => setProp('buttonText', event.target.value || undefined)}
-            />
-          </Labeled>
-          <Labeled label="Max files">
-            <InputNumber
-              size="small"
-              style={{ width: '100%' }}
-              min={1}
-              value={numberProp('maxCount')}
-              onChange={(value) => setProp('maxCount', value ?? undefined)}
-            />
-          </Labeled>
-          <Checkbox
-            checked={boolProp('multiple')}
-            onChange={(event) => setProp('multiple', event.target.checked || undefined)}
-          >
-            Allow multiple files
-          </Checkbox>
-        </>
-      );
-
-    case 'title':
-      return (
-        <Labeled label="Heading level">
+        <Labeled label={spec.label} help={spec.help}>
           <Select
             size="small"
             style={{ width: '100%' }}
-            value={numberProp('level') ?? 4}
-            options={[1, 2, 3, 4, 5].map((level) => ({ label: `H${level}`, value: level }))}
-            onChange={(value) => setProp('level', value)}
+            disabled={disabled}
+            value={value ?? spec.default}
+            options={spec.editor.options}
+            onChange={(next) => onChange(next)}
           />
         </Labeled>
       );
 
-    case 'card':
+    case 'combo':
+      // Presets plus anything typed — date patterns cannot be enumerated.
       return (
-        <>
-          <Labeled label="Card size">
-            <Select
-              size="small"
-              style={{ width: '100%' }}
-              value={stringProp('size') === 'small' ? 'small' : 'medium'}
-              options={[
-                { label: 'Medium', value: 'medium' },
-                { label: 'Small', value: 'small' },
-              ]}
-              onChange={(value) => setProp('size', value)}
-            />
-          </Labeled>
-          <Labeled label="Border">
-            <Select
-              size="small"
-              style={{ width: '100%' }}
-              value={stringProp('variant') ?? 'outlined'}
-              options={[
-                { label: 'Outlined', value: 'outlined' },
-                { label: 'Borderless', value: 'borderless' },
-              ]}
-              onChange={(value) => setProp('variant', value)}
-            />
-          </Labeled>
-        </>
-      );
-
-    case 'list':
-      return (
-        <>
-          <Labeled label="Add button text">
-            <Input
-              size="small"
-              value={node.listConfig?.addText ?? 'Add item'}
-              onChange={(event) =>
-                onPatch({
-                  listConfig: {
-                    ...(node.listConfig ?? { addText: 'Add item' }),
-                    addText: event.target.value,
-                  },
-                })
-              }
-            />
-          </Labeled>
-          <Labeled label="Minimum rows" help="Rows created automatically and not removable.">
-            <InputNumber
-              size="small"
-              style={{ width: '100%' }}
-              min={0}
-              value={node.listConfig?.minItems}
-              onChange={(value) =>
-                onPatch({
-                  listConfig: {
-                    ...(node.listConfig ?? { addText: 'Add item' }),
-                    minItems: value ?? undefined,
-                  },
-                })
-              }
-            />
-          </Labeled>
-          <Labeled label="Maximum rows">
-            <InputNumber
-              size="small"
-              style={{ width: '100%' }}
-              min={1}
-              value={node.listConfig?.maxItems}
-              onChange={(value) =>
-                onPatch({
-                  listConfig: {
-                    ...(node.listConfig ?? { addText: 'Add item' }),
-                    maxItems: value ?? undefined,
-                  },
-                })
-              }
-            />
-          </Labeled>
-        </>
+        <Labeled label={spec.label} help={spec.help}>
+          <AutoComplete
+            size="small"
+            style={{ width: '100%' }}
+            disabled={disabled}
+            allowClear
+            placeholder={spec.editor.placeholder}
+            value={typeof value === 'string' ? value : (spec.default as string | undefined) ?? ''}
+            options={spec.editor.options.map((option) => ({
+              label: option.label,
+              value: String(option.value),
+            }))}
+            onChange={(next) => onChange(next ?? undefined)}
+          />
+        </Labeled>
       );
 
     default:
       return null;
   }
+}
+
+/** Repeatable rows are configured through `listConfig`, not the `props` bag. */
+function ListSettings({ node, onPatch }: TypePropsProps) {
+  const config = node.listConfig ?? { addText: 'Add item' };
+  const patchConfig = (patch: Partial<typeof config>) =>
+    onPatch({ listConfig: { ...config, ...patch } });
+
+  return (
+    <>
+      <Labeled label="Add button text">
+        <Input
+          size="small"
+          value={config.addText ?? 'Add item'}
+          onChange={(event) => patchConfig({ addText: event.target.value })}
+        />
+      </Labeled>
+      <Labeled label="Minimum rows" help="Rows created automatically and not removable.">
+        <InputNumber
+          size="small"
+          style={{ width: '100%' }}
+          min={0}
+          value={config.minItems}
+          onChange={(value) => patchConfig({ minItems: value ?? undefined })}
+        />
+      </Labeled>
+      <Labeled label="Maximum rows">
+        <InputNumber
+          size="small"
+          style={{ width: '100%' }}
+          min={1}
+          value={config.maxItems}
+          onChange={(value) => patchConfig({ maxItems: value ?? undefined })}
+        />
+      </Labeled>
+    </>
+  );
 }

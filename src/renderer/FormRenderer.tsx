@@ -1,6 +1,7 @@
 import { Button, Empty, Form, Row, Space, Typography } from 'antd';
 import { useEffect, useMemo } from 'react';
 import type { FormSchema } from '@/schema/schema';
+import { serializeValues } from './dateValue';
 import { FieldRenderer } from './FieldRenderer';
 import { buildInitialValues, collectPayloadKeys } from './initialValues';
 
@@ -59,7 +60,11 @@ export function FormRenderer({ schema, onSubmit, showActions = true }: FormRende
       labelCol={schema.layout === 'horizontal' ? schema.labelCol : undefined}
       wrapperCol={schema.layout === 'horizontal' ? schema.wrapperCol : undefined}
       initialValues={initialValues}
-      onFinish={(submitted) => onSubmit?.(submitted as Record<string, unknown>)}
+      // Dates leave the form as dayjs objects; `serializeValues` turns each one
+      // into whatever its field's `valueFormat` asks for (ISO by default).
+      onFinish={(submitted) =>
+        onSubmit?.(serializeValues(schema, submitted as Record<string, unknown>))
+      }
       requiredMark
     >
       {schema.title ? (

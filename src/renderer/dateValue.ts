@@ -1,0 +1,125 @@
+import dayjs, { type Dayjs } from 'dayjs';
+import customParseFormat from 'dayjs/plugin/customParseFormat';
+import type { FieldNode, FieldType, FormSchema } from '@/schema/schema';
+import { isPresentationalType, isTransparentContainer } from '@/schema/schema';
+
+// Needed to read a default value back from a custom pattern like `DD/MM/YYYY`.
+dayjs.extend(customParseFormat);
+
+/**
+ * Two formats live on a date field:
+ *
+ * - `props.format`     — display only, handed straight to antd.
+ * - `props.valueFormat` — what the submitted JSON carries, and how an authored
+ *                         default value is read back.
+ *
+ * `valueFormat` is either one of the keywords below or any dayjs pattern.
+ * Absent means ISO 8601, which is what this app emitted before the prop existed.
+ */
+export const VALUE_FORMAT_KEYWORDS = ['iso', 'timestamp', 'unix'] as const;
+
+/** Types whose value is a dayjs object (or a pair of them). */
+export const DATE_FIELD_TYPES = new Set<FieldType>(['date', 'dateRange', 'time']);
+
+export function isDateFieldType(type: FieldType): boolean {
+  return DATE_FIELD_TYPES.has(type);
+}
+
+export function valueFormatOf(node: FieldNode): string | undefined {
+  const value = node.props?.valueFormat;
+  return typeof value === 'string' && value !== '' ? value : undefined;
+}
+
+export function displayFormatOf(node: FieldNode): string | undefined {
+  const value = node.props?.format;
+  return typeof value === 'string' && value !== '' ? value : undefined;
+}
+
+function isPattern(valueFormat: string | undefined): valueFormat is string {
+  return (
+    valueFormat !== undefined &&
+    !(VALUE_FORMAT_KEYWORDS as readonly string[]).includes(valueFormat)
+  );
+}
+
+/** JSON (default value, imported data) → dayjs. Returns undefined if unusable. */
+export function parseDateValue(raw: unknown, valueFormat?: string): Dayjs | undefined {
+  if (raw === undefined || raw === null || raw === '') return undefined;
+  if (dayjs.isDayjs(raw)) return raw.isValid() ? raw : undefined;
+
+  if (typeof raw === 'number') {
+    const parsed = valueFormat === 'unix' ? dayjs.unix(raw) : dayjs(raw);
+    return parsed.isValid() ? parsed : undefined;
+  }
+
+  const text = String(raw);
+  if (isPattern(valueFormat)) {
+    const parsed = dayjs(text, valueFormat);
+    if (parsed.isValid()) return parsed;
+    // Fall through: a schema authored before the pattern was set still holds ISO.
+  }
+
+  const parsed = dayjs(text);
+  return parsed.isValid() ? parsed : undefined;
+}
+
+/** dayjs → JSON. Non-dayjs values pass through untouched. */
+export function serializeDateValue(value: unknown, valueFormat?: string): unknown {
+  if (!dayjs.isDayjs(value) || !value.isValid()) return value;
+  if (valueFormat === 'timestamp') return value.valueOf();
+  if (valueFormat === 'unix') return value.unix();
+  if (isPattern(valueFormat)) return value.format(valueFormat);
+  return value.toISOString();
+}
+
+function serializeField(node: FieldNode, value: unknown): unknown {
+  const valueFormat = valueFormatOf(node);
+  if (node.type === 'dateRange' && Array.isArray(value)) {
+    return value.map((entry) => serializeDateValue(entry, valueFormat));
+  }
+  return serializeDateValue(value, valueFormat);
+}
+
+/**
+ * Rewrite every date/time value in a submitted payload into its configured
+ * `valueFormat`. Walks the schema rather than the values so nothing else is
+ * touched — uploads, tag arrays and plain objects come back as they went in.
+ *
+ * Mirrors the traversal in `initialValues.ts`: transparent containers flatten,
+ * a `list` recurses once per row.
+ */
+export function serializeValues(
+  schema: FormSchema,
+  values: Record<string, unknown>,
+): Record<string, unknown> {
+  const out = { ...values };
+  applyNodes(schema.fields, out);
+  return out;
+}
+
+function applyNodes(nodes: FieldNode[], target: Record<string, unknown>): void {
+  for (const node of nodes) {
+    if (isPresentationalType(node.type)) continue;
+
+    if (isTransparentContainer(node.type)) {
+      applyNodes(node.children ?? [], target);
+      continue;
+    }
+
+    if (node.type === 'list') {
+      const rows = target[node.name];
+      if (!Array.isArray(rows)) continue;
+      target[node.name] = rows.map((row) => {
+        if (!row || typeof row !== 'object') return row;
+        const copy = { ...(row as Record<string, unknown>) };
+        applyNodes(node.children ?? [], copy);
+        return copy;
+      });
+      continue;
+    }
+
+    if (!isDateFieldType(node.type)) continue;
+    if (!(node.name in target)) continue;
+    target[node.name] = serializeField(node, target[node.name]);
+  }
+}

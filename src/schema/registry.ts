@@ -147,7 +147,7 @@ export const FIELD_REGISTRY: Record<FieldType, FieldMeta> = {
     label: 'Date range',
     category: 'Date & time',
     namePrefix: 'dateRange',
-    supports: { ...base, defaultValue: false },
+    supports: base,
     defaults: { label: 'Date range' },
   },
   time: {
@@ -155,7 +155,7 @@ export const FIELD_REGISTRY: Record<FieldType, FieldMeta> = {
     label: 'Time',
     category: 'Date & time',
     namePrefix: 'time',
-    supports: { ...base, defaultValue: false },
+    supports: base,
     defaults: { label: 'Time', placeholder: 'Select time' },
   },
   slider: {
