@@ -12,9 +12,9 @@ import {
   isDescendantOf,
   locate,
 } from '@/schema/walk';
+import { HISTORY_LIMIT, pushHistory } from './history';
 
 const STORAGE_KEY = 'antd-form-generator:schema';
-const HISTORY_LIMIT = 50;
 
 export interface SchemaState {
   schema: FormSchema;
@@ -75,7 +75,7 @@ export const useSchemaStore = create<SchemaState>()(
         mutate(draft);
         set({
           schema: draft,
-          past: [...past, schema].slice(-HISTORY_LIMIT),
+          past: pushHistory(past, schema),
           future: [],
         });
       };
@@ -170,7 +170,7 @@ export const useSchemaStore = create<SchemaState>()(
           const { schema: previous, past } = get();
           set({
             schema,
-            past: [...past, previous].slice(-HISTORY_LIMIT),
+            past: pushHistory(past, previous),
             future: [],
             selectedId: null,
           });
@@ -187,6 +187,7 @@ export const useSchemaStore = create<SchemaState>()(
             past: past.slice(0, -1),
             future: [schema, ...future].slice(0, HISTORY_LIMIT),
             selectedId: null,
+
           });
         },
 
@@ -196,7 +197,7 @@ export const useSchemaStore = create<SchemaState>()(
           const [next, ...rest] = future;
           set({
             schema: next,
-            past: [...past, schema].slice(-HISTORY_LIMIT),
+            past: pushHistory(past, schema),
             future: rest,
             selectedId: null,
           });

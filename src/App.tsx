@@ -1,19 +1,30 @@
 import { BuildOutlined, CodeOutlined, EyeOutlined } from '@ant-design/icons';
-import { Layout, Space, Tabs, Typography } from 'antd';
+import { Layout, Segmented, Space, Tabs, Typography } from 'antd';
 import { useState } from 'react';
 import { BuilderLayout } from '@/builder/BuilderLayout';
+import { TableBuilder } from '@/builder/table/TableBuilder';
 import { Toolbar } from '@/builder/Toolbar';
 import { appCustomComponents } from '@/custom';
-import { JsonPane } from '@/panes/JsonPane';
+import { JsonPane, TableJsonPane } from '@/panes/JsonPane';
 import { PreviewPane } from '@/panes/PreviewPane';
+import { TablePreviewPane } from '@/panes/TablePreviewPane';
 import { CustomComponentsProvider } from '@/renderer/custom';
+import { useAppMode } from '@/store/useAppMode';
 import { useSchemaStore } from '@/store/useSchemaStore';
+import { useTableStore } from '@/store/useTableStore';
 
 const HEADER_HEIGHT = 56;
 
 export function App() {
   const schema = useSchemaStore((state) => state.schema);
+  const tableSchema = useTableStore((state) => state.schema);
+  const mode = useAppMode((state) => state.mode);
+  const setMode = useAppMode((state) => state.setMode);
   const [activeKey, setActiveKey] = useState('builder');
+
+  const isTable = mode === 'table';
+  const count = isTable ? tableSchema.columns.length : schema.fields.length;
+  const noun = isTable ? 'column' : 'field';
 
   const workspace = (
     <Layout style={{ height: '100vh' }}>
@@ -29,10 +40,21 @@ export function App() {
       >
         <Space size={12}>
           <Typography.Text strong style={{ fontSize: 15 }}>
-            antd Form Generator
+            antd Generator
           </Typography.Text>
+          {/* Which document the three tabs below are editing. */}
+          <Segmented
+            size="small"
+            value={mode}
+            options={[
+              { label: 'Form', value: 'form' },
+              { label: 'Table', value: 'table' },
+            ]}
+            onChange={(next) => setMode(next as 'form' | 'table')}
+          />
           <Typography.Text type="secondary" className="fg-header__meta" style={{ fontSize: 12 }}>
-            {schema.fields.length} field{schema.fields.length === 1 ? '' : 's'}
+            {count} {noun}
+            {count === 1 ? '' : 's'}
           </Typography.Text>
         </Space>
         <Toolbar />
@@ -55,7 +77,7 @@ export function App() {
                   <BuildOutlined /> Builder
                 </span>
               ),
-              children: <BuilderLayout />,
+              children: isTable ? <TableBuilder /> : <BuilderLayout />,
             },
             {
               key: 'preview',
@@ -66,7 +88,11 @@ export function App() {
               ),
               children: (
                 <div className="fg-scroll" style={{ height: '100%' }}>
-                  <PreviewPane schema={schema} />
+                  {isTable ? (
+                    <TablePreviewPane schema={tableSchema} />
+                  ) : (
+                    <PreviewPane schema={schema} />
+                  )}
                 </div>
               ),
             },
@@ -79,7 +105,7 @@ export function App() {
               ),
               children: (
                 <div className="fg-scroll" style={{ height: '100%' }}>
-                  <JsonPane />
+                  {isTable ? <TableJsonPane /> : <JsonPane />}
                 </div>
               ),
             },

@@ -31,8 +31,12 @@ export type PropGroup = 'Appearance' | 'Behavior' | 'Format';
 /** Render order of the subheadings in the settings panel. */
 export const PROP_GROUPS: PropGroup[] = ['Appearance', 'Behavior', 'Format'];
 
-export interface PropSpec {
-  /** Key inside `node.props`. */
+/**
+ * `Ctx` is whatever owns the props bag: a `FieldNode` for form fields, a
+ * `TableColumn` for table cell formats. Only the two predicates see it.
+ */
+export interface PropSpec<Ctx = FieldNode> {
+  /** Key inside the owner's `props`. */
   key: string;
   label: string;
   editor: PropEditor;
@@ -44,9 +48,9 @@ export interface PropSpec {
    */
   default?: string | number | boolean;
   /** Hide the row entirely — e.g. row-count props while autoSize is off. */
-  when?: (node: FieldNode) => boolean;
+  when?: (ctx: Ctx) => boolean;
   /** Returns a tooltip when the value is forced; the row renders read-only. */
-  lockedWhen?: (node: FieldNode) => string | undefined;
+  lockedWhen?: (ctx: Ctx) => string | undefined;
 }
 
 /* -------------------------------------------------------------------------- */

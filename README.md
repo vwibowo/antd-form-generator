@@ -1,8 +1,10 @@
-# antd Form Generator
+# antd Generator
 
-Build an [Ant Design](https://github.com/ant-design/ant-design) form in a drag-and-drop UI, get a JSON schema out, and render that JSON back into a working form.
+Build an [Ant Design](https://github.com/ant-design/ant-design) **form** or **table** in a drag-and-drop UI, get a JSON schema out, and render that JSON back into a working component.
 
 The JSON schema is the contract between the two halves. `src/renderer/` never imports anything from `src/builder/`, so it can be lifted into a standalone package as-is.
+
+The **Form / Table** switch in the header chooses which document the three tabs are editing. They are separate documents with separate storage, undo stacks and export files — see [Table documents](#table-documents).
 
 ## Running it
 
@@ -14,13 +16,15 @@ pnpm install
 pnpm dev
 ```
 
-Then open http://localhost:3000. Click **Sample** in the header for the flagship demo, or use the arrow beside it to pick one of three presets:
+Then open http://localhost:3000. Click **Sample** in the header for the flagship demo, or use the arrow beside it to pick a preset for whichever document is active. In form mode:
 
 | Preset | What it shows |
 | --- | --- |
 | **Purchase request** | A procurement flow that grows as you fill it in — a remote catalogue cascade, repeatable line items, and rules that only appear once the total passes 5,000. Opening the Preview fires exactly one request; every other one is caused by something you did. |
 | **Remote data** | Every API response shape the option mapper handles, side by side: a bare array of objects, a bare array of plain strings, a nested `dataPath`, and a dot-path label. Plus cascading, debounced server-side search, and the HTTP error state. |
 | **Kitchen sink** | Reference form. One of every field type, every per-type setting, every validation rule, and all nine condition operators. Horizontal layout with a fixed label column. |
+
+In table mode the same button offers **Inline array** (rows pasted into the document, one column per cell format) and **API list** (dummyjson products, paged on the server via `limit`/`skip`).
 
 Between them the presets cover every feature documented below, so they double as a manual regression suite.
 
@@ -33,11 +37,11 @@ Between them the presets cover every feature documented below, so they double as
 
 ## The three tabs
 
-- **Builder** — palette on the left, canvas in the middle, inspector on the right. Drag from the palette onto the canvas, or click a palette entry to append. Drag the handle on a field card to reorder it or move it into a repeatable section.
-- **Preview** — the schema rendered as a real, submittable form, with the resulting payload beside it.
+- **Builder** — palette on the left, canvas in the middle, inspector on the right. Drag from the palette onto the canvas, or click a palette entry to append. Drag the handle on a field card to reorder it or move it into a repeatable section. In table mode the left pane becomes the data source and column list instead.
+- **Preview** — the schema rendered as a real, submittable form, with the resulting payload beside it. For a table, the table on its own.
 - **JSON** — the schema as text. Edits apply to the builder the moment the JSON is valid; while it is invalid the errors are listed and the builder is left alone.
 
-Work is saved to `localStorage` as you go, and **Export** / **Import** move it in and out as a `.json` file.
+Each document is saved to its own `localStorage` key as you go, and **Export** / **Import** move it in and out as a `.json` file (`form-schema.json` / `table-schema.json`). Import reads the file's own `kind` and switches the mode to match, so you never have to pick the right one first.
 
 ## Field types
 
@@ -54,7 +58,7 @@ Work is saved to `localStorage` as you go, and **Export** / **Import** move it i
 
 Cards are page sections, so a card can hold other containers — including a repeatable. To keep the JSON legible that is capped: a container may only go into a card that is itself top-level, so nesting stops at `card > repeatable`. `group` and `repeatable` hold plain fields only.
 
-## Schema shape
+## Form schema shape
 
 ```jsonc
 {
@@ -168,6 +172,82 @@ The builder canvas never fetches — it shows an inert placeholder while you dra
 
 The **Remote data** sample preset is the live reference for all of this: each field in it reads a differently shaped response, so open its Options panel in the Builder to see how a given API maps onto `dataPath` / `labelKey` / `valueKey`.
 
+## Table documents
+
+Two things that are not forms: an array you already have, and an API that returns a list. Switch the
+header to **Table** and the three tabs edit a table document instead.
+
+```jsonc
+{
+  "kind": "table",                 // the discriminator an import reads
+  "version": 1,
+  "title": "Invoices",
+  "rowKey": "id",                  // dot path to a stable id; blank uses the row position
+  "source": { "kind": "static", "rows": [ /* … */ ] },
+  "columns": [
+    {
+      "id": "col_a1b2",            // builder identity; never rendered
+      "key": "total",              // dot path into a row, e.g. "supplier.name"
+      "title": "Amount due",       // the header — this is the rename
+      "align": "right",
+      "width": 140,
+      "sortable": true,
+      "hidden": false,
+      "format": "number",          // text | number | date | boolean
+      "props": { "prefix": "$", "precision": 2, "thousandSeparator": "," }
+    }
+  ],
+  "props": { "bordered": true, "pageSize": 10, "showTotal": true }
+}
+```
+
+**Columns** are renamed in the inspector (Header), reordered by dragging the handle in the column
+list, and hidden with the eye toggle — a hide keeps the column in the document, so it is reversible.
+**Detect columns** reads the rows you already have and writes one column per key, descending one
+level into nested objects as dotted paths, title-casing the key and guessing the format from the
+value. It is the fastest way from "here is my data" to a table.
+
+`render` is a function and cannot live in a JSON document, so each column carries a `format` name
+plus options instead — the same declarative trick the number and date fields use, and literally the
+same helpers (`formatNumber`, `parseDateValue`). A blank or unreadable cell renders an em dash
+rather than throwing.
+
+**Table props** live in the same free-form `props` bag as a field's, described by
+`src/schema/tablePropSpecs.ts`: `size`, `bordered`, `showHeader`, `sticky`, `tableLayout`, `virtual`,
+`scrollX`, `scrollY`, `emptyText`, and the pagination set (`pagination`, `pageSize`,
+`pagePlacement`, `showSizeChanger`, `showQuickJumper`, `showTotal`, `simplePagination`). Function and
+node props — `rowSelection`, `expandable`, `summary`, `onCell` — are deliberately absent.
+
+### Rows from an API
+
+```jsonc
+"source": {
+  "kind": "remote",
+  "url": "https://dummyjson.com/products",
+  "dataPath": "products",          // dot path to the array; blank = the response itself
+  "paging": "server",              // client = fetch once and page in the browser
+  "pageMode": "offset",            // offset sends rows-to-skip; page sends a page number
+  "pageParam": "skip",
+  "sizeParam": "limit",
+  "pageStart": 1,                  // for `page` mode, whether the first page is 1 or 0
+  "totalPath": "total",            // dot path to the row count
+  "sortParam": "sortBy",           // blank turns server-side sorting off
+  "orderParam": "order", "ascValue": "asc", "descValue": "desc"
+}
+```
+
+`client` paging fetches once and lets antd page, sort and filter the array. `server` paging sends
+the page, size and sort as query parameters and reads the row count from `totalPath`, so every page
+change is a fresh request — which is what the **API list** preset demonstrates against dummyjson's
+`limit`/`skip`.
+
+The URL takes the same `{{token}}` templating the form's remote options use, resolved against the
+document's `params` block (the panel grows an input per token). Same rules, too: GET only, no
+headers or auth field, because the document is persisted, shown in the JSON tab and exported.
+
+Under the hood both features share one network layer — `src/renderer/remote/useFetchedBody.ts` does
+the caching, aborting and error strings for options and rows alike.
+
 ## Custom components
 
 When a use case outgrows the built-in types, the host app can supply its own control. The schema only ever names it:
@@ -218,15 +298,18 @@ Two things worth knowing:
 src/
   schema/      zod definitions (the single source of truth for shape, TS types, and validation),
                the field registry, the per-type prop specs behind the settings
-               panel, node factory, and tree helpers
-               samples/ the three demo presets behind the Sample button
-  renderer/    schema -> antd <Form>. No builder imports.
+               panel, the table document, node factory, and tree helpers
+               samples/ the demo presets behind the Sample button
+  renderer/    schema -> antd <Form> or <Table>. No builder imports.
                remote/  the app's only network layer: URL templating, response
-                        mapping, and a TTL body cache for remote options
+                        mapping, and a TTL body cache, shared by options and rows
+               table/   schema -> antd <Table>: columns, cell formats, remote rows
   builder/     palette, canvas, inspector, toolbar, drag-and-drop
+               table/   the table builder: data source, column list, column inspector
   custom/      the demo component registry this app passes to the renderer
   panes/       preview and JSON tabs
-  store/       zustand store with localStorage persistence and undo/redo
+  store/       one zustand store per document, each with its own localStorage
+               key and undo/redo, plus the Form/Table mode switch
 ```
 
 ## Stack

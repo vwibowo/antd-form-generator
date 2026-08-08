@@ -1,10 +1,10 @@
-import { AutoComplete, Checkbox, Input, InputNumber, Select, Tooltip, Typography } from 'antd';
+import { Input, InputNumber, Select } from 'antd';
 import type { CustomComponentRegistry } from '@/renderer/custom';
 import { customDefFor, customKeyOf, useCustomComponents } from '@/renderer/custom';
-import type { PropSpec } from '@/schema/propSpecs';
-import { PROP_GROUPS, specsFor } from '@/schema/propSpecs';
+import { specsFor } from '@/schema/propSpecs';
 import type { FieldNode } from '@/schema/schema';
 import { Labeled } from './Labeled';
+import { PropSection } from './PropRow';
 
 export { hasTypeProps } from '@/schema/propSpecs';
 
@@ -21,25 +21,13 @@ export interface TypePropsProps {
  * setting means one spec entry plus one read in `src/renderer/controls.tsx`.
  */
 export function TypeProps({ node, onPatch }: TypePropsProps) {
-  const props = node.props ?? {};
   const customComponents = useCustomComponents();
 
-  const setProp = (key: string, value: unknown) => {
-    const next = { ...props };
-    if (value === undefined || value === '') {
-      delete next[key];
-    } else {
-      next[key] = value;
-    }
-    onPatch({ props: next });
-  };
-
   // A custom field's rows come from the registered component, not the table.
-  const declared =
+  const specs =
     node.type === 'custom'
       ? (customDefFor(node, customComponents)?.propSpecs ?? [])
       : specsFor(node.type);
-  const specs = declared.filter((spec) => !spec.when || spec.when(node));
 
   return (
     <>
@@ -47,147 +35,16 @@ export function TypeProps({ node, onPatch }: TypePropsProps) {
         <ComponentPicker node={node} registry={customComponents} onPatch={onPatch} />
       ) : null}
 
-      {PROP_GROUPS.map((group) => {
-        const rows = specs.filter((spec) => spec.group === group);
-        if (rows.length === 0) return null;
-        return (
-          <div key={group} style={{ marginBottom: 4 }}>
-            <Typography.Text
-              type="secondary"
-              style={{
-                fontSize: 10,
-                letterSpacing: 0.6,
-                textTransform: 'uppercase',
-                display: 'block',
-                marginBottom: 8,
-              }}
-            >
-              {group}
-            </Typography.Text>
-            {rows.map((spec) => (
-              <PropRow
-                key={spec.key}
-                spec={spec}
-                node={node}
-                value={props[spec.key]}
-                // Storing the default would only bloat the JSON — and a prop
-                // that is absent keeps following antd if the default changes.
-                onChange={(value) => setProp(spec.key, value === spec.default ? undefined : value)}
-              />
-            ))}
-          </div>
-        );
-      })}
+      <PropSection
+        specs={specs}
+        context={node}
+        props={node.props ?? {}}
+        onChange={(props) => onPatch({ props })}
+      />
 
       {node.type === 'list' ? <ListSettings node={node} onPatch={onPatch} /> : null}
     </>
   );
-}
-
-interface PropRowProps {
-  spec: PropSpec;
-  node: FieldNode;
-  value: unknown;
-  onChange: (value: unknown) => void;
-}
-
-function PropRow({ spec, node, value, onChange }: PropRowProps) {
-  const locked = spec.lockedWhen?.(node);
-  const disabled = locked !== undefined;
-
-  switch (spec.editor.kind) {
-    case 'bool': {
-      const checked = disabled ? true : value === true || (value === undefined && spec.default === true);
-      const checkbox = (
-        <Checkbox
-          checked={checked}
-          disabled={disabled}
-          onChange={(event) => onChange(event.target.checked)}
-        >
-          {spec.label}
-        </Checkbox>
-      );
-      return (
-        <div style={{ marginBottom: 12 }}>
-          {locked ? <Tooltip title={locked}>{checkbox}</Tooltip> : checkbox}
-          {spec.help ? (
-            <Typography.Text
-              type="secondary"
-              style={{ fontSize: 11, display: 'block', marginTop: 4 }}
-            >
-              {spec.help}
-            </Typography.Text>
-          ) : null}
-        </div>
-      );
-    }
-
-    case 'text':
-      return (
-        <Labeled label={spec.label} help={spec.help}>
-          <Input
-            size="small"
-            disabled={disabled}
-            placeholder={spec.editor.placeholder}
-            value={typeof value === 'string' ? value : (spec.default as string | undefined) ?? ''}
-            onChange={(event) => onChange(event.target.value)}
-          />
-        </Labeled>
-      );
-
-    case 'number':
-      return (
-        <Labeled label={spec.label} help={spec.help}>
-          <InputNumber
-            size="small"
-            style={{ width: '100%' }}
-            disabled={disabled}
-            min={spec.editor.min}
-            max={spec.editor.max}
-            step={spec.editor.step}
-            value={typeof value === 'number' ? value : (spec.default as number | undefined)}
-            onChange={(next) => onChange(next ?? undefined)}
-          />
-        </Labeled>
-      );
-
-    case 'select':
-      return (
-        <Labeled label={spec.label} help={spec.help}>
-          <Select
-            size="small"
-            style={{ width: '100%' }}
-            disabled={disabled}
-            value={value ?? spec.default}
-            options={spec.editor.options}
-            onChange={(next) => onChange(next)}
-          />
-        </Labeled>
-      );
-
-    case 'combo':
-      // Presets plus anything typed — date patterns cannot be enumerated.
-      return (
-        <Labeled label={spec.label} help={spec.help}>
-          <AutoComplete
-            size="small"
-            style={{ width: '100%' }}
-            disabled={disabled}
-            allowClear
-            placeholder={spec.editor.placeholder}
-            value={typeof value === 'string' ? value : (spec.default as string | undefined) ?? ''}
-            options={spec.editor.options.map((option) => ({
-              label: option.label,
-              value: String(option.value),
-            }))}
-            onChange={(next) => onChange(next ?? undefined)}
-          />
-        </Labeled>
-      );
-
-    default:
-      return null;
-  }
 }
 
 /**

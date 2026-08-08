@@ -1,18 +1,28 @@
 import { Alert, Button, Card, Input, Space, Typography } from 'antd';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { parseFormSchema } from '@/schema/schema';
+import { parseTableSchema } from '@/schema/table';
 import { useSchemaStore } from '@/store/useSchemaStore';
+import { useTableStore } from '@/store/useTableStore';
+
+/** What a pane needs to edit one document as text. */
+export interface JsonEditorProps<T> {
+  title: string;
+  document: T;
+  parse: (input: unknown) => { ok: true; schema: T } | { ok: false; errors: string[] };
+  onApply: (schema: T) => void;
+}
 
 /**
  * Two-way JSON view. Typing valid JSON pushes it into the store; invalid JSON
  * shows errors and leaves the store untouched, so a half-typed edit never
- * destroys the form being built.
+ * destroys the document being built.
+ *
+ * Generic over the document so the form and the table share one editor — only
+ * the validator and the store binding differ.
  */
-export function JsonPane() {
-  const schema = useSchemaStore((state) => state.schema);
-  const setSchema = useSchemaStore((state) => state.setSchema);
-
-  const serialized = useMemo(() => JSON.stringify(schema, null, 2), [schema]);
+export function JsonEditor<T>({ title, document, parse, onApply }: JsonEditorProps<T>) {
+  const serialized = useMemo(() => JSON.stringify(document, null, 2), [document]);
   const [draft, setDraft] = useState(serialized);
   const [errors, setErrors] = useState<string[]>([]);
   const focusedRef = useRef(false);
@@ -35,22 +45,22 @@ export function JsonPane() {
       setErrors([error instanceof Error ? error.message : 'Invalid JSON']);
       return;
     }
-    const result = parseFormSchema(parsed);
+    const result = parse(parsed);
     if (!result.ok) {
       setErrors(result.errors);
       return;
     }
     setErrors([]);
     if (JSON.stringify(result.schema) !== serialized) {
-      setSchema(result.schema);
+      onApply(result.schema);
     }
   };
 
   return (
-    <div style={{ padding: 16, height: "calc(100vh - 100px)" }}>
+    <div style={{ padding: 16, height: 'calc(100vh - 100px)' }}>
       <Card
         size="small"
-        title="Form schema JSON"
+        title={title}
         extra={
           <Space>
             <Button
@@ -117,5 +127,33 @@ export function JsonPane() {
         />
       </Card>
     </div>
+  );
+}
+
+export function JsonPane() {
+  const schema = useSchemaStore((state) => state.schema);
+  const setSchema = useSchemaStore((state) => state.setSchema);
+
+  return (
+    <JsonEditor
+      title="Form schema JSON"
+      document={schema}
+      parse={parseFormSchema}
+      onApply={setSchema}
+    />
+  );
+}
+
+export function TableJsonPane() {
+  const schema = useTableStore((state) => state.schema);
+  const setSchema = useTableStore((state) => state.setSchema);
+
+  return (
+    <JsonEditor
+      title="Table schema JSON"
+      document={schema}
+      parse={parseTableSchema}
+      onApply={setSchema}
+    />
   );
 }

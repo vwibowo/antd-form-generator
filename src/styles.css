@@ -130,6 +130,12 @@ body {
   height: calc(100vh - 103px);
 }
 
+/* The table builder's left pane holds a data source editor, not a palette of
+   one-line buttons, so it needs the extra width. */
+.fg-builder--table {
+  grid-template-columns: 320px minmax(0, 1fr) 340px;
+}
+
 .fg-builder__palette {
   background: #fff;
   border-right: 1px solid rgba(5, 5, 5, 0.06);
