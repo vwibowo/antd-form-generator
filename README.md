@@ -24,7 +24,7 @@ Then open http://localhost:3000. Click **Sample** in the header for the flagship
 | **Remote data** | Every API response shape the option mapper handles, side by side: a bare array of objects, a bare array of plain strings, a nested `dataPath`, and a dot-path label. Plus cascading, debounced server-side search, and the HTTP error state. |
 | **Kitchen sink** | Reference form. One of every field type, every per-type setting, every validation rule, and all nine condition operators. Horizontal layout with a fixed label column. |
 
-In table mode the same button offers **Inline array** (rows pasted into the document, one column per cell format) and **API list** (dummyjson products, paged on the server via `limit`/`skip`).
+In table mode the same button offers **Inline array** (rows pasted into the document, one column per cell format, with search, a derived Status filter and two bulk actions) and **API list** (dummyjson products, paged *and searched* on the server via `limit`/`skip`/`q`, with selection kept across pages).
 
 Between them the presets cover every feature documented below, so they double as a manual regression suite.
 
@@ -228,6 +228,49 @@ looks like, and you pick the format.
 plus options instead — the same declarative trick the number and date fields use, and literally the
 same helpers (`formatNumber`, `parseDateValue`). A blank or unreadable cell renders an em dash
 rather than throwing.
+
+### Selecting, searching, filtering
+
+```jsonc
+"search": { "enabled": true, "placeholder": "Search invoices", "columnIds": [], "param": "q" },
+"selection": {
+  "enabled": true, "type": "checkbox", "preserveAcrossPages": false,
+  "actions": [ { "id": "act_void", "label": "Void", "danger": true, "minSelected": 2 } ]
+},
+"columns": [ { "key": "paid", "title": "Status", "filterable": true } ]
+```
+
+**Search** is one box above the table. It matches against the **rendered** text, not the raw value,
+so `paid` finds a boolean column showing `Paid` and `1,250` finds a number shown as `$1,250.50` —
+what the reader can see is what the box searches. `columnIds` narrows which columns take part;
+blank searches every visible one.
+
+**Filters** are the antd header dropdowns, and their values are *derived from the rows in hand*
+rather than authored, so the list cannot drift from the data. Labels go through the same cell
+formatter as the column, which is why the Status filter offers `Paid` / `Outstanding` rather than
+`true` / `false`.
+
+**Selection** is runtime state — a table submits nothing. The renderer owns it and hands it out:
+
+```tsx
+<TableRenderer
+  schema={schema}
+  onSelectionChange={(keys, rows) => …}
+  onAction={(actionId, keys, rows) => …}   // a bulk-action button was pressed
+/>
+```
+
+Bulk actions carry only an id, a label and a `minSelected` threshold; what `act_void` *means*
+belongs to the host app. A button stays disabled below its threshold rather than failing after the
+callback has already fired. The Preview tab lists the selected keys and the last action, standing in
+for a host so the callbacks are visible while you build.
+
+Under **client** paging all three run in the browser. Under **server** paging they become query
+parameters — `?q=phone`, and one parameter per filtered column (`filterParam`, defaulting to the
+column's own field) — refetching the way page and sort already do, because filtering one page of a
+result set you cannot see the rest of would be a lie. Typing is debounced (300ms by default) so a
+five-letter search costs one request. One caveat worth knowing: a filter dropdown can only list
+values it has seen, which under server paging means the current page.
 
 **Table props** live in the same free-form `props` bag as a field's, described by
 `src/schema/tablePropSpecs.ts`: `size`, `bordered`, `showHeader`, `sticky`, `tableLayout`, `virtual`,

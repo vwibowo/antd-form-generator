@@ -1,7 +1,15 @@
-import { AutoComplete, Checkbox, Input, InputNumber, Select, Tag, Typography } from 'antd';
+import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
+import { AutoComplete, Button, Checkbox, Input, InputNumber, Select, Tag, Typography } from 'antd';
 import { useMemo } from 'react';
+import { createId } from '@/lib/ids';
 import { formatCell } from '@/renderer/table/cells';
-import { CELL_FORMATS, collectRowPaths, type TableColumn } from '@/schema/table';
+import {
+  CELL_FORMATS,
+  collectRowPaths,
+  tableActionSchema,
+  type TableAction,
+  type TableColumn,
+} from '@/schema/table';
 import { specsForFormat, TABLE_PROP_SPECS } from '@/schema/tablePropSpecs';
 import { useTableStore } from '@/store/useTableStore';
 import { Labeled } from '../inspector/Labeled';
@@ -27,6 +35,8 @@ export function ColumnInspector() {
 
 function ColumnSettings({ column }: { column: TableColumn }) {
   const updateColumn = useTableStore((state) => state.updateColumn);
+  const source = useTableStore((state) => state.schema.source);
+  const serverPaging = source.kind === 'remote' && source.paging === 'server';
   const patch = (next: Partial<TableColumn>) => updateColumn(column.id, next);
 
   return (
@@ -108,7 +118,7 @@ function ColumnSettings({ column }: { column: TableColumn }) {
           />
         </Labeled>
 
-        <div style={{ display: 'flex', gap: 16, marginBottom: 12 }}>
+        <div style={{ display: 'flex', gap: 16, marginBottom: 12, flexWrap: 'wrap' }}>
           <Checkbox
             checked={column.sortable}
             onChange={(event) => patch({ sortable: event.target.checked })}
@@ -121,7 +131,34 @@ function ColumnSettings({ column }: { column: TableColumn }) {
           >
             Truncate
           </Checkbox>
+          <Checkbox
+            checked={column.filterable}
+            onChange={(event) => patch({ filterable: event.target.checked })}
+          >
+            Filterable
+          </Checkbox>
         </div>
+
+        {column.filterable ? (
+          <Typography.Text
+            type="secondary"
+            style={{ fontSize: 11, display: 'block', marginBottom: 12 }}
+          >
+            The dropdown lists the values found in the loaded rows.
+            {serverPaging ? ' Under server paging that is the current page only.' : ''}
+          </Typography.Text>
+        ) : null}
+
+        {column.filterable && serverPaging ? (
+          <Labeled label="Filter parameter" help="Blank sends the column's own field name.">
+            <Input
+              size="small"
+              placeholder={column.key || 'field'}
+              value={column.filterParam}
+              onChange={(event) => patch({ filterParam: event.target.value })}
+            />
+          </Labeled>
+        ) : null}
 
         <PropSection
           specs={specsForFormat(column.format)}
@@ -260,6 +297,244 @@ function TableSettings() {
         props={schema.props ?? {}}
         onChange={(props) => updateSettings({ props })}
       />
+
+      <SearchSettings />
+      <SelectionSettings />
     </div>
+  );
+}
+
+/** Section heading matching the ones `PropSection` renders. */
+function SectionHeading({ children }: { children: string }) {
+  return (
+    <Typography.Text
+      type="secondary"
+      style={{
+        fontSize: 10,
+        letterSpacing: 0.6,
+        textTransform: 'uppercase',
+        display: 'block',
+        margin: '4px 0 8px',
+      }}
+    >
+      {children}
+    </Typography.Text>
+  );
+}
+
+function SearchSettings() {
+  const schema = useTableStore((state) => state.schema);
+  const updateSettings = useTableStore((state) => state.updateSettings);
+  const search = schema.search;
+  const serverPaging = schema.source.kind === 'remote' && schema.source.paging === 'server';
+  const patch = (next: Partial<typeof search>) => updateSettings({ search: { ...search, ...next } });
+
+  return (
+    <>
+      <SectionHeading>Search</SectionHeading>
+
+      <Checkbox
+        checked={search.enabled}
+        onChange={(event) => patch({ enabled: event.target.checked })}
+        style={{ marginBottom: 12 }}
+      >
+        Show a search box
+      </Checkbox>
+
+      {search.enabled ? (
+        <>
+          <Labeled label="Placeholder">
+            <Input
+              size="small"
+              value={search.placeholder}
+              onChange={(event) => patch({ placeholder: event.target.value })}
+            />
+          </Labeled>
+
+          <Labeled label="Columns searched" help="Blank searches every visible column.">
+            <Select
+              size="small"
+              mode="multiple"
+              allowClear
+              style={{ width: '100%' }}
+              placeholder="All columns"
+              value={search.columnIds}
+              options={schema.columns.map((column) => ({
+                label: column.title || column.key,
+                value: column.id,
+              }))}
+              onChange={(columnIds) => patch({ columnIds })}
+            />
+          </Labeled>
+
+          {serverPaging ? (
+            <>
+              <Labeled label="Query parameter" help="Carries the term to the API.">
+                <Input
+                  size="small"
+                  value={search.param}
+                  onChange={(event) => patch({ param: event.target.value })}
+                />
+              </Labeled>
+              <Labeled label="Debounce (ms)" help="How long typing settles before a request.">
+                <InputNumber
+                  size="small"
+                  style={{ width: '100%' }}
+                  min={0}
+                  max={5000}
+                  step={50}
+                  value={search.debounceMs}
+                  onChange={(value) => patch({ debounceMs: value ?? 300 })}
+                />
+              </Labeled>
+            </>
+          ) : null}
+        </>
+      ) : null}
+    </>
+  );
+}
+
+function SelectionSettings() {
+  const schema = useTableStore((state) => state.schema);
+  const updateSettings = useTableStore((state) => state.updateSettings);
+  const selection = schema.selection;
+  const patch = (next: Partial<typeof selection>) =>
+    updateSettings({ selection: { ...selection, ...next } });
+
+  const patchAction = (id: string, next: Partial<TableAction>) =>
+    patch({
+      actions: selection.actions.map((action) =>
+        action.id === id ? { ...action, ...next } : action,
+      ),
+    });
+
+  return (
+    <>
+      <SectionHeading>Selection</SectionHeading>
+
+      <Checkbox
+        checked={selection.enabled}
+        onChange={(event) => patch({ enabled: event.target.checked })}
+        style={{ marginBottom: 12 }}
+      >
+        Let rows be selected
+      </Checkbox>
+
+      {selection.enabled ? (
+        <>
+          <Labeled label="Pick">
+            <Select
+              size="small"
+              style={{ width: '100%' }}
+              value={selection.type}
+              options={[
+                { label: 'Any number of rows', value: 'checkbox' },
+                { label: 'One row only', value: 'radio' },
+              ]}
+              onChange={(type) => patch({ type })}
+            />
+          </Labeled>
+
+          <div style={{ display: 'flex', gap: 16, marginBottom: 12, flexWrap: 'wrap' }}>
+            <Checkbox
+              checked={selection.preserveAcrossPages}
+              onChange={(event) => patch({ preserveAcrossPages: event.target.checked })}
+            >
+              Keep across pages
+            </Checkbox>
+            <Checkbox
+              checked={selection.fixed}
+              onChange={(event) => patch({ fixed: event.target.checked })}
+            >
+              Freeze column
+            </Checkbox>
+            <Checkbox
+              checked={selection.hideSelectAll}
+              onChange={(event) => patch({ hideSelectAll: event.target.checked })}
+              disabled={selection.type === 'radio'}
+            >
+              Hide select-all
+            </Checkbox>
+          </div>
+
+          <SectionHeading>Bulk actions</SectionHeading>
+          <Typography.Text
+            type="secondary"
+            style={{ fontSize: 11, display: 'block', marginBottom: 8 }}
+          >
+            Buttons shown while rows are picked. The app embedding the table decides what each one
+            does; the document only carries its name.
+          </Typography.Text>
+
+          {selection.actions.map((action) => (
+            <div
+              key={action.id}
+              style={{
+                border: '1px solid rgba(5, 5, 5, 0.1)',
+                borderRadius: 8,
+                padding: 8,
+                marginBottom: 8,
+              }}
+            >
+              <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
+                <Input
+                  size="small"
+                  placeholder="Archive"
+                  value={action.label}
+                  onChange={(event) => patchAction(action.id, { label: event.target.value })}
+                />
+                <Button
+                  size="small"
+                  type="text"
+                  danger
+                  icon={<DeleteOutlined />}
+                  aria-label="Remove action"
+                  onClick={() =>
+                    patch({ actions: selection.actions.filter((entry) => entry.id !== action.id) })
+                  }
+                />
+              </div>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <InputNumber
+                  size="small"
+                  min={1}
+                  style={{ width: 90 }}
+                  prefix="min"
+                  value={action.minSelected}
+                  onChange={(value) => patchAction(action.id, { minSelected: value ?? 1 })}
+                />
+                <Checkbox
+                  checked={action.danger}
+                  onChange={(event) => patchAction(action.id, { danger: event.target.checked })}
+                >
+                  Destructive
+                </Checkbox>
+              </div>
+            </div>
+          ))}
+
+          <Button
+            type="dashed"
+            block
+            size="small"
+            icon={<PlusOutlined />}
+            onClick={() =>
+              patch({
+                actions: [
+                  ...selection.actions,
+                  tableActionSchema.parse({
+                    id: createId('act'),
+                    label: `Action ${selection.actions.length + 1}`,
+                  }),
+                ],
+              })
+            }
+          >
+            Add action
+          </Button>
+        </>
+      ) : null}
+    </>
   );
 }

@@ -32,6 +32,14 @@ export const inlineTablePreset: TableSamplePreset = {
       rowKey: 'id',
       source: { kind: 'static', rows: INLINE_ROWS },
       props: { bordered: true, size: 'middle', pageSize: 5, showTotal: true },
+      search: { enabled: true, placeholder: 'Search invoices' },
+      selection: {
+        enabled: true,
+        actions: [
+          { id: 'act_remind', label: 'Send reminder' },
+          { id: 'act_void', label: 'Void', danger: true, minSelected: 2 },
+        ],
+      },
       columns: [
         { id: createId('col'), key: 'id', title: 'Invoice', width: 120, sortable: true },
         { id: createId('col'), key: 'customer', title: 'Customer', sortable: true },
@@ -60,6 +68,7 @@ export const inlineTablePreset: TableSamplePreset = {
           title: 'Status',
           width: 110,
           align: 'center',
+          filterable: true,
           format: 'boolean',
           props: { trueText: 'Paid', falseText: 'Outstanding' },
         },
@@ -70,16 +79,16 @@ export const inlineTablePreset: TableSamplePreset = {
 export const remoteTablePreset: TableSamplePreset = {
   key: 'remote-products',
   label: 'API list',
-  description: 'A GET that returns a list, paged on the server via limit/skip.',
+  description: 'A GET that returns a list, paged and searched on the server via limit/skip/q.',
   create: (): TableSchema =>
     tableSchemaSchema.parse({
       title: 'Products',
       description:
-        'dummyjson.com returns { products, total }. It takes an offset rather than a page number, which is what `Row offset` in the data panel is for.',
+        'dummyjson.com returns { products, total }. It takes an offset rather than a page number, which is what `Row offset` in the data panel is for. The search box narrows it on the server.',
       rowKey: 'id',
       source: {
         kind: 'remote',
-        url: 'https://dummyjson.com/products',
+        url: 'https://dummyjson.com/products/search',
         dataPath: 'products',
         paging: 'server',
         pageMode: 'offset',
@@ -90,6 +99,11 @@ export const remoteTablePreset: TableSamplePreset = {
         orderParam: 'order',
       },
       props: { size: 'small', pageSize: 10, showTotal: true, scrollX: 'max-content' },
+      // The `/search` route takes `q` alongside `limit`/`skip`, and returns
+      // everything when `q` is empty — so the box narrows the real result set
+      // and `total` stays honest.
+      search: { enabled: true, placeholder: 'Search products', param: 'q' },
+      selection: { enabled: true, preserveAcrossPages: true, actions: [{ id: 'act_export', label: 'Export' }] },
       columns: [
         { id: createId('col'), key: 'id', title: 'ID', width: 70, align: 'right' },
         { id: createId('col'), key: 'title', title: 'Product', sortable: true, width: 220 },

@@ -5,6 +5,12 @@ import { resolveUrlTemplate, withSearchParam } from '../remote/url';
 import { useFetchedBody } from '../remote/useFetchedBody';
 import type { TableRow } from './columns';
 
+/** One column's chosen filter values, ready to become a query parameter. */
+export interface RowFilter {
+  param: string;
+  values: string[];
+}
+
 export interface RowQuery {
   /** 1-based, as antd's pagination reports it. */
   page: number;
@@ -12,6 +18,9 @@ export interface RowQuery {
   /** Dot path of the column being sorted, or null. */
   sortKey: string | null;
   sortOrder: 'asc' | 'desc' | null;
+  /** Already debounced by the caller. */
+  search: string;
+  filters: RowFilter[];
 }
 
 export interface RemoteRowsState {
@@ -52,12 +61,16 @@ export function useRemoteRows(schema: TableSchema, query: RowQuery): RemoteRowsS
   // object in this dependency list would refire the request constantly.
   const paramsKey = JSON.stringify(schema.params);
   const serverPaging = active && source.paging === 'server';
+  const searchParam = schema.search.enabled ? schema.search.param : '';
 
   const resolved = useMemo(
     () => (active ? resolveUrlTemplate(source.url, (field) => schema.params[field]) : null),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- paramsKey stands in for `params`
     [active, source.url, paramsKey],
   );
+
+  // Primitives again: these two are objects, so they stand in as strings.
+  const filtersKey = JSON.stringify(query.filters);
 
   const requestUrl = useMemo(() => {
     if (!resolved || resolved.missing.length > 0) return null;
@@ -82,6 +95,19 @@ export function useRemoteRows(schema: TableSchema, query: RowQuery): RemoteRowsS
         );
       }
     }
+
+    // Narrowing happens at the source too, or the reader would be filtering one
+    // page of a result set they cannot see the rest of.
+    if (url && searchParam && query.search.trim() !== '') {
+      url = withSearchParam(url, searchParam, query.search.trim());
+    }
+    for (const filter of query.filters) {
+      if (!url || !filter.param || filter.values.length === 0) continue;
+      // One parameter per column; several chosen values ride as a comma list,
+      // which is the shape most list APIs accept.
+      url = withSearchParam(url, filter.param, filter.values.join(','));
+    }
+
     return url;
   }, [
     resolved,
@@ -98,6 +124,10 @@ export function useRemoteRows(schema: TableSchema, query: RowQuery): RemoteRowsS
     query.pageSize,
     query.sortKey,
     query.sortOrder,
+    query.search,
+    searchParam,
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- filtersKey stands in for `filters`
+    filtersKey,
   ]);
 
   const state = useFetchedBody(active ? requestUrl : null);

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { createId } from '@/lib/ids';
+import { readPath } from '@/renderer/remote/mapOptions';
 
 /**
  * The table document — the JSON contract for "show me this list as a table".
@@ -28,11 +29,54 @@ export const tableColumnSchema = z.object({
   /** Kept in the document but not rendered — a hide, not a delete. */
   hidden: z.boolean().default(false),
   sortable: z.boolean().default(false),
+  /** Adds a header dropdown listing the values found in the data. */
+  filterable: z.boolean().default(false),
+  /** `server` paging only: query parameter name. Blank = the column's own key. */
+  filterParam: z.string().default(''),
   format: cellFormatSchema.default('text'),
   /** Format-specific options: precision, date pattern, true/false text. */
   props: z.record(z.string(), z.unknown()).default({}),
 });
 export type TableColumn = z.infer<typeof tableColumnSchema>;
+
+/**
+ * A bulk action offered while rows are selected.
+ *
+ * The document describes the intent only — label and id. What actually happens
+ * belongs to the app embedding the table, which receives the id and the picked
+ * rows through `onAction`.
+ */
+export const tableActionSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  danger: z.boolean().default(false),
+  /** Stays disabled until this many rows are picked. */
+  minSelected: z.number().int().min(1).default(1),
+});
+export type TableAction = z.infer<typeof tableActionSchema>;
+
+export const tableSelectionSchema = z.object({
+  enabled: z.boolean().default(false),
+  type: z.enum(['checkbox', 'radio']).default('checkbox'),
+  /** Keep keys picked on other pages — antd `preserveSelectedRowKeys`. */
+  preserveAcrossPages: z.boolean().default(false),
+  fixed: z.boolean().default(false),
+  hideSelectAll: z.boolean().default(false),
+  columnWidth: z.number().int().positive().optional(),
+  actions: z.array(tableActionSchema).default([]),
+});
+export type TableSelection = z.infer<typeof tableSelectionSchema>;
+
+export const tableSearchSchema = z.object({
+  enabled: z.boolean().default(false),
+  placeholder: z.string().default('Search'),
+  /** Column ids to match against. Empty = every visible column. */
+  columnIds: z.array(z.string()).default([]),
+  /** `server` paging only: the query parameter carrying the term. */
+  param: z.string().default('q'),
+  debounceMs: z.number().int().min(0).max(5000).default(300),
+});
+export type TableSearch = z.infer<typeof tableSearchSchema>;
 
 /**
  * Where the rows come from.
@@ -90,6 +134,8 @@ export const tableSchemaSchema = z.object({
   rowKey: z.string().default(''),
   /** Values for `{{token}}` in the URL — the seam for a future filter bar. */
   params: z.record(z.string(), z.string()).default({}),
+  selection: tableSelectionSchema.default(() => tableSelectionSchema.parse({})),
+  search: tableSearchSchema.default(() => tableSearchSchema.parse({})),
   columns: z.array(tableColumnSchema).default([]),
   /** Table-level antd props, same free-form bag as a field's `props`. */
   props: z.record(z.string(), z.unknown()).default({}),
@@ -257,4 +303,37 @@ export function collectRowPaths(
   }
 
   return [...found.values()];
+}
+
+/** A filter list longer than this is a free-text field wearing a disguise. */
+const MAX_FILTER_VALUES = 50;
+
+/**
+ * The distinct values at `path`, for a column's header filter dropdown.
+ *
+ * Derived rather than authored, so the list always matches the data — with the
+ * caveat that under server paging the rows in hand are one page, so the list is
+ * "values seen so far" rather than every value the API could return.
+ */
+export function collectFilterValues(
+  rows: unknown[],
+  path: string,
+  limit = MAX_FILTER_VALUES,
+): (string | number)[] {
+  if (path.trim() === '') return [];
+
+  const seen = new Set<string | number>();
+  for (const row of rows) {
+    if (seen.size >= limit) break;
+    const value = readPath(row, path);
+    if (typeof value === 'string' && value !== '') seen.add(value);
+    else if (typeof value === 'number' && Number.isFinite(value)) seen.add(value);
+    else if (typeof value === 'boolean') seen.add(String(value));
+  }
+
+  const values = [...seen];
+  const allNumbers = values.every((value) => typeof value === 'number');
+  return allNumbers
+    ? (values as number[]).sort((a, b) => a - b)
+    : values.sort((a, b) => String(a).localeCompare(String(b)));
 }

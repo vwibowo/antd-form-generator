@@ -22,6 +22,10 @@ export function useSampleRows(schema: TableSchema): SampleRows {
     pageSize: previewPageSize,
     sortKey: null,
     sortOrder: null,
+    // Unnarrowed on purpose: the builder wants the shape of the data, not
+    // whatever the reader happens to have filtered it down to.
+    search: '',
+    filters: [],
   });
 
   if (schema.source.kind === 'remote') {

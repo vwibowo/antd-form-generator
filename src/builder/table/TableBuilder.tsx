@@ -1,7 +1,6 @@
 import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors } from '@dnd-kit/core';
 import type { DragEndEvent } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
-import { Card } from 'antd';
 import { TableRenderer } from '@/renderer/table/TableRenderer';
 import { useTableStore } from '@/store/useTableStore';
 import { ColumnInspector } from './ColumnInspector';
@@ -48,9 +47,7 @@ export function TableBuilder() {
 
         <main style={{ minWidth: 0, height: '100%' }} className="fg-builder__main">
           <div className="fg-scroll" style={{ padding: 16 }}>
-            <Card size="small" title="Preview">
               <TableRenderer schema={schema} />
-            </Card>
           </div>
         </main>
 
