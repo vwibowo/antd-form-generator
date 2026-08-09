@@ -151,9 +151,15 @@ export function TableRenderer({ schema, onSelectionChange, onAction }: TableRend
   );
 
   // Narrowing the set can strand the reader on a page that no longer exists.
+  //
+  // Keyed on the serialised filters, NOT the object: `handleChange` rebuilds
+  // that object on every table interaction, paging included, so depending on
+  // its identity would send the reader back to page 1 the moment they tried to
+  // leave it.
+  const filtersKey = JSON.stringify(filters);
   useEffect(() => {
     setPage(1);
-  }, [settledTerm, filters]);
+  }, [settledTerm, filtersKey]);
 
   const pagination: TablePaginationConfig | false = bool(props, 'pagination', true)
     ? {
@@ -191,7 +197,11 @@ export function TableRenderer({ schema, onSelectionChange, onAction }: TableRend
         nextState[columnId] = values.map((value) => String(value));
       }
     }
-    setFilters(nextState);
+    // Only write when something actually changed: antd reports the filters on
+    // every change, so an unconditional set would churn state on every page.
+    setFilters((previous) =>
+      JSON.stringify(previous) === JSON.stringify(nextState) ? previous : nextState,
+    );
   };
 
   const selection = schema.selection;
