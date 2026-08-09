@@ -44,6 +44,12 @@ export interface CustomComponentDef<V = any> {
   valueKind?: 'string' | 'number' | 'array';
   /** Convert the live value into something JSON-serialisable at submit time. */
   serialize?: (value: V, node: FieldNode) => unknown;
+  /**
+   * How this component's value reads on a summary page. Receives the value as
+   * it sits in the payload, so a serialised shape is what arrives. Omit it and
+   * the summary prints `serialize`'s output instead.
+   */
+  summary?: (value: V, node: FieldNode) => ReactNode;
 }
 
 export type CustomComponentRegistry = Record<string, CustomComponentDef>;

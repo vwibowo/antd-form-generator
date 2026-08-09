@@ -1,4 +1,4 @@
-import { BuildOutlined, CodeOutlined, EyeOutlined } from '@ant-design/icons';
+import { BuildOutlined, CodeOutlined, EyeOutlined, ProfileOutlined } from '@ant-design/icons';
 import { Layout, Segmented, Space, Tabs, Typography } from 'antd';
 import { useState } from 'react';
 import { BuilderLayout } from '@/builder/BuilderLayout';
@@ -7,6 +7,7 @@ import { Toolbar } from '@/builder/Toolbar';
 import { appCustomComponents } from '@/custom';
 import { JsonPane, TableJsonPane } from '@/panes/JsonPane';
 import { PreviewPane } from '@/panes/PreviewPane';
+import { SummaryPane } from '@/panes/SummaryPane';
 import { TablePreviewPane } from '@/panes/TablePreviewPane';
 import { CustomComponentsProvider } from '@/renderer/custom';
 import { useAppMode } from '@/store/useAppMode';
@@ -25,6 +26,9 @@ export function App() {
   const isTable = mode === 'table';
   const count = isTable ? tableSchema.columns.length : schema.fields.length;
   const noun = isTable ? 'column' : 'field';
+  // Summary is a form-only tab. Deriving the key rather than resetting it means
+  // a trip through table mode and back lands where you left off.
+  const currentKey = isTable && activeKey === 'summary' ? 'builder' : activeKey;
 
   const workspace = (
     <Layout style={{ height: '100vh' }}>
@@ -62,7 +66,7 @@ export function App() {
 
       <Layout.Content style={{ height: `calc(100vh - ${HEADER_HEIGHT}px)`, overflow: 'hidden' }}>
         <Tabs
-          activeKey={activeKey}
+          activeKey={currentKey}
           onChange={setActiveKey}
           // Unmounting the preview between tab switches resets its form state,
           // which is what you want when the schema changed underneath it.
@@ -96,6 +100,24 @@ export function App() {
                 </div>
               ),
             },
+            // A table submits nothing, so there is no payload to summarise.
+            ...(isTable
+              ? []
+              : [
+                  {
+                    key: 'summary',
+                    label: (
+                      <span>
+                        <ProfileOutlined /> Summary
+                      </span>
+                    ),
+                    children: (
+                      <div className="fg-scroll" style={{ height: '100%' }}>
+                        <SummaryPane schema={schema} />
+                      </div>
+                    ),
+                  },
+                ]),
             {
               key: 'json',
               label: (

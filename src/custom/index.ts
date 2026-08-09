@@ -1,4 +1,5 @@
 import { BgColorsOutlined, TableOutlined } from '@ant-design/icons';
+import { Space } from 'antd';
 import { createElement } from 'react';
 import type { CustomComponentRegistry } from '@/renderer/custom';
 import { ColorField } from './ColorField';
@@ -18,6 +19,27 @@ export const appCustomComponents: CustomComponentRegistry = {
     component: ColorField,
     icon: createElement(BgColorsOutlined),
     defaults: { label: 'Brand colour', namePrefix: 'colour' },
+    // A hex string tells a reader nothing on its own — show the colour itself.
+    summary: (value: string) =>
+      createElement(
+        Space,
+        { size: 8 },
+        createElement('span', {
+          style: {
+            display: 'inline-block',
+            width: 14,
+            height: 14,
+            borderRadius: 4,
+            background: value,
+            border: '1px solid rgba(5, 5, 5, 0.15)',
+          },
+        }),
+        createElement(
+          'span',
+          { style: { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' } },
+          value,
+        ),
+      ),
     propSpecs: [
       {
         key: 'showText',
@@ -54,6 +76,22 @@ export const appCustomComponents: CustomComponentRegistry = {
       Array.isArray(rows)
         ? Object.fromEntries(rows.filter((row) => row.key).map((row) => [row.key, row.value]))
         : rows,
+    // Reached with the serialised object in a summary built from a payload, and
+    // with the live array when a host passes raw form values — accept both.
+    summary: (value: KeyValueRow[] | Record<string, unknown>) => {
+      const pairs: [string, string][] = Array.isArray(value)
+        ? value.filter((row) => row?.key).map((row) => [row.key, String(row.value ?? '')])
+        : Object.entries(value ?? {}).map(([key, entry]) => [key, String(entry ?? '')]);
+      if (pairs.length === 0) return null;
+
+      return createElement(
+        Space,
+        { orientation: 'vertical', size: 2 },
+        ...pairs.map(([key, entry]) =>
+          createElement('span', { key }, `${key}: ${entry}`),
+        ),
+      );
+    },
     propSpecs: [
       {
         key: 'keyPlaceholder',

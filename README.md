@@ -4,7 +4,7 @@ Build an [Ant Design](https://github.com/ant-design/ant-design) **form** or **ta
 
 The JSON schema is the contract between the two halves. `src/renderer/` never imports anything from `src/builder/`, so it can be lifted into a standalone package as-is.
 
-The **Form / Table** switch in the header chooses which document the three tabs are editing. They are separate documents with separate storage, undo stacks and export files — see [Table documents](#table-documents).
+The **Form / Table** switch in the header chooses which document the tabs are editing. They are separate documents with separate storage, undo stacks and export files — see [Table documents](#table-documents).
 
 ## Running it
 
@@ -35,10 +35,11 @@ Between them the presets cover every feature documented below, so they double as
 | `pnpm preview` | Serve the production build |
 | `pnpm typecheck` | `tsc --noEmit` |
 
-## The three tabs
+## The tabs
 
 - **Builder** — palette on the left, canvas in the middle, inspector on the right. Drag from the palette onto the canvas, or click a palette entry to append. Drag the handle on a field card to reorder it or move it into a repeatable section. In table mode the left pane becomes the data source and column list instead.
 - **Preview** — the schema rendered as a real, submittable form, with the resulting payload beside it. For a table, the table on its own.
+- **Summary** — a payload rendered as a read-only confirmation page. Form mode only; a table submits nothing. See [Summary pages](#summary-pages).
 - **JSON** — the schema as text. Edits apply to the builder the moment the JSON is valid; while it is invalid the errors are listed and the builder is left alone.
 
 Each document is saved to its own `localStorage` key as you go, and **Export** / **Import** move it in and out as a `.json` file (`form-schema.json` / `table-schema.json`). Import reads the file's own `kind` and switches the mode to match, so you never have to pick the right one first.
@@ -175,7 +176,7 @@ The **Remote data** sample preset is the live reference for all of this: each fi
 ## Table documents
 
 Two things that are not forms: an array you already have, and an API that returns a list. Switch the
-header to **Table** and the three tabs edit a table document instead.
+header to **Table** and the tabs edit a table document instead.
 
 ```jsonc
 {
@@ -352,6 +353,45 @@ Two things worth knowing:
 - **A schema never carries code.** `props.component` is a name, resolved against a registry the app controls. An imported `.json` cannot introduce a component, only ask for one.
 - **Unknown names degrade, they do not throw.** A form exported from an app that registered `signaturePad` and opened somewhere that did not shows a "not registered" notice in that field's place; every other field keeps working, and the inspector flags the missing name rather than silently rewriting it.
 
+## Summary pages
+
+The step between filling a form in and sending it: the same answers as a read-only page, so they can
+be checked before they go anywhere.
+
+There is **no summary schema**. The page is derived from the `FormSchema` the values came from, and
+the traversal mirrors the one in `serialize.ts`, so the page and the payload cannot drift apart:
+
+```tsx
+import { SummaryRenderer } from '@/renderer/summary/SummaryRenderer';
+
+<SummaryRenderer schema={schema} values={submitted} columns={2} bordered={false} />
+```
+
+| Schema feature | On the page |
+| --- | --- |
+| `group` / `card` | a section — the card's own frame, or a heading and a rule |
+| repeatable | one boxed, numbered block per row |
+| `divider` / `heading` | kept; they are the document's structure |
+| `condition` | evaluated against the payload. A field whose condition fails is absent here, exactly as it is absent from the payload |
+| `hidden` | skipped. It still submits, but a confirmation page repeats what the user was asked |
+| `span` | 24 takes a whole row, anything narrower shares one |
+| `password` | masked. A confirmation page is not the place to print a secret |
+| `select` / `radio` / checkbox group | the option's **label**, not its stored value |
+| dates, numbers | the field's own `format` / `precision` / `prefix` / separators, so a value reads the same as it did in the control |
+| a value that was never filled in | a muted em dash |
+
+Custom components get a `summary` hook beside `serialize` — it receives the value as it sits in the
+payload and returns whatever should be shown (the colour demo draws its swatch, the key/value demo
+lists its pairs). Without one, the page prints what `serialize` produced.
+
+One gap worth naming: a `select` fed by a `dataSource` shows the raw value, because resolving its
+label means a request and the summary has no form instance to resolve `{{tokens}}` against.
+
+The **Summary** tab is this renderer with a payload editor beside it — **Load defaults** seeds it
+from the schema's own `defaultValue`s, and invalid JSON leaves the last good page on screen rather
+than blanking it. The values live in `antd-form-generator:summary-values`; they are sample data for
+previewing, not part of either document, so they are never exported.
+
 ## Layout
 
 ```
@@ -364,12 +404,14 @@ src/
                remote/  the app's only network layer: URL templating, response
                         mapping, and a TTL body cache, shared by options and rows
                table/   schema -> antd <Table>: columns, cell formats, remote rows
+               summary/ schema + payload -> a read-only confirmation page
   builder/     palette, canvas, inspector, toolbar, drag-and-drop
                table/   the table builder: data source, column list, column inspector
   custom/      the demo component registry this app passes to the renderer
-  panes/       preview and JSON tabs
+  panes/       preview, summary and JSON tabs
   store/       one zustand store per document, each with its own localStorage
-               key and undo/redo, plus the Form/Table mode switch
+               key and undo/redo, plus the Form/Table mode switch and the
+               summary tab's sample values
 ```
 
 ## Stack
