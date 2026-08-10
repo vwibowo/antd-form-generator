@@ -1,5 +1,6 @@
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import { Button, Input, Segmented, Select, Space, Switch, Typography } from 'antd';
+import type { ReactNode } from 'react';
 import type { Condition, ConditionGroup, ConditionOperator } from '@/schema/schema';
 import { UNARY_OPERATORS } from '@/schema/schema';
 
@@ -8,6 +9,10 @@ export interface ConditionEditorProps {
   /** Every other field's name, for the "when" picker. */
   fieldChoices: { label: string; value: string }[];
   onChange: (condition: ConditionGroup | undefined) => void;
+  /** What the switch turns on. Defaults to the field-visibility wording. */
+  label?: string;
+  /** Small print under the list. Omit for none — there is no default. */
+  hint?: ReactNode;
 }
 
 const OPERATOR_OPTIONS: { label: string; value: ConditionOperator }[] = [
@@ -24,7 +29,13 @@ const OPERATOR_OPTIONS: { label: string; value: ConditionOperator }[] = [
 
 const EMPTY_GROUP: ConditionGroup = { logic: 'and', conditions: [] };
 
-export function ConditionEditor({ condition, fieldChoices, onChange }: ConditionEditorProps) {
+export function ConditionEditor({
+  condition,
+  fieldChoices,
+  onChange,
+  label = 'Show only when…',
+  hint,
+}: ConditionEditorProps) {
   const enabled = condition !== undefined;
   const group = condition ?? EMPTY_GROUP;
 
@@ -49,7 +60,7 @@ export function ConditionEditor({ condition, fieldChoices, onChange }: Condition
             )
           }
         />
-        <Typography.Text style={{ fontSize: 13 }}>Show only when…</Typography.Text>
+        <Typography.Text style={{ fontSize: 13 }}>{label}</Typography.Text>
       </div>
 
       {!enabled ? null : (
@@ -144,10 +155,11 @@ export function ConditionEditor({ condition, fieldChoices, onChange }: Condition
             Add condition
           </Button>
 
-          <Typography.Text type="secondary" style={{ fontSize: 11 }}>
-            Inside a repeatable section, a condition matches the field in the same row first,
-            then falls back to the top level.
-          </Typography.Text>
+          {hint ? (
+            <Typography.Text type="secondary" style={{ fontSize: 11 }}>
+              {hint}
+            </Typography.Text>
+          ) : null}
         </>
       )}
     </Space>

@@ -16,7 +16,7 @@ import { metaFor } from '@/schema/registry';
 import type { FieldType } from '@/schema/schema';
 import { isContainerType } from '@/schema/schema';
 import { ROOT_CONTAINER_ID } from '@/schema/walk';
-import { useSchemaStore } from '@/store/useSchemaStore';
+import { useFormBuilderStore } from '@/store/SchemaStoreContext';
 import { useCustomComponents } from '@/renderer/custom';
 import { Canvas } from './Canvas';
 import { Inspector } from './inspector';
@@ -69,8 +69,8 @@ function resolveDropTarget(over: DragData | undefined): { containerId: string; i
 }
 
 export function BuilderLayout() {
-  const addField = useSchemaStore((state) => state.addField);
-  const moveField = useSchemaStore((state) => state.moveField);
+  const addField = useFormBuilderStore((state) => state.addField);
+  const moveField = useFormBuilderStore((state) => state.moveField);
   const customComponents = useCustomComponents();
   const [active, setActive] = useState<ActiveDrag | null>(null);
 

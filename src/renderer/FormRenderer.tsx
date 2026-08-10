@@ -4,12 +4,22 @@ import type { FormSchema } from '@/schema/schema';
 import type { CustomComponentRegistry } from './custom';
 import { CustomComponentsProvider, useCustomComponents } from './custom';
 import { FieldRenderer } from './FieldRenderer';
+import { hydrateValues } from './hydrate';
 import { buildInitialValues, collectPayloadKeys } from './initialValues';
 import { serializeValues } from './serialize';
 
 export interface FormRendererProps {
   schema: FormSchema;
   onSubmit?: (values: Record<string, unknown>) => void;
+  /**
+   * Values to open with, layered over the schema's own defaults.
+   *
+   * A workflow that loops back to a step it already visited passes what was
+   * answered last time; without it the form would come back blank and look
+   * broken. Given in payload shape — the shape `onSubmit` produces — and run
+   * through `hydrateValues` on the way in.
+   */
+  values?: Record<string, unknown>;
   /** Hide the submit/reset row when the host supplies its own actions. */
   showActions?: boolean;
   /**
@@ -29,6 +39,7 @@ export interface FormRendererProps {
 export function FormRenderer({
   schema,
   onSubmit,
+  values,
   showActions = true,
   components,
 }: FormRendererProps) {
@@ -39,7 +50,13 @@ export function FormRenderer({
   // No form-wide `useWatch` here on purpose: it would re-render every field on
   // every keystroke. Each field subscribes to its own visibility instead —
   // see `useFieldVisibility`.
-  const initialValues = useMemo(() => buildInitialValues(schema), [schema]);
+  const initialValues = useMemo(() => {
+    const seeded = buildInitialValues(schema);
+    if (!values) return seeded;
+    // Supplied values win: they are an answer, and a default is only a guess at
+    // one. Keys the schema no longer has are dropped by the effect below.
+    return { ...seeded, ...hydrateValues(schema, values) };
+  }, [schema, values]);
   const payloadKeys = useMemo(() => collectPayloadKeys(schema), [schema]);
 
   // The builder mutates the schema live, so re-seed on every change: new

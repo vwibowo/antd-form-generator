@@ -1,10 +1,10 @@
 # antd Generator
 
-Build an [Ant Design](https://github.com/ant-design/ant-design) **form** or **table** in a drag-and-drop UI, get a JSON schema out, and render that JSON back into a working component.
+Build an [Ant Design](https://github.com/ant-design/ant-design) **form**, **table** or **workflow** in a drag-and-drop UI, get a JSON schema out, and render that JSON back into a working component.
 
 The JSON schema is the contract between the two halves. `src/renderer/` never imports anything from `src/builder/`, so it can be lifted into a standalone package as-is.
 
-The **Form / Table** switch in the header chooses which document the tabs are editing. They are separate documents with separate storage, undo stacks and export files — see [Table documents](#table-documents).
+The **Form / Table / Workflow** switch in the header chooses which document the tabs are editing. They are separate documents with separate storage, undo stacks and export files — see [Table documents](#table-documents) and [Workflow documents](#workflow-documents).
 
 ## Running it
 
@@ -26,6 +26,8 @@ Then open http://localhost:3000. Click **Sample** in the header for the flagship
 
 In table mode the same button offers **Inline array** (rows pasted into the document, one column per cell format, with search, a derived Status filter and two bulk actions) and **API list** (dummyjson products, paged *and searched* on the server via `limit`/`skip`/`q`, with selection kept across pages).
 
+In workflow mode it offers **Expense claim** (routes on the amount, asks the right approver, and loops back when finance wants more detail — every node kind, priority ordering, a fallback branch and a deliberate cycle) and **Support triage** (the smallest thing that still branches: one form, one condition, two endings).
+
 Between them the presets cover every feature documented below, so they double as a manual regression suite.
 
 | Command | What it does |
@@ -37,12 +39,12 @@ Between them the presets cover every feature documented below, so they double as
 
 ## The tabs
 
-- **Builder** — palette on the left, canvas in the middle, inspector on the right. Drag from the palette onto the canvas, or click a palette entry to append. Drag the handle on a field card to reorder it or move it into a repeatable section. In table mode the left pane becomes the data source and column list instead.
-- **Preview** — the schema rendered as a real, submittable form, with the resulting payload beside it. For a table, the table on its own.
-- **Summary** — a payload rendered as a read-only confirmation page. Form mode only; a table submits nothing. See [Summary pages](#summary-pages).
+- **Builder** — palette on the left, canvas in the middle, inspector on the right. Drag from the palette onto the canvas, or click a palette entry to append. Drag the handle on a field card to reorder it or move it into a repeatable section. In table mode the left pane becomes the data source and column list instead; in workflow mode the canvas is a node graph.
+- **Preview** — the schema rendered as a real, submittable form, with the resulting payload beside it. For a table, the table on its own. For a workflow, the flow actually run, step by step.
+- **Summary** — a payload rendered as a read-only confirmation page. Form mode only; a table submits nothing, and a workflow's payload is spread across several forms. See [Summary pages](#summary-pages).
 - **JSON** — the schema as text. Edits apply to the builder the moment the JSON is valid; while it is invalid the errors are listed and the builder is left alone.
 
-Each document is saved to its own `localStorage` key as you go, and **Export** / **Import** move it in and out as a `.json` file (`form-schema.json` / `table-schema.json`). Import reads the file's own `kind` and switches the mode to match, so you never have to pick the right one first.
+Each document is saved to its own `localStorage` key as you go, and **Export** / **Import** move it in and out as a `.json` file (`form-schema.json` / `table-schema.json` / `workflow-schema.json`). Import reads the file's own `kind` and switches the mode to match, so you never have to pick the right one first.
 
 ## Field types
 
@@ -309,6 +311,76 @@ headers or auth field, because the document is persisted, shown in the JSON tab 
 Under the hood both features share one network layer — `src/renderer/remote/useFetchedBody.ts` does
 the caching, aborting and error strings for options and rows alike.
 
+## Workflow documents
+
+A form is one page. A workflow is a process: collect these fields, then depending on what was
+entered go to this step or that one, get an approval, loop back for more information, finish.
+
+Switch the header to **Workflow** and the canvas becomes a node graph. Drag a step out of the
+palette, drag the dot on a card's right edge onto another card to branch, and click a branch to give
+it a condition.
+
+### Node kinds
+
+| Kind | What it does |
+| --- | --- |
+| **start** | Where every run begins. Exactly one per workflow |
+| **form** | Holds a whole embedded form. "Edit form" opens the ordinary builder on it |
+| **decision** | Asks nothing — evaluates its outgoing branches and passes straight through |
+| **action** | Describes something for the host app to do. Intent only: an id, a label, static params |
+| **approval** | Waits for an outcome, and stores the chosen one under the node's payload key |
+| **end** | The run finishes here |
+
+### Branches
+
+A branch is an edge with a condition, and the condition is the **same** `ConditionGroup` a field's
+visibility uses — same nine operators, same editor, same evaluator. There is one set of rules to
+learn:
+
+```jsonc
+{
+  "id": "e_large",
+  "from": "wf_route",
+  "to": "wf_finance_form",
+  "label": "Over £5,000",
+  "priority": 1,
+  "condition": { "logic": "and", "conditions": [{ "field": "amount", "operator": "gt", "value": 5000 }] }
+}
+```
+
+Leaving a step, the conditional branches are tried in `priority` order and the **first match wins**.
+If none match, the step's `isDefault` branch is taken. If there is no default either, the run stops
+and says so — sitting on the current step would be indistinguishable from a hang.
+
+### The payload
+
+Everything collected lands in **one flat object**: each form node contributes its whole submitted
+payload, and an approval contributes `{ [node.name]: outcomeId }`. That is why a branch names a
+field exactly as it would inside a form, and why an approval outcome can be tested with an ordinary
+`eq` condition several steps later.
+
+The flat shape is a deliberate consequence of the condition evaluator resolving a field name as a
+single path segment. Two form nodes declaring the same name collide and the later one wins — the
+builder warns, the way it warns about duplicate names within one form. For the same reason a field
+inside a repeatable section cannot be branched on, and is not offered in the picker.
+
+### Problems
+
+Select nothing and the inspector lists what is wrong with the graph: a missing start, a step with no
+way out, an unreachable step, a branch queued behind an unconditional one, a step with several
+conditional branches and no fallback. Click a row to jump to it. None of it blocks saving, exporting
+or previewing — a document being edited is allowed to be broken on the way to being right.
+
+Cycles are reported, not forbidden. "Finance wants more detail, go back to the first form" is the
+point of having them, so the wording is an observation rather than a complaint.
+
+### Running one
+
+The Preview tab runs the flow for real: the current step on the left, the accumulated payload and
+the path taken on the right, with Back and Restart. A form step renders through the ordinary
+`FormRenderer`, so validation, conditional fields and remote options all behave exactly as they do
+in form mode. Returning to a step already answered brings its earlier answers back with it.
+
 ## Custom components
 
 When a use case outgrows the built-in types, the host app can supply its own control. The schema only ever names it:
@@ -398,21 +470,29 @@ previewing, not part of either document, so they are never exported.
 src/
   schema/      zod definitions (the single source of truth for shape, TS types, and validation),
                the field registry, the per-type prop specs behind the settings
-               panel, the table document, node factory, and tree helpers
+               panel, the table and workflow documents, node factories, tree and
+               graph helpers
                samples/ the demo presets behind the Sample button
   renderer/    schema -> antd <Form> or <Table>. No builder imports.
-               remote/  the app's only network layer: URL templating, response
-                        mapping, and a TTL body cache, shared by options and rows
-               table/   schema -> antd <Table>: columns, cell formats, remote rows
-               summary/ schema + payload -> a read-only confirmation page
+               remote/   the app's only network layer: URL templating, response
+                         mapping, and a TTL body cache, shared by options and rows
+               table/    schema -> antd <Table>: columns, cell formats, remote rows
+               summary/  schema + payload -> a read-only confirmation page
+               workflow/ the run engine: which branch is taken, and what comes next
   builder/     palette, canvas, inspector, toolbar, drag-and-drop
-               table/   the table builder: data source, column list, column inspector
+               table/    the table builder: data source, column list, column inspector
+               workflow/ the graph builder: node cards, SVG branches, node and
+                         branch inspectors, and the embedded form editor
   custom/      the demo component registry this app passes to the renderer
   panes/       preview, summary and JSON tabs
   store/       one zustand store per document, each with its own localStorage
-               key and undo/redo, plus the Form/Table mode switch and the
-               summary tab's sample values
+               key and undo/redo, plus the mode switch and the summary tab's
+               sample values
 ```
+
+The form builder panes bind to whichever form document `SchemaStoreContext` supplies — the app-level
+one by default, or a workflow node's embedded form when the graph builder provides its own. That is
+what lets the same palette, canvas and inspector edit a form nested inside a workflow.
 
 ## Stack
 

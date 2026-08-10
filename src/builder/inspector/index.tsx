@@ -3,7 +3,7 @@ import { useMemo } from 'react';
 import { metaFor } from '@/schema/registry';
 import type { FieldNode } from '@/schema/schema';
 import { collectNames, findDuplicateNames, findField, findParent } from '@/schema/walk';
-import { useSchemaStore } from '@/store/useSchemaStore';
+import { useFormBuilderStore } from '@/store/SchemaStoreContext';
 import { FormSettings } from '../FormSettings';
 import { CommonProps } from './CommonProps';
 import { ConditionEditor } from './ConditionEditor';
@@ -12,9 +12,9 @@ import { RulesEditor } from './RulesEditor';
 import { TypeProps, hasTypeProps } from './TypeProps';
 
 export function Inspector() {
-  const schema = useSchemaStore((state) => state.schema);
-  const selectedId = useSchemaStore((state) => state.selectedId);
-  const updateField = useSchemaStore((state) => state.updateField);
+  const schema = useFormBuilderStore((state) => state.schema);
+  const selectedId = useFormBuilderStore((state) => state.selectedId);
+  const updateField = useFormBuilderStore((state) => state.updateField);
 
   const selected = useMemo<FieldNode | null>(
     () => (selectedId ? findField(schema.fields, selectedId) : null),
@@ -112,6 +112,7 @@ export function Inspector() {
         condition={selected.condition}
         fieldChoices={fieldChoices}
         onChange={(condition) => onPatch({ condition })}
+        hint="Inside a repeatable section, a condition matches the field in the same row first, then falls back to the top level."
       />
     ),
   });

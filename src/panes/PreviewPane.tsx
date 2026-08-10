@@ -2,6 +2,7 @@ import { Card, Col, Empty, Row, Typography } from 'antd';
 import { useState } from 'react';
 import { FormRenderer } from '@/renderer/FormRenderer';
 import type { FormSchema } from '@/schema/schema';
+import { jsonReplacer } from './jsonReplacer';
 
 export interface PreviewPaneProps {
   schema: FormSchema;
@@ -31,7 +32,7 @@ export function PreviewPane({ schema }: PreviewPaneProps) {
                 wordBreak: 'break-word',
               }}
             >
-              {JSON.stringify(submitted, replacer, 2)}
+              {JSON.stringify(submitted, jsonReplacer, 2)}
             </pre>
           ) : (
             <Empty
@@ -47,19 +48,4 @@ export function PreviewPane({ schema }: PreviewPaneProps) {
       </Col>
     </Row>
   );
-}
-
-/** dayjs objects and File handles are not JSON — show something readable. */
-function replacer(_key: string, value: unknown): unknown {
-  if (value && typeof value === 'object') {
-    const maybeDayjs = value as { isValid?: () => boolean; toISOString?: () => string };
-    if (typeof maybeDayjs.isValid === 'function' && typeof maybeDayjs.toISOString === 'function') {
-      return maybeDayjs.toISOString();
-    }
-    if ('originFileObj' in value || 'uid' in value) {
-      const file = value as { name?: string; uid?: string };
-      return `[file: ${file.name ?? file.uid ?? 'unknown'}]`;
-    }
-  }
-  return value;
 }

@@ -2,8 +2,10 @@ import { Alert, Button, Card, Input, Space, Typography } from 'antd';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { parseFormSchema } from '@/schema/schema';
 import { parseTableSchema } from '@/schema/table';
+import { parseWorkflowSchema } from '@/schema/workflow';
 import { useSchemaStore } from '@/store/useSchemaStore';
 import { useTableStore } from '@/store/useTableStore';
+import { useWorkflowStore } from '@/store/useWorkflowStore';
 
 /** What a pane needs to edit one document as text. */
 export interface JsonEditorProps<T> {
@@ -153,6 +155,20 @@ export function TableJsonPane() {
       title="Table schema JSON"
       document={schema}
       parse={parseTableSchema}
+      onApply={setSchema}
+    />
+  );
+}
+
+export function WorkflowJsonPane() {
+  const schema = useWorkflowStore((state) => state.schema);
+  const setSchema = useWorkflowStore((state) => state.setSchema);
+
+  return (
+    <JsonEditor
+      title="Workflow schema JSON"
+      document={schema}
+      parse={parseWorkflowSchema}
       onApply={setSchema}
     />
   );

@@ -1,34 +1,64 @@
 import { BuildOutlined, CodeOutlined, EyeOutlined, ProfileOutlined } from '@ant-design/icons';
 import { Layout, Segmented, Space, Tabs, Typography } from 'antd';
 import { useState } from 'react';
+import type { ReactNode } from 'react';
 import { BuilderLayout } from '@/builder/BuilderLayout';
 import { TableBuilder } from '@/builder/table/TableBuilder';
 import { Toolbar } from '@/builder/Toolbar';
+import { WorkflowBuilder } from '@/builder/workflow/WorkflowBuilder';
 import { appCustomComponents } from '@/custom';
-import { JsonPane, TableJsonPane } from '@/panes/JsonPane';
+import { JsonPane, TableJsonPane, WorkflowJsonPane } from '@/panes/JsonPane';
 import { PreviewPane } from '@/panes/PreviewPane';
 import { SummaryPane } from '@/panes/SummaryPane';
 import { TablePreviewPane } from '@/panes/TablePreviewPane';
+import { WorkflowPreviewPane } from '@/panes/WorkflowPreviewPane';
 import { CustomComponentsProvider } from '@/renderer/custom';
+import type { DocumentKind } from '@/schema/document';
 import { useAppMode } from '@/store/useAppMode';
 import { useSchemaStore } from '@/store/useSchemaStore';
 import { useTableStore } from '@/store/useTableStore';
+import { useWorkflowStore } from '@/store/useWorkflowStore';
 
 const HEADER_HEIGHT = 56;
 
 export function App() {
   const schema = useSchemaStore((state) => state.schema);
   const tableSchema = useTableStore((state) => state.schema);
+  const workflowSchema = useWorkflowStore((state) => state.schema);
   const mode = useAppMode((state) => state.mode);
   const setMode = useAppMode((state) => state.setMode);
   const [activeKey, setActiveKey] = useState('builder');
 
-  const isTable = mode === 'table';
-  const count = isTable ? tableSchema.columns.length : schema.fields.length;
-  const noun = isTable ? 'column' : 'field';
+  const count =
+    mode === 'table'
+      ? tableSchema.columns.length
+      : mode === 'workflow'
+        ? workflowSchema.nodes.length
+        : schema.fields.length;
+  const noun = mode === 'table' ? 'column' : mode === 'workflow' ? 'step' : 'field';
   // Summary is a form-only tab. Deriving the key rather than resetting it means
-  // a trip through table mode and back lands where you left off.
-  const currentKey = isTable && activeKey === 'summary' ? 'builder' : activeKey;
+  // a trip through another mode and back lands where you left off.
+  const currentKey = mode !== 'form' && activeKey === 'summary' ? 'builder' : activeKey;
+
+  // One entry per mode beats a three-way ternary in each tab, and adding a
+  // fourth document would be three lines rather than three edits.
+  const builders: Record<DocumentKind, ReactNode> = {
+    form: <BuilderLayout />,
+    table: <TableBuilder />,
+    workflow: <WorkflowBuilder />,
+  };
+
+  const previews: Record<DocumentKind, ReactNode> = {
+    form: <PreviewPane schema={schema} />,
+    table: <TablePreviewPane schema={tableSchema} />,
+    workflow: <WorkflowPreviewPane schema={workflowSchema} />,
+  };
+
+  const jsonPanes: Record<DocumentKind, ReactNode> = {
+    form: <JsonPane />,
+    table: <TableJsonPane />,
+    workflow: <WorkflowJsonPane />,
+  };
 
   const workspace = (
     <Layout style={{ height: '100vh' }}>
@@ -46,15 +76,16 @@ export function App() {
           <Typography.Text strong style={{ fontSize: 15 }}>
             antd Generator
           </Typography.Text>
-          {/* Which document the three tabs below are editing. */}
+          {/* Which document the tabs below are editing. */}
           <Segmented
             size="small"
             value={mode}
             options={[
               { label: 'Form', value: 'form' },
               { label: 'Table', value: 'table' },
+              { label: 'Workflow', value: 'workflow' },
             ]}
-            onChange={(next) => setMode(next as 'form' | 'table')}
+            onChange={(next) => setMode(next as DocumentKind)}
           />
           <Typography.Text type="secondary" className="fg-header__meta" style={{ fontSize: 12 }}>
             {count} {noun}
@@ -81,7 +112,7 @@ export function App() {
                   <BuildOutlined /> Builder
                 </span>
               ),
-              children: isTable ? <TableBuilder /> : <BuilderLayout />,
+              children: builders[mode],
             },
             {
               key: 'preview',
@@ -92,16 +123,13 @@ export function App() {
               ),
               children: (
                 <div className="fg-scroll" style={{ height: '100%' }}>
-                  {isTable ? (
-                    <TablePreviewPane schema={tableSchema} />
-                  ) : (
-                    <PreviewPane schema={schema} />
-                  )}
+                  {previews[mode]}
                 </div>
               ),
             },
-            // A table submits nothing, so there is no payload to summarise.
-            ...(isTable
+            // A table submits nothing, and a workflow's payload is spread over
+            // several forms — neither has a single schema to summarise.
+            ...(mode !== 'form'
               ? []
               : [
                   {
@@ -127,7 +155,7 @@ export function App() {
               ),
               children: (
                 <div className="fg-scroll" style={{ height: '100%' }}>
-                  {isTable ? <TableJsonPane /> : <JsonPane />}
+                  {jsonPanes[mode]}
                 </div>
               ),
             },

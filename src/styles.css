@@ -193,6 +193,284 @@ body {
   }
 }
 
+/* The workflow inspector holds a whole condition editor, so it takes the same
+   width as the form one; its palette is six short buttons. */
+.fg-builder--workflow {
+  grid-template-columns: 200px minmax(0, 1fr) 360px;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Workflow graph                                                              */
+/* -------------------------------------------------------------------------- */
+
+.fg-wf-palette-item {
+  border-left: 3px solid transparent;
+}
+
+/* The dotted grid is the only cue that the canvas is bigger than the viewport
+   and that node positions snap. */
+.fg-wf-stage {
+  height: 100%;
+  overflow: auto;
+  position: relative;
+  background-color: #fafafa;
+  background-image: radial-gradient(rgba(5, 5, 5, 0.09) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+
+.fg-wf-canvas {
+  position: relative;
+  /* Sized from the furthest node in JS — see `stageSize`. */
+  min-width: 100%;
+  min-height: 100%;
+}
+
+.fg-wf-edges {
+  position: absolute;
+  top: 0;
+  left: 0;
+  /* Clicks belong to the fat hit path inside, not to the whole rectangle. */
+  pointer-events: none;
+  overflow: visible;
+}
+
+.fg-wf-edge {
+  fill: none;
+  stroke: rgba(5, 5, 5, 0.35);
+  stroke-width: 2;
+  transition: stroke 0.15s ease;
+}
+
+.fg-wf-edge--default {
+  stroke-dasharray: 6 4;
+}
+
+.fg-wf-edge--selected {
+  stroke: #1677ff;
+  stroke-width: 3;
+}
+
+.fg-wf-edge--pending {
+  stroke: #1677ff;
+  stroke-dasharray: 4 4;
+}
+
+.fg-wf-edge-tip {
+  fill: #1677ff;
+}
+
+/* A 2px line is close to unhittable, so an invisible fat one takes the clicks. */
+.fg-wf-edge-hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 14;
+  pointer-events: stroke;
+  cursor: pointer;
+}
+
+.fg-wf-node-drop {
+  position: absolute;
+}
+
+.fg-wf-node {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: stretch;
+  background: #fff;
+  border: 1px solid rgba(5, 5, 5, 0.12);
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.fg-wf-node:hover {
+  border-color: rgba(22, 119, 255, 0.45);
+}
+
+/* While a branch is being dragged over it — the "let go here" cue. */
+.fg-wf-node--over {
+  border-color: #1677ff;
+  box-shadow: 0 0 0 3px rgba(22, 119, 255, 0.18);
+}
+
+.fg-wf-node__grip {
+  display: flex;
+  align-items: center;
+  padding: 0 6px;
+  color: rgba(5, 5, 5, 0.35);
+  cursor: grab;
+  border-right: 1px solid rgba(5, 5, 5, 0.06);
+  touch-action: none;
+}
+
+.fg-wf-node__grip:active {
+  cursor: grabbing;
+}
+
+.fg-wf-node__body {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  justify-content: center;
+}
+
+.fg-wf-node__title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.fg-wf-node__actions {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.fg-wf-node:hover .fg-wf-node__actions,
+.fg-wf-node--selected .fg-wf-node__actions,
+.fg-wf-node__actions:focus-within {
+  opacity: 1;
+}
+
+.fg-wf-node__count {
+  position: absolute;
+  top: -8px;
+  right: 24px;
+}
+
+/* The handle a branch is pulled out of. Sits half outside the card so it stays
+   grabbable when two nodes are close together. */
+.fg-wf-node__port {
+  position: absolute;
+  right: -7px;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  margin-top: -7px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  cursor: crosshair;
+  touch-action: none;
+  z-index: 3;
+}
+
+.fg-wf-node__port--active {
+  box-shadow: 0 0 0 4px rgba(22, 119, 255, 0.2);
+}
+
+/* Condition labels, parked on the midpoint of their own curve. */
+.fg-wf-chip {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  max-width: 168px;
+  padding: 1px 8px;
+  font-size: 11px;
+  line-height: 18px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background: #fff;
+  border: 1px solid rgba(5, 5, 5, 0.12);
+  border-radius: 10px;
+  color: rgba(5, 5, 5, 0.65);
+  cursor: pointer;
+  z-index: 4;
+}
+
+.fg-wf-chip--default {
+  border-style: dashed;
+}
+
+.fg-wf-chip--selected {
+  border-color: #1677ff;
+  color: #1677ff;
+}
+
+/* Canvas controls, pinned to a corner of the stage.
+   Two classes on purpose: `.fg-builder__main > div` above is `inset: 0`, so a
+   single-class overlay would stretch across the graph and eat every click. */
+.fg-builder__main > .fg-wf-overlay {
+  position: absolute;
+  top: auto;
+  left: auto;
+  right: 16px;
+  bottom: 16px;
+  display: flex;
+  gap: 6px;
+  padding: 4px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(5, 5, 5, 0.08);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  z-index: 5;
+}
+
+.fg-wf-inspector__head {
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(5, 5, 5, 0.06);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fg-wf-outcome {
+  border: 1px solid rgba(5, 5, 5, 0.08);
+  border-radius: 8px;
+  padding: 8px;
+  display: grid;
+  gap: 6px;
+}
+
+.fg-wf-problem {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  text-align: left;
+  font-size: 12px;
+  line-height: 1.5;
+  padding: 6px 8px;
+  background: #fafafa;
+  border: 1px solid rgba(5, 5, 5, 0.06);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.fg-wf-problem:hover {
+  border-color: rgba(22, 119, 255, 0.45);
+}
+
+/* The embedded form builder replaces the graph rather than nesting inside it,
+   so it re-does the height calc with room for its own breadcrumb bar. */
+.fg-wf-formedit {
+  height: calc(100vh - 103px);
+  display: flex;
+  flex-direction: column;
+}
+
+.fg-wf-formedit__bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  background: #fff;
+  border-bottom: 1px solid rgba(5, 5, 5, 0.06);
+  flex-shrink: 0;
+}
+
+.fg-wf-formedit .fg-builder {
+  height: auto;
+  flex: 1;
+  min-height: 0;
+}
+
 /* Below the antd `lg` breakpoint the three panes stop fitting side by side,
    so they stack into one scrolling column instead of squeezing. */
 @media (max-width: 991px) {
@@ -209,6 +487,12 @@ body {
     border-bottom: 1px solid rgba(5, 5, 5, 0.06);
     height: auto;
     overflow: visible;
+  }
+
+  /* The stage is nothing but absolutely-positioned children, so without an
+     explicit height it collapses once the row heights go auto. */
+  .fg-builder--workflow .fg-builder__main {
+    min-height: 420px;
   }
 
   .fg-header__meta {

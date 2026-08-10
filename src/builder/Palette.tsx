@@ -27,7 +27,7 @@ import { useCustomComponents } from '@/renderer/custom';
 import type { CreateFieldSeed } from '@/schema/factory';
 import { FIELD_CATEGORIES, fieldsByCategory } from '@/schema/registry';
 import type { FieldType } from '@/schema/schema';
-import { useSchemaStore } from '@/store/useSchemaStore';
+import { useFormBuilderStore } from '@/store/SchemaStoreContext';
 import { type PaletteDragData, paletteDraggableId } from './dndTypes';
 
 const ICONS: Record<FieldType, ReactNode> = {
@@ -70,7 +70,7 @@ function PaletteItem({
   componentKey?: string;
   def?: CustomComponentDef;
 }) {
-  const addField = useSchemaStore((state) => state.addField);
+  const addField = useFormBuilderStore((state) => state.addField);
   const data: PaletteDragData = { source: 'palette', fieldType: type, componentKey };
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: paletteDraggableId(type, componentKey),

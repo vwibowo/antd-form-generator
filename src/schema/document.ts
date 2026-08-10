@@ -2,25 +2,28 @@ import type { FormSchema } from './schema';
 import { parseFormSchema } from './schema';
 import type { TableSchema } from './table';
 import { parseTableSchema } from './table';
+import type { WorkflowSchema } from './workflow';
+import { parseWorkflowSchema } from './workflow';
 
 /**
- * The app edits two kinds of document. Anything that reads JSON from outside —
+ * The app edits three kinds of document. Anything that reads JSON from outside —
  * an imported file, a localStorage blob, a paste into the JSON tab — goes
- * through here so the two never get confused for one another.
+ * through here so they never get confused for one another.
  */
 
-export type DocumentKind = 'form' | 'table';
+export type DocumentKind = 'form' | 'table' | 'workflow';
 
 export type DocumentParseResult =
   | { ok: true; kind: 'form'; schema: FormSchema }
   | { ok: true; kind: 'table'; schema: TableSchema }
+  | { ok: true; kind: 'workflow'; schema: WorkflowSchema }
   | { ok: false; errors: string[] };
 
-function looksLikeTable(input: unknown): boolean {
+function hasKind(input: unknown, kind: string): boolean {
   return (
     typeof input === 'object' &&
     input !== null &&
-    (input as { kind?: unknown }).kind === 'table'
+    (input as { kind?: unknown }).kind === kind
   );
 }
 
@@ -29,9 +32,14 @@ function looksLikeTable(input: unknown): boolean {
  * before tables existed lacks the key, and those files must still import.
  */
 export function parseDocument(input: unknown): DocumentParseResult {
-  if (looksLikeTable(input)) {
+  if (hasKind(input, 'table')) {
     const result = parseTableSchema(input);
     return result.ok ? { ok: true, kind: 'table', schema: result.schema } : result;
+  }
+
+  if (hasKind(input, 'workflow')) {
+    const result = parseWorkflowSchema(input);
+    return result.ok ? { ok: true, kind: 'workflow', schema: result.schema } : result;
   }
 
   const result = parseFormSchema(input);

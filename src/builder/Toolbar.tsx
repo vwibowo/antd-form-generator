@@ -23,6 +23,7 @@ import { useState } from 'react';
 import { parseDocument } from '@/schema/document';
 import { DEFAULT_SAMPLE_PRESET, SAMPLE_PRESETS } from '@/schema/samples';
 import { DEFAULT_TABLE_PRESET, TABLE_SAMPLE_PRESETS } from '@/schema/samples/tables';
+import { DEFAULT_WORKFLOW_PRESET, WORKFLOW_SAMPLE_PRESETS } from '@/schema/samples/workflows';
 import { useAppMode } from '@/store/useAppMode';
 import {
   selectCanRedo,
@@ -34,65 +35,132 @@ import {
   selectTableCanUndo,
   useTableStore,
 } from '@/store/useTableStore';
+import {
+  selectWorkflowCanRedo,
+  selectWorkflowCanUndo,
+  useWorkflowStore,
+} from '@/store/useWorkflowStore';
+
+/** Everything the toolbar needs about whichever document is on screen. */
+interface ActiveDocument {
+  document: unknown;
+  undo: () => void;
+  redo: () => void;
+  clear: () => void;
+  canUndo: boolean;
+  canRedo: boolean;
+  presets: { key: string; label: string; description: string; create: () => unknown }[];
+  defaultPresetKey: string;
+  apply: (schema: unknown) => void;
+  isEmpty: boolean;
+  filename: string;
+  /** The noun in "Undo restores your …" and in the Clear confirmation. */
+  noun: string;
+  clearTitle: string;
+}
 
 /**
- * One toolbar for both documents. Every action dispatches to whichever store
- * the mode switch has active; import is the exception — it reads the file's own
- * `kind` and switches the mode to match what it was handed.
+ * One toolbar for all three documents. Every action dispatches to whichever
+ * store the mode switch has active; import is the exception — it reads the
+ * file's own `kind` and switches the mode to match what it was handed.
+ *
+ * The per-mode differences are gathered into one `switch` rather than spread
+ * across a dozen ternaries in the JSX, which is what a third document turned
+ * from untidy into unreadable.
  */
 export function Toolbar() {
   const { message } = App.useApp();
   const mode = useAppMode((state) => state.mode);
   const setMode = useAppMode((state) => state.setMode);
 
+  // Every store's hooks run unconditionally; the switch below only picks.
   const schema = useSchemaStore((state) => state.schema);
   const setSchema = useSchemaStore((state) => state.setSchema);
-  const tableSchema = useTableStore((state) => state.schema);
-  const setTableSchema = useTableStore((state) => state.setSchema);
-
-  const isTable = mode === 'table';
-  const activeDocument = isTable ? tableSchema : schema;
-
   const undoForm = useSchemaStore((state) => state.undo);
   const redoForm = useSchemaStore((state) => state.redo);
   const clearForm = useSchemaStore((state) => state.clear);
+  const canUndoForm = useSchemaStore(selectCanUndo);
+  const canRedoForm = useSchemaStore(selectCanRedo);
+
+  const tableSchema = useTableStore((state) => state.schema);
+  const setTableSchema = useTableStore((state) => state.setSchema);
   const undoTable = useTableStore((state) => state.undo);
   const redoTable = useTableStore((state) => state.redo);
   const clearTable = useTableStore((state) => state.clear);
-
-  const undo = isTable ? undoTable : undoForm;
-  const redo = isTable ? redoTable : redoForm;
-  const clear = isTable ? clearTable : clearForm;
-  const canUndo = useSchemaStore(selectCanUndo);
-  const canRedo = useSchemaStore(selectCanRedo);
   const canUndoTable = useTableStore(selectTableCanUndo);
   const canRedoTable = useTableStore(selectTableCanRedo);
 
-  const presets = isTable ? TABLE_SAMPLE_PRESETS : SAMPLE_PRESETS;
-  const defaultPreset = isTable ? DEFAULT_TABLE_PRESET : DEFAULT_SAMPLE_PRESET;
-  const isEmpty = isTable ? tableSchema.columns.length === 0 : schema.fields.length === 0;
+  const workflowSchema = useWorkflowStore((state) => state.schema);
+  const setWorkflowSchema = useWorkflowStore((state) => state.setSchema);
+  const undoWorkflow = useWorkflowStore((state) => state.undo);
+  const redoWorkflow = useWorkflowStore((state) => state.redo);
+  const clearWorkflow = useWorkflowStore((state) => state.clear);
+  const canUndoWorkflow = useWorkflowStore(selectWorkflowCanUndo);
+  const canRedoWorkflow = useWorkflowStore(selectWorkflowCanRedo);
+
+  const active: ActiveDocument =
+    mode === 'table'
+      ? {
+          document: tableSchema,
+          undo: undoTable,
+          redo: redoTable,
+          clear: clearTable,
+          canUndo: canUndoTable,
+          canRedo: canRedoTable,
+          presets: TABLE_SAMPLE_PRESETS,
+          defaultPresetKey: DEFAULT_TABLE_PRESET.key,
+          apply: (next) => setTableSchema(next as typeof tableSchema),
+          isEmpty: tableSchema.columns.length === 0,
+          filename: 'table-schema.json',
+          noun: 'table',
+          clearTitle: 'Remove all columns?',
+        }
+      : mode === 'workflow'
+        ? {
+            document: workflowSchema,
+            undo: undoWorkflow,
+            redo: redoWorkflow,
+            clear: clearWorkflow,
+            canUndo: canUndoWorkflow,
+            canRedo: canRedoWorkflow,
+            presets: WORKFLOW_SAMPLE_PRESETS,
+            defaultPresetKey: DEFAULT_WORKFLOW_PRESET.key,
+            apply: (next) => setWorkflowSchema(next as typeof workflowSchema),
+            isEmpty: workflowSchema.nodes.length === 0,
+            filename: 'workflow-schema.json',
+            noun: 'workflow',
+            // Clear leaves a runnable start/end pair, not a blank canvas.
+            clearTitle: 'Start this workflow over?',
+          }
+        : {
+            document: schema,
+            undo: undoForm,
+            redo: redoForm,
+            clear: clearForm,
+            canUndo: canUndoForm,
+            canRedo: canRedoForm,
+            presets: SAMPLE_PRESETS,
+            defaultPresetKey: DEFAULT_SAMPLE_PRESET.key,
+            apply: (next) => setSchema(next as typeof schema),
+            isEmpty: schema.fields.length === 0,
+            filename: 'form-schema.json',
+            noun: 'form',
+            clearTitle: 'Remove all fields?',
+          };
 
   const [importErrors, setImportErrors] = useState<string[] | null>(null);
 
-  // No confirmation on either branch: `setSchema` pushes the old document onto
-  // the undo stack, so the button two along is a complete recovery.
+  // No confirmation: `setSchema` pushes the old document onto the undo stack,
+  // so the button two along is a complete recovery.
   const applyPreset = (key: string) => {
-    if (isTable) {
-      const preset = TABLE_SAMPLE_PRESETS.find((entry) => entry.key === key);
-      if (!preset) return;
-      setTableSchema(preset.create());
-      message.success(`Loaded "${preset.label}" — Undo restores your table`);
-      return;
-    }
-
-    const preset = SAMPLE_PRESETS.find((entry) => entry.key === key);
+    const preset = active.presets.find((entry) => entry.key === key);
     if (!preset) return;
-    setSchema(preset.create());
-    message.success(`Loaded "${preset.label}" — Undo restores your form`);
+    active.apply(preset.create());
+    message.success(`Loaded "${preset.label}" — Undo restores your ${active.noun}`);
   };
 
   const sampleMenu: MenuProps = {
-    items: presets.map((preset) => ({
+    items: active.presets.map((preset) => ({
       key: preset.key,
       // antd menu items are a fixed-height nowrap line with an ellipsis, so a
       // two-line label needs these overrides or the description is clipped.
@@ -113,15 +181,16 @@ export function Toolbar() {
   };
 
   const handleExport = () => {
-    const filename = isTable ? 'table-schema.json' : 'form-schema.json';
-    const blob = new Blob([JSON.stringify(activeDocument, null, 2)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify(active.document, null, 2)], {
+      type: 'application/json',
+    });
     const url = URL.createObjectURL(blob);
     const anchor = window.document.createElement('a');
     anchor.href = url;
-    anchor.download = filename;
+    anchor.download = active.filename;
     anchor.click();
     URL.revokeObjectURL(url);
-    message.success(`Exported ${filename}`);
+    message.success(`Exported ${active.filename}`);
   };
 
   const handleImport = (file: File) => {
@@ -144,11 +213,12 @@ export function Toolbar() {
       // should open, not fail validation against the wrong contract.
       if (result.kind === 'table') {
         setTableSchema(result.schema);
-        setMode('table');
+      } else if (result.kind === 'workflow') {
+        setWorkflowSchema(result.schema);
       } else {
         setSchema(result.schema);
-        setMode('form');
       }
+      setMode(result.kind);
       message.success(`Imported ${file.name}`);
     };
     reader.onerror = () => setImportErrors(['Could not read the file']);
@@ -162,8 +232,8 @@ export function Toolbar() {
           <Button
             size="small"
             icon={<UndoOutlined />}
-            disabled={isTable ? !canUndoTable : !canUndo}
-            onClick={undo}
+            disabled={!active.canUndo}
+            onClick={active.undo}
             aria-label="Undo"
           />
         </Tooltip>
@@ -171,8 +241,8 @@ export function Toolbar() {
           <Button
             size="small"
             icon={<RedoOutlined />}
-            disabled={isTable ? !canRedoTable : !canRedo}
-            onClick={redo}
+            disabled={!active.canRedo}
+            onClick={active.redo}
             aria-label="Redo"
           />
         </Tooltip>
@@ -182,7 +252,7 @@ export function Toolbar() {
           <Button
             size="small"
             icon={<ExperimentOutlined />}
-            onClick={() => applyPreset(defaultPreset.key)}
+            onClick={() => applyPreset(active.defaultPresetKey)}
           >
             Sample
           </Button>
@@ -209,13 +279,13 @@ export function Toolbar() {
         </Button>
 
         <Popconfirm
-          title={isTable ? 'Remove all columns?' : 'Remove all fields?'}
+          title={active.clearTitle}
           description="This can be undone with the undo button."
           okText="Clear"
           okButtonProps={{ danger: true }}
-          onConfirm={clear}
+          onConfirm={active.clear}
         >
-          <Button size="small" danger icon={<ClearOutlined />} disabled={isEmpty}>
+          <Button size="small" danger icon={<ClearOutlined />} disabled={active.isEmpty}>
             Clear
           </Button>
         </Popconfirm>

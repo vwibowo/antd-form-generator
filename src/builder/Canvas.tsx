@@ -16,7 +16,7 @@ import { compileRules } from '@/renderer/rules';
 import { metaFor } from '@/schema/registry';
 import type { FieldNode } from '@/schema/schema';
 import { ROOT_CONTAINER_ID } from '@/schema/walk';
-import { useSchemaStore } from '@/store/useSchemaStore';
+import { useFormBuilderStore } from '@/store/SchemaStoreContext';
 import { type ContainerDropData, type FieldDragData, containerDroppableId } from './dndTypes';
 
 /* -------------------------------------------------------------------------- */
@@ -121,10 +121,10 @@ interface SortableFieldProps {
 }
 
 function SortableField({ node, containerId, index }: SortableFieldProps) {
-  const selectedId = useSchemaStore((state) => state.selectedId);
-  const select = useSchemaStore((state) => state.select);
-  const removeField = useSchemaStore((state) => state.removeField);
-  const duplicateNode = useSchemaStore((state) => state.duplicateNode);
+  const selectedId = useFormBuilderStore((state) => state.selectedId);
+  const select = useFormBuilderStore((state) => state.select);
+  const removeField = useFormBuilderStore((state) => state.removeField);
+  const duplicateNode = useFormBuilderStore((state) => state.duplicateNode);
 
   const data: FieldDragData = {
     source: 'field',
@@ -246,7 +246,7 @@ interface FieldListProps {
  * empty container — and the space past the last field — accept a drop.
  */
 export function FieldList({ containerId, fields, emptyLabel }: FieldListProps) {
-  const gutter = useSchemaStore((state) => state.schema.gutter);
+  const gutter = useFormBuilderStore((state) => state.schema.gutter);
 
   return (
     <SortableContext items={fields.map((node) => node.id)} strategy={verticalListSortingStrategy}>
@@ -267,8 +267,8 @@ export function FieldList({ containerId, fields, emptyLabel }: FieldListProps) {
 /* -------------------------------------------------------------------------- */
 
 export function Canvas() {
-  const schema = useSchemaStore((state) => state.schema);
-  const select = useSchemaStore((state) => state.select);
+  const schema = useFormBuilderStore((state) => state.schema);
+  const select = useFormBuilderStore((state) => state.select);
 
   return (
     <div
