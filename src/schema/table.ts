@@ -119,10 +119,10 @@ export const tableSourceSchema = z.object({
 });
 export type TableSource = z.infer<typeof tableSourceSchema>;
 
-export const TABLE_SCHEMA_VERSION = 1;
+export const TABLE_SCREEN_SCHEMA_VERSION = 1;
 
 export const tableSchemaSchema = z.object({
-  version: z.number().int().default(TABLE_SCHEMA_VERSION),
+  version: z.number().int().default(TABLE_SCREEN_SCHEMA_VERSION),
   /** Discriminator so an import can tell the two documents apart. */
   kind: z.literal('table').default('table'),
   title: z.string().optional(),

@@ -1,0 +1,143 @@
+{
+  "version": 1,
+  "kind": "table",
+  "title": "Products",
+  "description": "dummyjson.com returns { products, total }. It takes an offset rather than a page number, which is what `Row offset` in the data panel is for. The search box narrows it on the server.",
+  "source": {
+    "kind": "remote",
+    "rows": [],
+    "url": "https://dummyjson.com/products/search",
+    "dataPath": "products",
+    "paging": "server",
+    "pageParam": "skip",
+    "sizeParam": "limit",
+    "pageStart": 1,
+    "pageMode": "offset",
+    "totalPath": "total",
+    "sortParam": "sortBy",
+    "orderParam": "order",
+    "ascValue": "asc",
+    "descValue": "desc"
+  },
+  "rowKey": "id",
+  "params": {},
+  "selection": {
+    "enabled": true,
+    "type": "checkbox",
+    "preserveAcrossPages": true,
+    "fixed": false,
+    "hideSelectAll": false,
+    "actions": [
+      {
+        "id": "act_export",
+        "label": "Export",
+        "danger": false,
+        "minSelected": 1
+      }
+    ]
+  },
+  "search": {
+    "enabled": true,
+    "placeholder": "Search products",
+    "columnIds": [],
+    "param": "q",
+    "debounceMs": 300
+  },
+  "columns": [
+    {
+      "id": "col_478092d1",
+      "key": "id",
+      "title": "ID",
+      "width": 70,
+      "align": "right",
+      "ellipsis": false,
+      "hidden": false,
+      "sortable": false,
+      "filterable": false,
+      "filterParam": "",
+      "format": "text",
+      "props": {}
+    },
+    {
+      "id": "col_ac823c3b",
+      "key": "title",
+      "title": "Product",
+      "width": 220,
+      "align": "left",
+      "ellipsis": false,
+      "hidden": false,
+      "sortable": true,
+      "filterable": false,
+      "filterParam": "",
+      "format": "text",
+      "props": {}
+    },
+    {
+      "id": "col_ce11b131",
+      "key": "brand",
+      "title": "Brand",
+      "width": 140,
+      "align": "left",
+      "ellipsis": false,
+      "hidden": false,
+      "sortable": false,
+      "filterable": false,
+      "filterParam": "",
+      "format": "text",
+      "props": {}
+    },
+    {
+      "id": "col_ddbd80b3",
+      "key": "price",
+      "title": "Price",
+      "width": 110,
+      "align": "right",
+      "ellipsis": false,
+      "hidden": false,
+      "sortable": true,
+      "filterable": false,
+      "filterParam": "",
+      "format": "number",
+      "props": {
+        "prefix": "$",
+        "precision": 2
+      }
+    },
+    {
+      "id": "col_5e4b8271",
+      "key": "rating",
+      "title": "Rating",
+      "width": 90,
+      "align": "right",
+      "ellipsis": false,
+      "hidden": false,
+      "sortable": false,
+      "filterable": false,
+      "filterParam": "",
+      "format": "number",
+      "props": {
+        "precision": 1
+      }
+    },
+    {
+      "id": "col_59d03b8d",
+      "key": "description",
+      "title": "Description",
+      "width": 320,
+      "align": "left",
+      "ellipsis": true,
+      "hidden": false,
+      "sortable": false,
+      "filterable": false,
+      "filterParam": "",
+      "format": "text",
+      "props": {}
+    }
+  ],
+  "props": {
+    "size": "small",
+    "pageSize": 10,
+    "showTotal": true,
+    "scrollX": "max-content"
+  }
+}

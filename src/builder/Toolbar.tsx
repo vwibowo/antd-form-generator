@@ -23,15 +23,13 @@ import { useState } from 'react';
 import { parseDocument } from '@/schema/document';
 import { DEFAULT_SAMPLE_PRESET, SAMPLE_PRESETS } from '@/schema/samples';
 import { DEFAULT_TABLE_PRESET, TABLE_SAMPLE_PRESETS } from '@/schema/samples/tables';
-import { DEFAULT_PAGE_PRESET, PAGE_SAMPLE_PRESETS } from '@/schema/samples/pages';
 import { DEFAULT_WORKFLOW_PRESET, WORKFLOW_SAMPLE_PRESETS } from '@/schema/samples/workflows';
 import { useAppMode } from '@/store/useAppMode';
 import {
-  selectCanRedo,
-  selectCanUndo,
-  useSchemaStore,
-} from '@/store/useSchemaStore';
-import { selectPageCanRedo, selectPageCanUndo, usePageStore } from '@/store/usePageStore';
+  selectScreenCanRedo,
+  selectScreenCanUndo,
+  useScreenStore,
+} from '@/store/useScreenStore';
 import {
   selectTableCanRedo,
   selectTableCanUndo,
@@ -76,13 +74,13 @@ export function Toolbar() {
   const setMode = useAppMode((state) => state.setMode);
 
   // Every store's hooks run unconditionally; the switch below only picks.
-  const schema = useSchemaStore((state) => state.schema);
-  const setSchema = useSchemaStore((state) => state.setSchema);
-  const undoForm = useSchemaStore((state) => state.undo);
-  const redoForm = useSchemaStore((state) => state.redo);
-  const clearForm = useSchemaStore((state) => state.clear);
-  const canUndoForm = useSchemaStore(selectCanUndo);
-  const canRedoForm = useSchemaStore(selectCanRedo);
+  const schema = useScreenStore((state) => state.schema);
+  const setSchema = useScreenStore((state) => state.setSchema);
+  const undoForm = useScreenStore((state) => state.undo);
+  const redoForm = useScreenStore((state) => state.redo);
+  const clearForm = useScreenStore((state) => state.clear);
+  const canUndoForm = useScreenStore(selectScreenCanUndo);
+  const canRedoForm = useScreenStore(selectScreenCanRedo);
 
   const tableSchema = useTableStore((state) => state.schema);
   const setTableSchema = useTableStore((state) => state.setSchema);
@@ -99,14 +97,6 @@ export function Toolbar() {
   const clearWorkflow = useWorkflowStore((state) => state.clear);
   const canUndoWorkflow = useWorkflowStore(selectWorkflowCanUndo);
   const canRedoWorkflow = useWorkflowStore(selectWorkflowCanRedo);
-
-  const pageSchema = usePageStore((state) => state.schema);
-  const setPageSchema = usePageStore((state) => state.setSchema);
-  const undoPage = usePageStore((state) => state.undo);
-  const redoPage = usePageStore((state) => state.redo);
-  const clearPage = usePageStore((state) => state.clear);
-  const canUndoPage = usePageStore(selectPageCanUndo);
-  const canRedoPage = usePageStore(selectPageCanRedo);
 
   const active: ActiveDocument =
     mode === 'table'
@@ -125,23 +115,7 @@ export function Toolbar() {
           noun: 'table',
           clearTitle: 'Remove all columns?',
         }
-      : mode === 'page'
-        ? {
-            document: pageSchema,
-            undo: undoPage,
-            redo: redoPage,
-            clear: clearPage,
-            canUndo: canUndoPage,
-            canRedo: canRedoPage,
-            presets: PAGE_SAMPLE_PRESETS,
-            defaultPresetKey: DEFAULT_PAGE_PRESET.key,
-            apply: (next) => setPageSchema(next as typeof pageSchema),
-            isEmpty: pageSchema.blocks.length === 0,
-            filename: 'page-schema.json',
-            noun: 'page',
-            clearTitle: 'Remove all blocks?',
-          }
-        : mode === 'workflow'
+      : mode === 'workflow'
         ? {
             document: workflowSchema,
             undo: undoWorkflow,
@@ -168,10 +142,10 @@ export function Toolbar() {
             presets: SAMPLE_PRESETS,
             defaultPresetKey: DEFAULT_SAMPLE_PRESET.key,
             apply: (next) => setSchema(next as typeof schema),
-            isEmpty: schema.fields.length === 0,
-            filename: 'form-schema.json',
-            noun: 'form',
-            clearTitle: 'Remove all fields?',
+            isEmpty: schema.nodes.length === 0,
+            filename: 'screen-schema.json',
+            noun: 'screen',
+            clearTitle: 'Remove everything on this screen?',
           };
 
   const [importErrors, setImportErrors] = useState<string[] | null>(null);
@@ -235,14 +209,12 @@ export function Toolbar() {
         setImportErrors(result.errors);
         return;
       }
-      // Follow the file rather than the switch: a table dropped in form mode
+      // Follow the file rather than the switch: a table dropped in screen mode
       // should open, not fail validation against the wrong contract.
       if (result.kind === 'table') {
         setTableSchema(result.schema);
       } else if (result.kind === 'workflow') {
         setWorkflowSchema(result.schema);
-      } else if (result.kind === 'page') {
-        setPageSchema(result.schema);
       } else {
         setSchema(result.schema);
       }

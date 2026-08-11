@@ -1,12 +1,12 @@
 import { Alert, Checkbox, Input, InputNumber, Space, Tag, Typography } from 'antd';
 import { useMemo } from 'react';
 import { extractDependencies } from '@/renderer/remote/url';
-import type { DataSource, FieldNode } from '@/schema/schema';
-import { remoteSearchSchema } from '@/schema/schema';
+import type { DataSource, ScreenNode } from '@/schema/screen';
+import { remoteSearchSchema } from '@/schema/screen';
 import { Labeled } from './Labeled';
 
 export interface RemoteSourceEditorProps {
-  node: FieldNode;
+  node: ScreenNode;
   source: DataSource;
   onChange: (source: DataSource) => void;
   /** Same list the condition editor uses, for spotting typo'd `{{names}}`. */

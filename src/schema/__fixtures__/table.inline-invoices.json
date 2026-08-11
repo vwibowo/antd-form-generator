@@ -1,0 +1,174 @@
+{
+  "version": 1,
+  "kind": "table",
+  "title": "Invoices",
+  "description": "An array authored inline, paged and sorted in the browser.",
+  "source": {
+    "kind": "static",
+    "rows": [
+      {
+        "id": "INV-1041",
+        "customer": "Ada Lovelace",
+        "total": 1250.5,
+        "paid": true,
+        "issued": "2026-03-01"
+      },
+      {
+        "id": "INV-1042",
+        "customer": "Grace Hopper",
+        "total": 98,
+        "paid": false,
+        "issued": "2026-03-04"
+      },
+      {
+        "id": "INV-1043",
+        "customer": "Alan Turing",
+        "total": 24999.99,
+        "paid": true,
+        "issued": "2026-03-11"
+      },
+      {
+        "id": "INV-1044",
+        "customer": "Katherine Johnson",
+        "total": 430.25,
+        "paid": false,
+        "issued": "2026-04-02"
+      },
+      {
+        "id": "INV-1045",
+        "customer": "Edsger Dijkstra",
+        "total": 7600,
+        "paid": true,
+        "issued": "2026-04-19"
+      }
+    ],
+    "url": "",
+    "dataPath": "",
+    "paging": "client",
+    "pageParam": "page",
+    "sizeParam": "pageSize",
+    "pageStart": 1,
+    "pageMode": "page",
+    "totalPath": "",
+    "sortParam": "",
+    "orderParam": "order",
+    "ascValue": "asc",
+    "descValue": "desc"
+  },
+  "rowKey": "id",
+  "params": {},
+  "selection": {
+    "enabled": true,
+    "type": "checkbox",
+    "preserveAcrossPages": false,
+    "fixed": false,
+    "hideSelectAll": false,
+    "actions": [
+      {
+        "id": "act_remind",
+        "label": "Send reminder",
+        "danger": false,
+        "minSelected": 1
+      },
+      {
+        "id": "act_void",
+        "label": "Void",
+        "danger": true,
+        "minSelected": 2
+      }
+    ]
+  },
+  "search": {
+    "enabled": true,
+    "placeholder": "Search invoices",
+    "columnIds": [],
+    "param": "q",
+    "debounceMs": 300
+  },
+  "columns": [
+    {
+      "id": "col_5c964d87",
+      "key": "id",
+      "title": "Invoice",
+      "width": 120,
+      "align": "left",
+      "ellipsis": false,
+      "hidden": false,
+      "sortable": true,
+      "filterable": false,
+      "filterParam": "",
+      "format": "text",
+      "props": {}
+    },
+    {
+      "id": "col_ae34c700",
+      "key": "customer",
+      "title": "Customer",
+      "align": "left",
+      "ellipsis": false,
+      "hidden": false,
+      "sortable": true,
+      "filterable": false,
+      "filterParam": "",
+      "format": "text",
+      "props": {}
+    },
+    {
+      "id": "col_5a3c8553",
+      "key": "total",
+      "title": "Total",
+      "width": 140,
+      "align": "right",
+      "ellipsis": false,
+      "hidden": false,
+      "sortable": true,
+      "filterable": false,
+      "filterParam": "",
+      "format": "number",
+      "props": {
+        "prefix": "$",
+        "precision": 2,
+        "thousandSeparator": ","
+      }
+    },
+    {
+      "id": "col_74510865",
+      "key": "issued",
+      "title": "Issued",
+      "width": 130,
+      "align": "left",
+      "ellipsis": false,
+      "hidden": false,
+      "sortable": true,
+      "filterable": false,
+      "filterParam": "",
+      "format": "date",
+      "props": {
+        "format": "DD/MM/YYYY"
+      }
+    },
+    {
+      "id": "col_e8070ca0",
+      "key": "paid",
+      "title": "Status",
+      "width": 110,
+      "align": "center",
+      "ellipsis": false,
+      "hidden": false,
+      "sortable": false,
+      "filterable": true,
+      "filterParam": "",
+      "format": "boolean",
+      "props": {
+        "trueText": "Paid",
+        "falseText": "Outstanding"
+      }
+    }
+  ],
+  "props": {
+    "bordered": true,
+    "size": "middle",
+    "pageSize": 5,
+    "showTotal": true
+  }
+}

@@ -1,0 +1,172 @@
+{
+  "version": 1,
+  "kind": "workflow",
+  "title": "Support triage",
+  "description": "One form, one condition, two endings.",
+  "nodes": [
+    {
+      "id": "tr_start",
+      "kind": "start",
+      "label": "Ticket opened",
+      "description": "",
+      "name": "",
+      "x": 48,
+      "y": 240,
+      "props": {}
+    },
+    {
+      "id": "tr_form",
+      "kind": "form",
+      "label": "Describe the problem",
+      "description": "",
+      "name": "",
+      "x": 336,
+      "y": 240,
+      "form": {
+        "version": 1,
+        "layout": "vertical",
+        "size": "middle",
+        "colon": true,
+        "gutter": 16,
+        "submitText": "Send",
+        "showReset": false,
+        "fields": [
+          {
+            "id": "tr_severity",
+            "type": "radio",
+            "name": "severity",
+            "label": "How bad is it?",
+            "span": 24,
+            "defaultValue": "low",
+            "disabled": false,
+            "hidden": false,
+            "rules": [
+              {
+                "kind": "required"
+              }
+            ],
+            "options": [
+              {
+                "label": "Everything is down",
+                "value": "critical"
+              },
+              {
+                "label": "Something is broken",
+                "value": "high"
+              },
+              {
+                "label": "A question",
+                "value": "low"
+              }
+            ],
+            "props": {}
+          },
+          {
+            "id": "tr_summary",
+            "type": "textarea",
+            "name": "summary",
+            "label": "What happened?",
+            "span": 24,
+            "disabled": false,
+            "hidden": false,
+            "rules": [
+              {
+                "kind": "required"
+              }
+            ],
+            "props": {
+              "rows": 3
+            }
+          }
+        ]
+      },
+      "props": {}
+    },
+    {
+      "id": "tr_page",
+      "kind": "action",
+      "label": "Page the on-call engineer",
+      "description": "",
+      "name": "",
+      "x": 624,
+      "y": 48,
+      "action": {
+        "id": "support.page",
+        "label": "Page on-call",
+        "params": {}
+      },
+      "props": {}
+    },
+    {
+      "id": "tr_queue",
+      "kind": "end",
+      "label": "Queued for the next working day",
+      "description": "",
+      "name": "",
+      "x": 624,
+      "y": 432,
+      "props": {}
+    },
+    {
+      "id": "tr_open",
+      "kind": "end",
+      "label": "Incident opened",
+      "description": "",
+      "name": "",
+      "x": 912,
+      "y": 48,
+      "props": {}
+    }
+  ],
+  "edges": [
+    {
+      "id": "te_start",
+      "from": "tr_start",
+      "to": "tr_form",
+      "label": "",
+      "priority": 0,
+      "isDefault": false
+    },
+    {
+      "id": "te_urgent",
+      "from": "tr_form",
+      "to": "tr_page",
+      "label": "Urgent",
+      "priority": 0,
+      "isDefault": false,
+      "condition": {
+        "logic": "or",
+        "conditions": [
+          {
+            "field": "severity",
+            "operator": "eq",
+            "value": "critical"
+          },
+          {
+            "field": "severity",
+            "operator": "eq",
+            "value": "high"
+          }
+        ]
+      }
+    },
+    {
+      "id": "te_rest",
+      "from": "tr_form",
+      "to": "tr_queue",
+      "label": "Otherwise",
+      "priority": 0,
+      "isDefault": true
+    },
+    {
+      "id": "te_open",
+      "from": "tr_page",
+      "to": "tr_open",
+      "label": "",
+      "priority": 0,
+      "isDefault": false
+    }
+  ],
+  "edgeStyle": "curve",
+  "props": {}
+}

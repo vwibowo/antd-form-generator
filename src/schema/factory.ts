@@ -1,54 +1,65 @@
 import { createId } from '@/lib/ids';
-import { FIELD_REGISTRY } from './registry';
-import type { FieldNode, FieldType } from './schema';
+import { SCREEN_REGISTRY } from './registry';
+import type { ScreenNode, ScreenNodeType } from './screen';
+import { collectsValue, screenNodeSchema } from './screen';
+import { createEmptyTableSchema } from './table';
 import { uniqueName } from './walk';
 
 /**
  * Extra defaults for one specific node, on top of the type's registry entry.
- * A `custom` field uses this to arrive with its component already chosen.
+ * A `custom` node uses this to arrive with its component already chosen.
  */
-export interface CreateFieldSeed {
+export interface CreateNodeSeed {
   namePrefix?: string;
   label?: string;
   props?: Record<string, unknown>;
 }
 
 /**
- * Build a new node of `type` with registry defaults applied and a name that
- * does not collide with anything already in `existingFields`.
+ * Build a new node of `type` with registry defaults applied.
+ *
+ * A display node gets no `name`: it can never own a payload key, so generating
+ * a unique one would only put a value in the JSON that nothing reads.
  */
-export function createField(
-  type: FieldType,
-  existingFields: FieldNode[] = [],
-  seed?: CreateFieldSeed,
-): FieldNode {
-  const meta = FIELD_REGISTRY[type];
+export function createNode(
+  type: ScreenNodeType,
+  existingNodes: ScreenNode[] = [],
+  seed?: CreateNodeSeed,
+): ScreenNode {
+  const meta = SCREEN_REGISTRY[type];
   const { children, props, ...rest } = meta.defaults;
 
-  return {
+  return screenNodeSchema.parse({
     id: createId(type),
     type,
-    name: uniqueName(existingFields, seed?.namePrefix || meta.namePrefix),
-    span: 24,
-    disabled: false,
-    hidden: false,
-    rules: [],
+    ...(collectsValue(type)
+      ? { name: uniqueName(existingNodes, seed?.namePrefix || meta.namePrefix) }
+      : {}),
     ...rest,
     ...(seed?.label ? { label: seed.label } : {}),
     // Seeded props merge over the type's own, rather than replacing them.
     props: { ...(props ?? {}), ...(seed?.props ?? {}) },
     ...(meta.supports.children ? { children: children ? [...children] : [] } : {}),
-  };
+    // A table node arrives with a parsed empty table rather than nothing, so
+    // the inspector never has to special-case "not authored yet".
+    ...(meta.supports.table ? { table: createEmptyTableSchema() } : {}),
+  });
 }
 
-/** Deep copy of a node (and its subtree) with fresh ids and a free name. */
-export function duplicateField(node: FieldNode, existingFields: FieldNode[]): FieldNode {
+/**
+ * Deep copy of a node (and its subtree) with fresh ids and a free name.
+ *
+ * Named `cloneNode` rather than `duplicateNode` because the store already has
+ * an action by that name; two `duplicateNode`s in one import list is only ever
+ * confusing.
+ */
+export function cloneNode(node: ScreenNode, existingNodes: ScreenNode[]): ScreenNode {
   const clone = structuredClone(node);
 
-  const reassign = (target: FieldNode, isRoot: boolean) => {
+  const reassign = (target: ScreenNode, isRoot: boolean) => {
     target.id = createId(target.type);
-    if (isRoot) {
-      target.name = uniqueName(existingFields, node.name);
+    if (isRoot && collectsValue(target.type) && node.name !== '') {
+      target.name = uniqueName(existingNodes, node.name);
     }
     target.children?.forEach((child) => reassign(child, false));
   };

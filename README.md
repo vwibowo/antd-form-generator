@@ -1,10 +1,12 @@
 # antd Generator
 
-Build an [Ant Design](https://github.com/ant-design/ant-design) **form**, **table** or **workflow** in a drag-and-drop UI, get a JSON schema out, and render that JSON back into a working component.
+Build an [Ant Design](https://github.com/ant-design/ant-design) **screen**, **table** or **workflow** in a drag-and-drop UI, get a JSON schema out, and render that JSON back into a working component.
 
 The JSON schema is the contract between the two halves. `src/renderer/` never imports anything from `src/builder/`, so it can be lifted into a standalone package as-is.
 
-The **Form / Table / Workflow** switch in the header chooses which document the tabs are editing. They are separate documents with separate storage, undo stacks and export files — see [Table documents](#table-documents) and [Workflow documents](#workflow-documents).
+The **Screen / Table / Workflow** switch in the header chooses which document the tabs are editing. They are separate documents with separate storage, undo stacks and export files — see [Table documents](#table-documents) and [Workflow documents](#workflow-documents).
+
+A **screen** both asks and tells. It holds form controls, display blocks, or any mixture: a heading, a paragraph, three fields, a callout and a row of buttons is one screen, not one of each. Forms and pages used to be separate documents and could not be combined; if you have saved files or a browser profile from that era, see [Screens were once forms and pages](#screens-were-once-forms-and-pages).
 
 ## Running it
 
@@ -16,17 +18,19 @@ pnpm install
 pnpm dev
 ```
 
-Then open http://localhost:3000. Click **Sample** in the header for the flagship demo, or use the arrow beside it to pick a preset for whichever document is active. In form mode:
+Then open http://localhost:3000. Click **Sample** in the header for the flagship demo, or use the arrow beside it to pick a preset for whichever document is active. In screen mode:
 
 | Preset | What it shows |
 | --- | --- |
-| **Purchase request** | A procurement flow that grows as you fill it in — a remote catalogue cascade, repeatable line items, and rules that only appear once the total passes 5,000. Opening the Preview fires exactly one request; every other one is caused by something you did. |
+| **Purchase request** | A screen that only asks. A procurement flow that grows as you fill it in — a remote catalogue cascade, repeatable line items, and rules that only appear once the total passes 5,000. Opening the Preview fires exactly one request; every other one is caused by something you did. |
+| **Review and confirm** | A screen that asks *and* tells — the thing separate form and page documents made impossible. Controls and display blocks in one grid, a data list echoing what you are typing right now, a callout that appears only for the pricier delivery option, and buttons instead of a Submit row. |
 | **Remote data** | Every API response shape the option mapper handles, side by side: a bare array of objects, a bare array of plain strings, a nested `dataPath`, and a dot-path label. Plus cascading, debounced server-side search, and the HTTP error state. |
-| **Kitchen sink** | Reference form. One of every field type, every per-type setting, every validation rule, and all nine condition operators. Horizontal layout with a fixed label column. |
+| **Welcome pack** | A screen that only tells. One of every display node, bound to a payload you type in the Preview tab — no controls at all, so no `<Form>` is rendered around it. |
+| **Kitchen sink** | Reference screen. One of every control type, every per-type setting, every validation rule, and all nine condition operators. Horizontal layout with a fixed label column. |
 
 In table mode the same button offers **Inline array** (rows pasted into the document, one column per cell format, with search, a derived Status filter and two bulk actions) and **API list** (dummyjson products, paged *and searched* on the server via `limit`/`skip`/`q`, with selection kept across pages).
 
-In workflow mode it offers **Expense claim** (routes on the amount, asks the right approver, and loops back when finance wants more detail — every node kind, priority ordering, a fallback branch and a deliberate cycle) and **Support triage** (the smallest thing that still branches: one form, one condition, two endings).
+In workflow mode it offers **Current account onboarding** (screens that tell and screens that ask, branching on which button was pressed), **Expense claim** (routes on the amount, asks the right approver, and loops back when finance wants more detail — every node kind, priority ordering, a fallback branch and a deliberate cycle) and **Support triage** (the smallest thing that still branches: one screen, one condition, two endings).
 
 Between them the presets cover every feature documented below, so they double as a manual regression suite.
 
@@ -36,44 +40,73 @@ Between them the presets cover every feature documented below, so they double as
 | `pnpm build` | Production bundle into `dist/` |
 | `pnpm preview` | Serve the production build |
 | `pnpm typecheck` | `tsc --noEmit` |
+| `pnpm test` | Vitest, once |
+| `pnpm test:watch` | Vitest, watching |
 
 ## The tabs
 
-- **Builder** — palette on the left, canvas in the middle, inspector on the right. Drag from the palette onto the canvas, or click a palette entry to append. Drag the handle on a field card to reorder it or move it into a repeatable section. In table mode the left pane becomes the data source and column list instead; in workflow mode the canvas is a node graph.
-- **Preview** — the schema rendered as a real, submittable form, with the resulting payload beside it. For a table, the table on its own. For a workflow, the flow actually run, step by step.
-- **Summary** — a payload rendered as a read-only confirmation page. Form mode only; a table submits nothing, and a workflow's payload is spread across several forms. See [Summary pages](#summary-pages).
+- **Builder** — palette on the left, canvas in the middle, inspector on the right. Drag from the palette onto the canvas, or click a palette entry to append. Drag the handle on a node card to reorder it or move it into a container. The palette has a filter box, because one screen can hold any of 38 node types. In table mode the left pane becomes the data source and column list instead; in workflow mode the canvas is a node graph.
+- **Preview** — the schema rendered for real. A screen that collects values is submittable, with the resulting payload beside it; one that only displays gets a payload *editor* beside it instead, since there is nothing to submit and the `{{tokens}}` need something to read. For a table, the table on its own. For a workflow, the flow actually run, step by step.
+- **Summary** — a payload rendered as a read-only confirmation page. Screen mode only; a table submits nothing, and a workflow's payload is spread across several screens. See [Summary pages](#summary-pages).
 - **JSON** — the schema as text. Edits apply to the builder the moment the JSON is valid; while it is invalid the errors are listed and the builder is left alone.
 
-Each document is saved to its own `localStorage` key as you go, and **Export** / **Import** move it in and out as a `.json` file (`form-schema.json` / `table-schema.json` / `workflow-schema.json`). Import reads the file's own `kind` and switches the mode to match, so you never have to pick the right one first.
+Each document is saved to its own `localStorage` key as you go, and **Export** / **Import** move it in and out as a `.json` file (`screen-schema.json` / `table-schema.json` / `workflow-schema.json`). Import reads the file's own `kind` and switches the mode to match, so you never have to pick the right one first — including the two kinds that no longer exist, which are migrated on the way in.
 
-## Field types
+## Node types
 
-| Category | Types |
-| --- | --- |
-| Basic | text, textarea, password, number |
-| Choice | select, radio group, checkbox group, checkbox, switch |
-| Date & time | date, date range, time |
-| Advanced | slider, rate, upload |
-| Layout | divider, heading, group, card, repeatable |
-| Custom | whatever the host app registers — see [Custom components](#custom-components) |
+A screen is a tree of **nodes**. Some collect a value, some only display one, and the difference is
+the single thing that makes the merged document coherent — `collectsValue(type)` in
+`src/schema/screen.ts` decides it, and everything downstream reads that one answer.
 
-`group` (a plain fieldset) and `card` (an antd `Card` with a title) are **chrome only** — their children keep top-level names and do not nest in the payload. `repeatable` is a `Form.List`: it owns its name and its children become an array of objects.
+| Category | Types | Collects? |
+| --- | --- | --- |
+| Basic | text, textarea, password, number, one-time code, autocomplete, mentions | yes |
+| Choice | select, radio group, checkbox group, checkbox, switch, segmented, cascader, tree select, transfer | yes |
+| Date & time | date, date range, time, time range | yes |
+| Advanced | slider, rate, colour, upload | yes |
+| Layout | divider, spacer, group, card, repeatable | repeatable only |
+| Content | heading, paragraph, image, callout | no |
+| Data | data list, screen summary, table | no |
+| Actions | buttons | no |
+| Custom | whatever the host app registers — see [Custom components](#custom-components) | yes |
 
-Cards are page sections, so a card can hold other containers — including a repeatable. To keep the JSON legible that is capped: a container may only go into a card that is itself top-level, so nesting stops at `card > repeatable`. `group` and `repeatable` hold plain fields only.
+What `collectsValue` gates:
 
-## Form schema shape
+- whether the inspector offers a **name**, validation rules and a default value
+- whether the renderer wraps the node in a `Form.Item`
+- whether the node's key appears in `collectPayloadKeys`
+- whether the screen needs a `<Form>` around it **at all** — a screen of pure display nodes renders
+  a plain `<div>`, so nothing subscribes to form state that does not exist
+
+It deliberately lives in the schema rather than the builder registry, because `src/renderer/`
+switches on `type` directly and never reads builder metadata.
+
+`group` (a plain fieldset) and `card` (an antd `Card` with a title) are **chrome only** — they
+collect nothing themselves, but their children keep top-level names and do not nest in the payload.
+`repeatable` is a `Form.List`: it owns its name and its children become an array of objects. A
+display node is the other kind of "collects nothing": it has no children to look through either.
+Conflating the two is how you silently drop every field inside a card, which is what
+`src/renderer/payload.test.ts` exists to prevent.
+
+Cards are sections, so a card can hold other containers — including a repeatable. To keep the JSON
+legible that is capped: a container may only go into a card that is itself top-level, so nesting
+stops at `card > repeatable`. `group` and `repeatable` hold plain nodes only.
+
+## Screen schema shape
 
 ```jsonc
 {
   "version": 1,
+  "kind": "screen",
   "title": "Conference registration",
   "layout": "vertical",          // horizontal | vertical | inline
   "size": "middle",
   "colon": true,
   "gutter": 16,
+  "maxWidth": 720,               // optional; omit for full width
   "submitText": "Register",
   "showReset": true,
-  "fields": [
+  "nodes": [
     {
       "id": "s_email",           // builder identity; never appears in the payload
       "type": "input",
@@ -88,10 +121,34 @@ Cards are page sections, so a card can hold other containers — including a rep
         { "kind": "type", "value": "email" }
       ],
       "props": {}                // per-type antd control options
+    },
+    {
+      "id": "s_note",
+      "type": "alert",           // a display node: no name, no rules
+      "text": "We will email {{email}} to confirm.",
+      "span": 24,
+      "props": { "tone": "info" }
     }
   ]
 }
 ```
+
+Every node shares the same five keys — `id`, `span`, `hidden`, `condition`, `props` — and then
+carries whichever payload keys its type uses. A control has `name`, `label`, `rules`; a display node
+has `text`, `src`, `items`, `actions`. A node holding the one it does not use is harmless, the same
+way `options` on a divider always was.
+
+**Two ways onward, and only one at a time.** A screen with an `actions` node uses those buttons; the
+built-in Submit row is suppressed, so the reader is never offered two ways to do the same thing. A
+screen with no buttons that collects something gets the Submit row. Either way the result reaches
+the host the same: pressing a button validates the screen first, then hands over the typed values
+*and* the button's id together, which is exactly what a workflow branch reads.
+
+**`{{token}}` text** — `heading`, `paragraph`, `callout`, `image` sources and data-list rows all
+interpolate payload keys. Inside a screen that collects values these read **live form state**, so a
+summary can echo what is being typed. Each one watches only the names it actually mentions rather
+than the whole form, so a paragraph naming one field costs one subscription, not a re-render per
+keystroke.
 
 **Per-type control options** — `props` is a free-form bag holding the antd props for that field's control. Everything editable lives in `src/schema/propSpecs.ts`, which drives the inspector's settings panel; the renderer reads the same keys in `src/renderer/controls.tsx`. Adding a new prop means one spec entry and one read.
 
@@ -111,9 +168,13 @@ Cards are page sections, so a card can hold other containers — including a rep
 | slider | `min`, `max`, `step`, `unit`, `dots`, `reverse`, `vertical` |
 | rate | `count`, `character`, `allowHalf`, `allowClear` |
 | upload | `buttonText`, `listType`, `showUploadList`, `accept`, `maxCount`, `multiple` |
-| title | `level`, `type`, `italic`, `underline` |
 | divider | `titlePlacement`, `variant`, `size`, `plain` |
 | card | `size`, `variant` |
+
+Display nodes are not in that table. Their settings are few and per-type, so the inspector edits them
+directly in `src/builder/inspector/DisplayProps.tsx` rather than through generic prop rows: `heading`
+takes a `level`, `callout` a `tone`, `spacer` a `height`, `data list` and `screen summary` a column
+count and a border.
 
 An absent key means antd's own default, so a field only carries what it deliberately changes. `prefix`, `suffix`, `checkedChildren`, `unCheckedChildren` and `character` are ReactNode props authored as plain text. `readOnly` keeps the value visible *and* submitted (unlike `disabled`); on `select` and the pickers it is emulated — no popup, no typing, no clear button. `thousandSeparator` / `decimalSeparator` are display only: the submitted value stays a plain number, so `min` / `max` rules keep working.
 
@@ -130,7 +191,7 @@ An absent key means antd's own default, so a field only carries what it delibera
 
 **Validation rules** — `required`, `min`, `max`, `len`, `pattern` (a regex source string), and `type` (`email` / `url` / `number` / `integer`). Each takes an optional `message`; leave it off and antd's own default is used. `min` and `max` mean length for text, magnitude for numbers, and item count for multi-select and upload.
 
-**Conditional visibility** — any field can carry a `condition`:
+**Conditional visibility** — any node, control or display, can carry a `condition`:
 
 ```jsonc
 "condition": {
@@ -141,9 +202,11 @@ An absent key means antd's own default, so a field only carries what it delibera
 }
 ```
 
-Operators: `eq`, `neq`, `in`, `notIn`, `gt`, `lt`, `contains`, `empty`, `notEmpty`. When a condition fails the field is unmounted and its `Form.Item` carries `preserve={false}`, so the value leaves the submitted payload rather than lingering.
+Operators: `eq`, `neq`, `in`, `notIn`, `gt`, `lt`, `contains`, `empty`, `notEmpty`. When a condition fails the node is unmounted; for a control its `Form.Item` carries `preserve={false}`, so the value leaves the submitted payload rather than lingering.
 
-Inside a repeatable row a condition resolves against that row first, then falls back to the top level — so a row field can react to its own sibling *and* to a form-level field.
+On a screen that collects values the condition is evaluated against live form state, so a callout can appear the moment a choice is made. On a screen that only displays, it reads the finished payload it was handed. The two are separate components rather than a branch inside one, because `Form.useWatch` outside a `<Form>` warns and returns nothing.
+
+Inside a repeatable row a condition resolves against that row first, then falls back to the top level — so a row field can react to its own sibling *and* to a screen-level field.
 
 **Remote options** — `select`, `radio`, and `checkboxGroup` can pull their options from an API instead of an inline `options` array. Add a `dataSource` block (the Options section of the inspector has a Static | Remote toggle):
 
@@ -169,7 +232,7 @@ Inside a repeatable row a condition resolves against that row first, then falls 
 Two things to know before pointing it at a real API:
 
 - **Requests run in the browser.** There is no proxy, so the API must send `Access-Control-Allow-Origin`. A blocked read is indistinguishable from being offline and surfaces as "Network or CORS error".
-- **Never put a token in the URL.** The schema is saved to `localStorage`, shown in the JSON tab, and included in every export. There is deliberately no headers, auth, or method field for the same reason; requests are GET with `credentials: 'omit'`. If you need authenticated option loading, pass it at runtime from the app embedding `FormRenderer`.
+- **Never put a token in the URL.** The schema is saved to `localStorage`, shown in the JSON tab, and included in every export. There is deliberately no headers, auth, or method field for the same reason; requests are GET with `credentials: 'omit'`. If you need authenticated option loading, pass it at runtime from the app embedding `ScreenRenderer`.
 
 The builder canvas never fetches — it shows an inert placeholder while you drag and edit. Live requests happen in the Preview tab.
 
@@ -325,11 +388,15 @@ it a condition.
 | Kind | What it does |
 | --- | --- |
 | **start** | Where every run begins. Exactly one per workflow |
-| **form** | Holds a whole embedded form. "Edit form" opens the ordinary builder on it |
+| **screen** | Holds a whole embedded screen. "Edit screen" opens the ordinary builder on it |
 | **decision** | Asks nothing — evaluates its outgoing branches and passes straight through |
 | **action** | Describes something for the host app to do. Intent only: an id, a label, static params |
 | **approval** | Waits for an outcome, and stores the chosen one under the node's payload key |
 | **end** | The run finishes here |
+
+A `screen` node covers what used to take two kinds. It contributes twice over: the keys its controls
+collect, and — when it has buttons — the pressed button's id under the node's own payload key. A step
+that asks, a step that tells and offers a choice, and a step that does both are all one kind now.
 
 ### Branches
 
@@ -354,14 +421,15 @@ and says so — sitting on the current step would be indistinguishable from a ha
 
 ### The payload
 
-Everything collected lands in **one flat object**: each form node contributes its whole submitted
-payload, and an approval contributes `{ [node.name]: outcomeId }`. That is why a branch names a
-field exactly as it would inside a form, and why an approval outcome can be tested with an ordinary
-`eq` condition several steps later.
+Everything collected lands in **one flat object**: each screen node contributes its whole submitted
+payload plus, if a button was pressed, `{ [node.name]: actionId }`; an approval contributes
+`{ [node.name]: outcomeId }`. That is why a branch names a field exactly as it would inside a screen,
+and why a button or an approval outcome can be tested with an ordinary `eq` condition several steps
+later — there is one routing mechanism, not three.
 
 The flat shape is a deliberate consequence of the condition evaluator resolving a field name as a
-single path segment. Two form nodes declaring the same name collide and the later one wins — the
-builder warns, the way it warns about duplicate names within one form. For the same reason a field
+single path segment. Two screen nodes declaring the same name collide and the later one wins — the
+builder warns, the way it warns about duplicate names within one screen. For the same reason a field
 inside a repeatable section cannot be branched on, and is not offered in the picker.
 
 ### Problems
@@ -377,9 +445,10 @@ point of having them, so the wording is an observation rather than a complaint.
 ### Running one
 
 The Preview tab runs the flow for real: the current step on the left, the accumulated payload and
-the path taken on the right, with Back and Restart. A form step renders through the ordinary
-`FormRenderer`, so validation, conditional fields and remote options all behave exactly as they do
-in form mode. Returning to a step already answered brings its earlier answers back with it.
+the path taken on the right, with Back and Restart. A screen step renders through the ordinary
+`ScreenRenderer`, so validation, conditional nodes, live `{{tokens}}` and remote options all behave
+exactly as they do in screen mode. Returning to a step already answered brings its earlier answers
+back with it.
 
 ## Custom components
 
@@ -395,7 +464,7 @@ When a use case outgrows the built-in types, the host app can supply its own con
 The component itself is registered in app code and passed to the renderer:
 
 ```tsx
-import { FormRenderer } from '@/renderer/FormRenderer';
+import { ScreenRenderer } from '@/renderer/ScreenRenderer';
 import type { CustomComponentRegistry } from '@/renderer/custom';
 
 const components: CustomComponentRegistry = {
@@ -413,7 +482,7 @@ const components: CustomComponentRegistry = {
   },
 };
 
-<FormRenderer schema={schema} components={components} />
+<ScreenRenderer schema={schema} components={components} />
 ```
 
 `value` and `onChange` are injected by `Form.Item`, exactly as for the antd controls — a component just reads one and calls the other. Anything else it needs comes from `node.props`, and each key it wants editable gets a `propSpecs` entry.
@@ -423,14 +492,14 @@ Wrap a subtree in `CustomComponentsProvider` instead of passing the prop, and th
 Two things worth knowing:
 
 - **A schema never carries code.** `props.component` is a name, resolved against a registry the app controls. An imported `.json` cannot introduce a component, only ask for one.
-- **Unknown names degrade, they do not throw.** A form exported from an app that registered `signaturePad` and opened somewhere that did not shows a "not registered" notice in that field's place; every other field keeps working, and the inspector flags the missing name rather than silently rewriting it.
+- **Unknown names degrade, they do not throw.** A screen exported from an app that registered `signaturePad` and opened somewhere that did not shows a "not registered" notice in that node's place; every other node keeps working, and the inspector flags the missing name rather than silently rewriting it.
 
 ## Summary pages
 
 The step between filling a form in and sending it: the same answers as a read-only page, so they can
 be checked before they go anywhere.
 
-There is **no summary schema**. The page is derived from the `FormSchema` the values came from, and
+There is **no summary schema**. The page is derived from the `ScreenSchema` the values came from, and
 the traversal mirrors the one in `serialize.ts`, so the page and the payload cannot drift apart:
 
 ```tsx
@@ -444,6 +513,7 @@ import { SummaryRenderer } from '@/renderer/summary/SummaryRenderer';
 | `group` / `card` | a section — the card's own frame, or a heading and a rule |
 | repeatable | one boxed, numbered block per row |
 | `divider` / `heading` | kept; they are the document's structure |
+| other display nodes | skipped. A callout telling you what to type has nothing to say once you have |
 | `condition` | evaluated against the payload. A field whose condition fails is absent here, exactly as it is absent from the payload |
 | `hidden` | skipped. It still submits, but a confirmation page repeats what the user was asked |
 | `span` | 24 takes a whole row, anything narrower shares one |
@@ -469,11 +539,20 @@ previewing, not part of either document, so they are never exported.
 ```
 src/
   schema/      zod definitions (the single source of truth for shape, TS types, and validation),
-               the field registry, the per-type prop specs behind the settings
-               panel, the table and workflow documents, node factories, tree and
-               graph helpers
-               samples/ the demo presets behind the Sample button
+               nodeBase.ts  the keys every node shares, and the condition language
+               screen.ts    the screen document: 38 node types, collectsValue,
+                            the submit-row-versus-buttons rule
+               migrate.ts   legacy form and page JSON -> a screen, applied on every read
+               registry.ts  per-type builder metadata; the renderer never reads it
+               propSpecs.ts the per-type prop rows behind the settings panel
+               the table and workflow documents, node factories, tree and graph helpers
+               samples/     the demo presets behind the Sample button
+               __fixtures__/ sample documents frozen in their pre-merge shapes,
+                            the inputs the migration tests run against
   renderer/    schema -> antd <Form> or <Table>. No builder imports.
+               ScreenRenderer  the root: emits a <Form> only when something collects
+               ScreenNodeView  one node, control or display
+               screenContext   whether values are live or a finished payload
                remote/   the app's only network layer: URL templating, response
                          mapping, and a TTL body cache, shared by options and rows
                table/    schema -> antd <Table>: columns, cell formats, remote rows
@@ -482,7 +561,7 @@ src/
   builder/     palette, canvas, inspector, toolbar, drag-and-drop
                table/    the table builder: data source, column list, column inspector
                workflow/ the graph builder: node cards, SVG branches, node and
-                         branch inspectors, and the embedded form editor
+                         branch inspectors, and the embedded screen editor
   custom/      the demo component registry this app passes to the renderer
   panes/       preview, summary and JSON tabs
   store/       one zustand store per document, each with its own localStorage
@@ -490,10 +569,39 @@ src/
                sample values
 ```
 
-The form builder panes bind to whichever form document `SchemaStoreContext` supplies — the app-level
-one by default, or a workflow node's embedded form when the graph builder provides its own. That is
-what lets the same palette, canvas and inspector edit a form nested inside a workflow.
+The builder panes bind to whichever screen document `ScreenStoreContext` supplies — the app-level one
+by default, or a workflow node's embedded screen when the graph builder provides its own. That is
+what lets the same palette, canvas and inspector edit a screen nested inside a workflow.
+
+A page document needed none of the tree walking, because its blocks were flat. That is this store
+with nothing nestable in it, which is why there is no second one: `addNode(type, ROOT_CONTAINER_ID,
+index)` is what `addBlock` was.
+
+## Screens were once forms and pages
+
+Form and page were separate documents. They carried an identical five-key core, the same condition
+language, the same registry-with-`supports` idiom, and the same place inside a workflow node — but
+keeping them apart made the commonest real screen impossible to build, because a heading, a
+paragraph, three fields, a callout and a submit needed half of each.
+
+Nothing needs doing about it. Both legacy shapes are migrated wherever JSON is read — an imported
+file, a paste into the JSON tab, a `localStorage` blob from an older build, or a form or page
+embedded in a saved workflow:
+
+| Was | Is now |
+| --- | --- |
+| a document with no `kind` and `fields[]` | `kind: "screen"` with `nodes[]` |
+| `kind: "page"` with `blocks[]` | `kind: "screen"` with `nodes[]` |
+| field type `title` | `heading`, its `label` moved to `text` |
+| a `name` on `title` or `divider` | dropped — neither ever rendered a `Form.Item`, so neither ever held a payload key |
+| workflow node kinds `form` and `page` | one `screen` kind, both payload keys folded into `screen` |
+| `antd-form-generator:schema` / `:page` | `antd-form-generator:screen`, read from the old keys once |
+
+`migrateToScreen` passes an already-migrated document straight through, so it is safe on every read
+rather than something that has to run exactly once. The pre-merge sample documents are committed
+under `src/schema/__fixtures__/` and the tests migrate them on every run, asserting that node counts,
+payload keys and conditions all survive.
 
 ## Stack
 
-antd 6 · React 19 · Rsbuild 2 · TypeScript · zod 4 (schema + validation) · zustand 5 (state) · dnd-kit (drag and drop) · dayjs
+antd 6 · React 19 · Rsbuild 2 · TypeScript · zod 4 (schema + validation) · zustand 5 (state) · dnd-kit (drag and drop) · dayjs · Vitest

@@ -3,13 +3,11 @@ import { Layout, Segmented, Space, Tabs, Typography } from 'antd';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { BuilderLayout } from '@/builder/BuilderLayout';
-import { PageBuilder } from '@/builder/page/PageBuilder';
 import { TableBuilder } from '@/builder/table/TableBuilder';
 import { Toolbar } from '@/builder/Toolbar';
 import { WorkflowBuilder } from '@/builder/workflow/WorkflowBuilder';
 import { appCustomComponents } from '@/custom';
-import { JsonPane, PageJsonPane, TableJsonPane, WorkflowJsonPane } from '@/panes/JsonPane';
-import { PagePreviewPane } from '@/panes/PagePreviewPane';
+import { ScreenJsonPane, TableJsonPane, WorkflowJsonPane } from '@/panes/JsonPane';
 import { PreviewPane } from '@/panes/PreviewPane';
 import { SummaryPane } from '@/panes/SummaryPane';
 import { TablePreviewPane } from '@/panes/TablePreviewPane';
@@ -17,18 +15,16 @@ import { WorkflowPreviewPane } from '@/panes/WorkflowPreviewPane';
 import { CustomComponentsProvider } from '@/renderer/custom';
 import type { DocumentKind } from '@/schema/document';
 import { useAppMode } from '@/store/useAppMode';
-import { usePageStore } from '@/store/usePageStore';
-import { useSchemaStore } from '@/store/useSchemaStore';
+import { useScreenStore } from '@/store/useScreenStore';
 import { useTableStore } from '@/store/useTableStore';
 import { useWorkflowStore } from '@/store/useWorkflowStore';
 
 const HEADER_HEIGHT = 56;
 
 export function App() {
-  const schema = useSchemaStore((state) => state.schema);
+  const schema = useScreenStore((state) => state.schema);
   const tableSchema = useTableStore((state) => state.schema);
   const workflowSchema = useWorkflowStore((state) => state.schema);
-  const pageSchema = usePageStore((state) => state.schema);
   const mode = useAppMode((state) => state.mode);
   const setMode = useAppMode((state) => state.setMode);
   const [activeKey, setActiveKey] = useState('builder');
@@ -38,44 +34,32 @@ export function App() {
       ? tableSchema.columns.length
       : mode === 'workflow'
         ? workflowSchema.nodes.length
-        : mode === 'page'
-          ? pageSchema.blocks.length
-          : schema.fields.length;
-  const noun =
-    mode === 'table'
-      ? 'column'
-      : mode === 'workflow'
-        ? 'step'
-        : mode === 'page'
-          ? 'block'
-          : 'field';
-  // Summary is a form-only tab. Deriving the key rather than resetting it means
-  // a trip through another mode and back lands where you left off.
-  const currentKey = mode !== 'form' && activeKey === 'summary' ? 'builder' : activeKey;
+        : schema.nodes.length;
+  const noun = mode === 'table' ? 'column' : mode === 'workflow' ? 'step' : 'node';
+  // Summary is a screen-only tab. Deriving the key rather than resetting it
+  // means a trip through another mode and back lands where you left off.
+  const currentKey = mode !== 'screen' && activeKey === 'summary' ? 'builder' : activeKey;
 
-  // One entry per mode beats a three-way ternary in each tab, and adding a
-  // fourth document would be three lines rather than three edits.
+  // One entry per mode beats a ternary in each tab, and another document would
+  // be three lines rather than three edits.
   const builders: Record<DocumentKind, ReactNode> = {
-    form: <BuilderLayout />,
+    // A standalone screen has no run behind it, so no payload keys to offer a
+    // condition — `ConditionEditor` takes a typed name instead.
+    screen: <BuilderLayout />,
     table: <TableBuilder />,
     workflow: <WorkflowBuilder />,
-    // A standalone page has no run behind it, so no payload keys to offer a
-    // block condition — `ConditionEditor` takes a typed name instead.
-    page: <PageBuilder />,
   };
 
   const previews: Record<DocumentKind, ReactNode> = {
-    form: <PreviewPane schema={schema} />,
+    screen: <PreviewPane schema={schema} />,
     table: <TablePreviewPane schema={tableSchema} />,
     workflow: <WorkflowPreviewPane schema={workflowSchema} />,
-    page: <PagePreviewPane schema={pageSchema} />,
   };
 
   const jsonPanes: Record<DocumentKind, ReactNode> = {
-    form: <JsonPane />,
+    screen: <ScreenJsonPane />,
     table: <TableJsonPane />,
     workflow: <WorkflowJsonPane />,
-    page: <PageJsonPane />,
   };
 
   const workspace = (
@@ -99,9 +83,8 @@ export function App() {
             size="small"
             value={mode}
             options={[
-              { label: 'Form', value: 'form' },
+              { label: 'Screen', value: 'screen' },
               { label: 'Table', value: 'table' },
-              { label: 'Page', value: 'page' },
               { label: 'Workflow', value: 'workflow' },
             ]}
             onChange={(next) => setMode(next as DocumentKind)}
@@ -147,8 +130,8 @@ export function App() {
               ),
             },
             // A table submits nothing, and a workflow's payload is spread over
-            // several forms — neither has a single schema to summarise.
-            ...(mode !== 'form'
+            // several screens — neither has a single schema to summarise.
+            ...(mode !== 'screen'
               ? []
               : [
                   {

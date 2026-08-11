@@ -1,13 +1,13 @@
 import { Input, InputNumber, Segmented, Select, Switch, Typography } from 'antd';
-import { useFormBuilderStore } from '@/store/SchemaStoreContext';
+import { useBuilderStore } from '@/store/ScreenStoreContext';
 import { Labeled } from './inspector/Labeled';
 
 const COL_OPTIONS = [4, 6, 8, 10, 12].map((span) => ({ label: `${span}/24`, value: span }));
 
 /** Form-level settings, shown in the inspector when no field is selected. */
 export function FormSettings() {
-  const schema = useFormBuilderStore((state) => state.schema);
-  const updateSettings = useFormBuilderStore((state) => state.updateSettings);
+  const schema = useBuilderStore((state) => state.schema);
+  const updateSettings = useBuilderStore((state) => state.updateSettings);
 
   return (
     <div>

@@ -1,11 +1,11 @@
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import { Button, Col, Empty, Form, Row, Space, Typography } from 'antd';
-import type { FieldNode } from '@/schema/schema';
-import { FieldRenderer } from './FieldRenderer';
+import type { ScreenNode } from '@/schema/screen';
+import { ScreenNodeView } from './ScreenNodeView';
 import { buildRowTemplate } from './initialValues';
 
 export interface ListRendererProps {
-  node: FieldNode;
+  node: ScreenNode;
   gutter: number;
 }
 
@@ -53,7 +53,7 @@ export function ListRenderer({ node, gutter }: ListRendererProps) {
                 >
                   <Row gutter={gutter}>
                     {children.map((child) => (
-                      <FieldRenderer
+                      <ScreenNodeView
                         key={child.id}
                         node={child}
                         // Conditions inside a row resolve against that row

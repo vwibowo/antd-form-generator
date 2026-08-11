@@ -1,4 +1,4 @@
-import type { FieldNode, FieldType } from './schema';
+import type { ScreenNode, ScreenNodeType } from './screen';
 
 /**
  * Declarative description of every per-type antd prop the inspector can edit.
@@ -32,10 +32,10 @@ export type PropGroup = 'Appearance' | 'Behavior' | 'Format';
 export const PROP_GROUPS: PropGroup[] = ['Appearance', 'Behavior', 'Format'];
 
 /**
- * `Ctx` is whatever owns the props bag: a `FieldNode` for form fields, a
+ * `Ctx` is whatever owns the props bag: a `ScreenNode` for form fields, a
  * `TableColumn` for table cell formats. Only the two predicates see it.
  */
-export interface PropSpec<Ctx = FieldNode> {
+export interface PropSpec<Ctx = ScreenNode> {
   /** Key inside the owner's `props`. */
   key: string;
   label: string;
@@ -362,7 +362,7 @@ const numberSpecs: PropSpec[] = [
   },
 ];
 
-const isMultiSelect = (node: FieldNode) =>
+const isMultiSelect = (node: ScreenNode) =>
   node.props?.mode === 'multiple' || node.props?.mode === 'tags';
 
 const selectSpecs: PropSpec[] = [
@@ -858,37 +858,6 @@ const colorPickerSpecs: PropSpec[] = [
   { key: 'allowClear', label: 'Allow clear', group: 'Behavior', editor: { kind: 'bool' }, default: false },
 ];
 
-const titleSpecs: PropSpec[] = [
-  {
-    key: 'level',
-    label: 'Heading level',
-    group: 'Appearance',
-    editor: {
-      kind: 'select',
-      options: [1, 2, 3, 4, 5].map((level) => ({ label: `H${level}`, value: level })),
-    },
-    default: 4,
-  },
-  {
-    key: 'type',
-    label: 'Emphasis',
-    group: 'Appearance',
-    editor: {
-      kind: 'select',
-      options: [
-        { label: 'Default', value: '' },
-        { label: 'Secondary', value: 'secondary' },
-        { label: 'Success', value: 'success' },
-        { label: 'Warning', value: 'warning' },
-        { label: 'Danger', value: 'danger' },
-      ],
-    },
-    default: '',
-  },
-  { key: 'italic', label: 'Italic', group: 'Appearance', editor: { kind: 'bool' }, default: false },
-  { key: 'underline', label: 'Underline', group: 'Appearance', editor: { kind: 'bool' }, default: false },
-];
-
 const dividerSpecs: PropSpec[] = [
   {
     key: 'titlePlacement',
@@ -965,7 +934,7 @@ const cardSpecs: PropSpec[] = [
   },
 ];
 
-export const TYPE_PROP_SPECS: Record<FieldType, PropSpec[]> = {
+export const TYPE_PROP_SPECS: Record<ScreenNodeType, PropSpec[]> = {
   input: inputSpecs,
   textarea: textareaSpecs,
   password: passwordSpecs,
@@ -993,7 +962,6 @@ export const TYPE_PROP_SPECS: Record<FieldType, PropSpec[]> = {
   colorPicker: colorPickerSpecs,
   upload: uploadSpecs,
   divider: dividerSpecs,
-  title: titleSpecs,
   group: [],
   card: cardSpecs,
   // Repeatable rows are configured through `listConfig`, not `props` — the
@@ -1002,9 +970,20 @@ export const TYPE_PROP_SPECS: Record<FieldType, PropSpec[]> = {
   // A custom field's rows come from the registered component's own `propSpecs`,
   // which are only known at runtime — see `CustomSettings` in the inspector.
   custom: [],
+  // Display nodes are configured by `DisplayProps` in the inspector rather than
+  // by generic prop rows: their settings are per-type and few.
+  heading: [],
+  text: [],
+  image: [],
+  alert: [],
+  dataList: [],
+  summary: [],
+  table: [],
+  spacer: [],
+  actions: [],
 };
 
-export function specsFor(type: FieldType): PropSpec[] {
+export function specsFor(type: ScreenNodeType): PropSpec[] {
   return TYPE_PROP_SPECS[type] ?? [];
 }
 
@@ -1012,6 +991,6 @@ export function specsFor(type: FieldType): PropSpec[] {
  * Does this type have a settings section at all? Keeps the inspector blank-free.
  * `list` and `custom` render sections that do not come from the spec table.
  */
-export function hasTypeProps(type: FieldType): boolean {
+export function hasTypeProps(type: ScreenNodeType): boolean {
   return type === 'list' || type === 'custom' || specsFor(type).length > 0;
 }

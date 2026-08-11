@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import type { PageSchema } from '@/schema/page';
-import type { FormSchema } from '@/schema/schema';
+import type { ScreenSchema } from '@/schema/screen';
 import type {
   WorkflowEdge,
   WorkflowNode,
@@ -47,9 +46,8 @@ export interface WorkflowState {
   duplicateNode: (id: string) => void;
   removeNode: (id: string) => void;
   /** Replace one node's embedded form — the seam the form builder writes through. */
-  setNodeForm: (id: string, form: FormSchema) => void;
-  /** Replace one node's embedded page — the seam the page builder writes through. */
-  setNodePage: (id: string, page: PageSchema) => void;
+  /** Replace a screen node's embedded document, by reference — see below. */
+  setNodeScreen: (id: string, screen: ScreenSchema) => void;
   /** Reposition many nodes at once — the seam auto-arrange writes through. */
   setNodePositions: (positions: Record<string, { x: number; y: number }>) => void;
 
@@ -182,24 +180,14 @@ export const useWorkflowStore = create<WorkflowState>()(
           if (state.selectedNodeId === id) set({ selectedNodeId: null });
         },
 
-        setNodeForm: (id, form) => {
+        setNodeScreen: (id, screen) => {
           commit((draft) => {
             const node = draft.nodes.find((entry) => entry.id === id);
             if (!node) return;
             // Assigned by reference on purpose: the embedded editor compares
             // identity to tell its own write-back from an outside change.
-            node.form = form;
-          }, `form:${id}`);
-        },
-
-        setNodePage: (id, page) => {
-          commit((draft) => {
-            const node = draft.nodes.find((entry) => entry.id === id);
-            if (!node) return;
-            // By reference on purpose, like `setNodeForm`: the embedded editor
-            // compares identity to tell its own write-back from an outside change.
-            node.page = page;
-          }, `page:${id}`);
+            node.screen = screen;
+          }, `screen:${id}`);
         },
 
         setNodePositions: (positions) => {

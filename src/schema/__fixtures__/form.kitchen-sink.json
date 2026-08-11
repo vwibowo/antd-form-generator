@@ -1,0 +1,1558 @@
+{
+  "version": 1,
+  "title": "Kitchen sink",
+  "description": "Everything the generator can render, in one form. Horizontal layout with a fixed label column, small controls and no colons — all form-level settings.",
+  "layout": "horizontal",
+  "labelCol": {
+    "span": 8
+  },
+  "wrapperCol": {
+    "span": 16
+  },
+  "size": "small",
+  "colon": false,
+  "gutter": 24,
+  "submitText": "Validate everything",
+  "showReset": false,
+  "fields": [
+    {
+      "id": "ks_heading",
+      "type": "title",
+      "name": "sinkHeading",
+      "label": "Reference",
+      "span": 24,
+      "extra": "Submit with everything blank to watch each validation rule fire.",
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "props": {
+        "level": 2
+      }
+    },
+    {
+      "id": "ks_div_basic",
+      "type": "divider",
+      "name": "divBasic",
+      "label": "Basic",
+      "span": 24,
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "props": {}
+    },
+    {
+      "id": "ks_sku",
+      "type": "input",
+      "name": "sku",
+      "label": "SKU",
+      "span": 12,
+      "placeholder": "ABC-123",
+      "tooltip": "Three capitals, a dash, three digits.",
+      "disabled": false,
+      "hidden": false,
+      "rules": [
+        {
+          "kind": "required"
+        },
+        {
+          "kind": "pattern",
+          "value": "^[A-Z]{3}-\\d{3}$",
+          "message": "Format: ABC-123"
+        }
+      ],
+      "props": {
+        "maxLength": 7
+      }
+    },
+    {
+      "id": "ks_pin",
+      "type": "input",
+      "name": "pin",
+      "label": "PIN",
+      "span": 12,
+      "disabled": false,
+      "hidden": false,
+      "rules": [
+        {
+          "kind": "len",
+          "value": 4,
+          "message": "Exactly four digits"
+        }
+      ],
+      "props": {
+        "maxLength": 4
+      }
+    },
+    {
+      "id": "ks_bio",
+      "type": "textarea",
+      "name": "bio",
+      "label": "Bio",
+      "span": 24,
+      "disabled": false,
+      "hidden": false,
+      "rules": [
+        {
+          "kind": "min",
+          "value": 10,
+          "message": "At least 10 characters"
+        },
+        {
+          "kind": "max",
+          "value": 200
+        }
+      ],
+      "props": {
+        "rows": 3,
+        "maxLength": 200,
+        "showCount": true
+      }
+    },
+    {
+      "id": "ks_secret",
+      "type": "password",
+      "name": "secret",
+      "label": "Password",
+      "span": 12,
+      "disabled": false,
+      "hidden": false,
+      "rules": [
+        {
+          "kind": "required"
+        },
+        {
+          "kind": "min",
+          "value": 8,
+          "message": "At least 8 characters"
+        }
+      ],
+      "props": {}
+    },
+    {
+      "id": "ks_age",
+      "type": "number",
+      "name": "age",
+      "label": "Age",
+      "span": 12,
+      "disabled": false,
+      "hidden": false,
+      "rules": [
+        {
+          "kind": "type",
+          "value": "number"
+        },
+        {
+          "kind": "min",
+          "value": 18,
+          "message": "18 or older"
+        },
+        {
+          "kind": "max",
+          "value": 120
+        }
+      ],
+      "props": {
+        "min": 0,
+        "max": 120,
+        "step": 1
+      }
+    },
+    {
+      "id": "ks_lucky",
+      "type": "number",
+      "name": "luckyNumber",
+      "label": "Lucky number",
+      "span": 12,
+      "disabled": false,
+      "hidden": false,
+      "rules": [
+        {
+          "kind": "type",
+          "value": "integer",
+          "message": "Whole numbers only"
+        }
+      ],
+      "props": {
+        "min": 0,
+        "max": 100,
+        "step": 0.5,
+        "precision": 2
+      }
+    },
+    {
+      "id": "ks_email",
+      "type": "input",
+      "name": "email",
+      "label": "Email",
+      "span": 12,
+      "placeholder": "ada@example.com",
+      "disabled": false,
+      "hidden": false,
+      "rules": [
+        {
+          "kind": "type",
+          "value": "email"
+        }
+      ],
+      "props": {}
+    },
+    {
+      "id": "ks_homepage",
+      "type": "input",
+      "name": "homepage",
+      "label": "Homepage",
+      "span": 12,
+      "placeholder": "https://example.com",
+      "disabled": false,
+      "hidden": false,
+      "rules": [
+        {
+          "kind": "type",
+          "value": "url"
+        }
+      ],
+      "props": {}
+    },
+    {
+      "id": "ks_price",
+      "type": "number",
+      "name": "price",
+      "label": "Price",
+      "span": 12,
+      "defaultValue": 1250.5,
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "props": {
+        "prefix": "$",
+        "min": 0,
+        "precision": 2,
+        "thousandSeparator": ",",
+        "controls": false
+      }
+    },
+    {
+      "id": "ks_weight",
+      "type": "number",
+      "name": "weight",
+      "label": "Weight",
+      "span": 12,
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "props": {
+        "suffix": "kg",
+        "min": 0,
+        "step": 0.5,
+        "precision": 1,
+        "variant": "filled"
+      }
+    },
+    {
+      "id": "ks_site",
+      "type": "input",
+      "name": "site",
+      "label": "Site",
+      "span": 12,
+      "placeholder": "my-shop",
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "props": {
+        "prefix": "https://",
+        "suffix": ".com"
+      }
+    },
+    {
+      "id": "ks_reference",
+      "type": "input",
+      "name": "reference",
+      "label": "Reference",
+      "span": 12,
+      "defaultValue": "REF-000-421",
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "props": {
+        "readOnly": true,
+        "variant": "filled",
+        "allowClear": false
+      }
+    },
+    {
+      "id": "ks_div_choice",
+      "type": "divider",
+      "name": "divChoice",
+      "label": "Choice",
+      "span": 24,
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "props": {}
+    },
+    {
+      "id": "ks_single",
+      "type": "select",
+      "name": "single",
+      "label": "Single",
+      "span": 12,
+      "defaultValue": "b",
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "options": [
+        {
+          "label": "Option A",
+          "value": "a"
+        },
+        {
+          "label": "Option B",
+          "value": "b"
+        },
+        {
+          "label": "Option C",
+          "value": "c"
+        }
+      ],
+      "props": {
+        "showSearch": true
+      }
+    },
+    {
+      "id": "ks_tags",
+      "type": "select",
+      "name": "tagsField",
+      "label": "Tags",
+      "span": 12,
+      "placeholder": "Type to invent values",
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "options": [
+        {
+          "label": "Draft",
+          "value": "draft"
+        },
+        {
+          "label": "Review",
+          "value": "review"
+        }
+      ],
+      "props": {
+        "mode": "tags"
+      }
+    },
+    {
+      "id": "ks_multi",
+      "type": "select",
+      "name": "multi",
+      "label": "Multiple",
+      "span": 12,
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "options": [
+        {
+          "label": "One",
+          "value": 1
+        },
+        {
+          "label": "Two",
+          "value": 2
+        },
+        {
+          "label": "Three",
+          "value": 3
+        }
+      ],
+      "props": {
+        "mode": "multiple"
+      }
+    },
+    {
+      "id": "ks_radio_plain",
+      "type": "radio",
+      "name": "radioPlain",
+      "label": "Radio",
+      "span": 12,
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "options": [
+        {
+          "label": "Yes",
+          "value": "yes"
+        },
+        {
+          "label": "No",
+          "value": "no"
+        }
+      ],
+      "props": {}
+    },
+    {
+      "id": "ks_radio_buttons",
+      "type": "radio",
+      "name": "radioButtons",
+      "label": "Buttons",
+      "span": 12,
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "options": [
+        {
+          "label": "Low",
+          "value": "low"
+        },
+        {
+          "label": "Mid",
+          "value": "mid"
+        },
+        {
+          "label": "High",
+          "value": "high"
+        }
+      ],
+      "props": {
+        "button": true
+      }
+    },
+    {
+      "id": "ks_langs",
+      "type": "checkboxGroup",
+      "name": "langs",
+      "label": "Languages",
+      "span": 24,
+      "disabled": false,
+      "hidden": false,
+      "rules": [
+        {
+          "kind": "required"
+        },
+        {
+          "kind": "min",
+          "value": 2,
+          "message": "Pick at least two"
+        },
+        {
+          "kind": "max",
+          "value": 3,
+          "message": "Three at most"
+        }
+      ],
+      "options": [
+        {
+          "label": "TypeScript",
+          "value": "ts"
+        },
+        {
+          "label": "Rust",
+          "value": "rs"
+        },
+        {
+          "label": "Go",
+          "value": "go"
+        },
+        {
+          "label": "Python",
+          "value": "py"
+        }
+      ],
+      "props": {}
+    },
+    {
+      "id": "ks_agree",
+      "type": "checkbox",
+      "name": "agree",
+      "label": "Agree",
+      "span": 12,
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "props": {
+        "text": "I have read the reference"
+      }
+    },
+    {
+      "id": "ks_enabled",
+      "type": "switch",
+      "name": "enabled",
+      "label": "Enabled",
+      "span": 12,
+      "defaultValue": true,
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "props": {
+        "checkedChildren": "On",
+        "unCheckedChildren": "Off"
+      }
+    },
+    {
+      "id": "ks_div_dates",
+      "type": "divider",
+      "name": "divDates",
+      "label": "Date & time",
+      "span": 24,
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "props": {}
+    },
+    {
+      "id": "ks_when_datetime",
+      "type": "date",
+      "name": "whenDateTime",
+      "label": "Date + time",
+      "span": 12,
+      "defaultValue": "2026-03-01T09:30:00.000Z",
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "props": {
+        "picker": "date",
+        "showTime": true
+      }
+    },
+    {
+      "id": "ks_when_week",
+      "type": "date",
+      "name": "whenWeek",
+      "label": "Week",
+      "span": 12,
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "props": {
+        "picker": "week"
+      }
+    },
+    {
+      "id": "ks_delivery",
+      "type": "date",
+      "name": "deliveryDate",
+      "label": "Delivery",
+      "span": 12,
+      "defaultValue": "2026-03-15",
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "props": {
+        "picker": "date",
+        "format": "DD/MM/YYYY",
+        "valueFormat": "YYYY-MM-DD"
+      }
+    },
+    {
+      "id": "ks_when_month",
+      "type": "date",
+      "name": "whenMonth",
+      "label": "Month",
+      "span": 8,
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "props": {
+        "picker": "month",
+        "format": "MMMM YYYY",
+        "valueFormat": "YYYY-MM"
+      }
+    },
+    {
+      "id": "ks_when_quarter",
+      "type": "date",
+      "name": "whenQuarter",
+      "label": "Quarter",
+      "span": 8,
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "props": {
+        "picker": "quarter"
+      }
+    },
+    {
+      "id": "ks_when_year",
+      "type": "date",
+      "name": "whenYear",
+      "label": "Year",
+      "span": 8,
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "props": {
+        "picker": "year"
+      }
+    },
+    {
+      "id": "ks_period",
+      "type": "dateRange",
+      "name": "period",
+      "label": "Period",
+      "span": 12,
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "props": {
+        "format": "DD/MM/YYYY",
+        "valueFormat": "timestamp",
+        "startPlaceholder": "From",
+        "endPlaceholder": "To",
+        "separator": "→"
+      }
+    },
+    {
+      "id": "ks_start_time",
+      "type": "time",
+      "name": "startTime",
+      "label": "Start time",
+      "span": 12,
+      "defaultValue": "09:30:00",
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "props": {
+        "format": "HH:mm",
+        "valueFormat": "HH:mm:ss",
+        "minuteStep": 5
+      }
+    },
+    {
+      "id": "ks_div_advanced",
+      "type": "divider",
+      "name": "divAdvanced",
+      "label": "Advanced",
+      "span": 24,
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "props": {}
+    },
+    {
+      "id": "ks_volume",
+      "type": "slider",
+      "name": "volume",
+      "label": "Volume",
+      "span": 12,
+      "defaultValue": 60,
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "props": {
+        "min": 0,
+        "max": 200,
+        "step": 10,
+        "unit": " dB",
+        "dots": false
+      }
+    },
+    {
+      "id": "ks_stars",
+      "type": "rate",
+      "name": "stars",
+      "label": "Rating",
+      "span": 12,
+      "defaultValue": 3.5,
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "props": {
+        "count": 10,
+        "allowHalf": true,
+        "character": "♥"
+      }
+    },
+    {
+      "id": "ks_attachments",
+      "type": "upload",
+      "name": "attachments",
+      "label": "Attachments",
+      "span": 24,
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "props": {
+        "buttonText": "Add files",
+        "multiple": true,
+        "maxCount": 3,
+        "accept": "image/*,.pdf",
+        "listType": "picture"
+      }
+    },
+    {
+      "id": "ks_div_custom",
+      "type": "divider",
+      "name": "divCustom",
+      "label": "Custom components",
+      "span": 24,
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "props": {}
+    },
+    {
+      "id": "ks_brand_colour",
+      "type": "custom",
+      "name": "brandColour",
+      "label": "Brand colour",
+      "span": 12,
+      "defaultValue": "#1677ff",
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "props": {
+        "component": "colorPicker",
+        "showText": true
+      }
+    },
+    {
+      "id": "ks_metadata",
+      "type": "custom",
+      "name": "metadata",
+      "label": "Metadata",
+      "span": 12,
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "props": {
+        "component": "keyValue",
+        "keyPlaceholder": "Header",
+        "maxRows": 3
+      }
+    },
+    {
+      "id": "ks_div_layout",
+      "type": "divider",
+      "name": "divLayout",
+      "label": "Layout",
+      "span": 24,
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "props": {}
+    },
+    {
+      "id": "ks_card_outer",
+      "type": "card",
+      "name": "cardOuter",
+      "label": "Containers",
+      "span": 24,
+      "extra": "Group and list side by side",
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "props": {
+        "size": "medium",
+        "variant": "outlined"
+      },
+      "children": [
+        {
+          "id": "ks_group_inner",
+          "type": "group",
+          "name": "groupInner",
+          "label": "A group is chrome only",
+          "span": 24,
+          "disabled": false,
+          "hidden": false,
+          "rules": [],
+          "props": {},
+          "children": [
+            {
+              "id": "ks_grouped_a",
+              "type": "input",
+              "name": "groupedA",
+              "label": "Left",
+              "span": 12,
+              "disabled": false,
+              "hidden": false,
+              "rules": [],
+              "props": {}
+            },
+            {
+              "id": "ks_grouped_b",
+              "type": "input",
+              "name": "groupedB",
+              "label": "Right",
+              "span": 12,
+              "disabled": false,
+              "hidden": false,
+              "rules": [],
+              "props": {}
+            }
+          ]
+        },
+        {
+          "id": "ks_people",
+          "type": "list",
+          "name": "people",
+          "label": "People",
+          "span": 24,
+          "disabled": false,
+          "hidden": false,
+          "rules": [],
+          "props": {},
+          "listConfig": {
+            "addText": "Add person",
+            "minItems": 1,
+            "maxItems": 2
+          },
+          "children": [
+            {
+              "id": "ks_person_name",
+              "type": "input",
+              "name": "name",
+              "label": "Name",
+              "span": 12,
+              "defaultValue": "Ada",
+              "disabled": false,
+              "hidden": false,
+              "rules": [
+                {
+                  "kind": "required"
+                }
+              ],
+              "props": {}
+            },
+            {
+              "id": "ks_person_role",
+              "type": "select",
+              "name": "role",
+              "label": "Role",
+              "span": 12,
+              "defaultValue": "dev",
+              "disabled": false,
+              "hidden": false,
+              "rules": [],
+              "options": [
+                {
+                  "label": "Developer",
+                  "value": "dev"
+                },
+                {
+                  "label": "Designer",
+                  "value": "design"
+                }
+              ],
+              "props": {}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ks_card_small",
+      "type": "card",
+      "name": "cardSmall",
+      "label": "Small and borderless",
+      "span": 24,
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "props": {
+        "size": "small",
+        "variant": "borderless"
+      },
+      "children": [
+        {
+          "id": "ks_borderless_note",
+          "type": "input",
+          "name": "borderlessNote",
+          "label": "Note",
+          "span": 24,
+          "disabled": false,
+          "hidden": false,
+          "rules": [],
+          "props": {}
+        }
+      ]
+    },
+    {
+      "id": "ks_div_conditions",
+      "type": "divider",
+      "name": "divConditions",
+      "label": "Condition operators",
+      "span": 24,
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "props": {}
+    },
+    {
+      "id": "ks_op_text",
+      "type": "input",
+      "name": "opText",
+      "label": "Text",
+      "span": 8,
+      "placeholder": "try: alpha",
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "props": {}
+    },
+    {
+      "id": "ks_op_number",
+      "type": "number",
+      "name": "opNumber",
+      "label": "Number",
+      "span": 8,
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "props": {
+        "min": 0,
+        "max": 20
+      }
+    },
+    {
+      "id": "ks_op_tags",
+      "type": "checkboxGroup",
+      "name": "opTags",
+      "label": "Tags",
+      "span": 8,
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "options": [
+        {
+          "label": "Red",
+          "value": "red"
+        },
+        {
+          "label": "Green",
+          "value": "green"
+        },
+        {
+          "label": "Blue",
+          "value": "blue"
+        }
+      ],
+      "props": {}
+    },
+    {
+      "id": "ks_card_ops",
+      "type": "card",
+      "name": "cardOps",
+      "label": "Operators that currently match",
+      "span": 24,
+      "extra": "Drive the three fields above",
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "props": {
+        "size": "small",
+        "variant": "outlined"
+      },
+      "children": [
+        {
+          "id": "ks_op_eq",
+          "type": "title",
+          "name": "opEq",
+          "label": "eq · text is \"alpha\"",
+          "span": 12,
+          "disabled": false,
+          "hidden": false,
+          "rules": [],
+          "condition": {
+            "logic": "and",
+            "conditions": [
+              {
+                "field": "opText",
+                "operator": "eq",
+                "value": "alpha"
+              }
+            ]
+          },
+          "props": {
+            "level": 5
+          }
+        },
+        {
+          "id": "ks_op_neq",
+          "type": "title",
+          "name": "opNeq",
+          "label": "neq · text is not \"alpha\"",
+          "span": 12,
+          "disabled": false,
+          "hidden": false,
+          "rules": [],
+          "condition": {
+            "logic": "and",
+            "conditions": [
+              {
+                "field": "opText",
+                "operator": "neq",
+                "value": "alpha"
+              }
+            ]
+          },
+          "props": {
+            "level": 5
+          }
+        },
+        {
+          "id": "ks_op_in",
+          "type": "title",
+          "name": "opIn",
+          "label": "in · text in \"alpha,beta,gamma\"",
+          "span": 12,
+          "disabled": false,
+          "hidden": false,
+          "rules": [],
+          "condition": {
+            "logic": "and",
+            "conditions": [
+              {
+                "field": "opText",
+                "operator": "in",
+                "value": "alpha,beta,gamma"
+              }
+            ]
+          },
+          "props": {
+            "level": 5
+          }
+        },
+        {
+          "id": "ks_op_not_in",
+          "type": "title",
+          "name": "opNotIn",
+          "label": "notIn · text not in [\"alpha\",\"beta\"]",
+          "span": 12,
+          "disabled": false,
+          "hidden": false,
+          "rules": [],
+          "condition": {
+            "logic": "and",
+            "conditions": [
+              {
+                "field": "opText",
+                "operator": "notIn",
+                "value": [
+                  "alpha",
+                  "beta"
+                ]
+              }
+            ]
+          },
+          "props": {
+            "level": 5
+          }
+        },
+        {
+          "id": "ks_op_contains_text",
+          "type": "title",
+          "name": "opContainsText",
+          "label": "contains · text contains \"ph\"",
+          "span": 12,
+          "disabled": false,
+          "hidden": false,
+          "rules": [],
+          "condition": {
+            "logic": "and",
+            "conditions": [
+              {
+                "field": "opText",
+                "operator": "contains",
+                "value": "PH"
+              }
+            ]
+          },
+          "props": {
+            "level": 5
+          }
+        },
+        {
+          "id": "ks_op_contains_array",
+          "type": "title",
+          "name": "opContainsArray",
+          "label": "contains · tags include green",
+          "span": 12,
+          "disabled": false,
+          "hidden": false,
+          "rules": [],
+          "condition": {
+            "logic": "and",
+            "conditions": [
+              {
+                "field": "opTags",
+                "operator": "contains",
+                "value": "green"
+              }
+            ]
+          },
+          "props": {
+            "level": 5
+          }
+        },
+        {
+          "id": "ks_op_gt",
+          "type": "title",
+          "name": "opGt",
+          "label": "gt · number over 10",
+          "span": 12,
+          "disabled": false,
+          "hidden": false,
+          "rules": [],
+          "condition": {
+            "logic": "and",
+            "conditions": [
+              {
+                "field": "opNumber",
+                "operator": "gt",
+                "value": 10
+              }
+            ]
+          },
+          "props": {
+            "level": 5
+          }
+        },
+        {
+          "id": "ks_op_lt",
+          "type": "title",
+          "name": "opLt",
+          "label": "lt · number under 5",
+          "span": 12,
+          "disabled": false,
+          "hidden": false,
+          "rules": [],
+          "condition": {
+            "logic": "and",
+            "conditions": [
+              {
+                "field": "opNumber",
+                "operator": "lt",
+                "value": 5
+              }
+            ]
+          },
+          "props": {
+            "level": 5
+          }
+        },
+        {
+          "id": "ks_op_empty",
+          "type": "title",
+          "name": "opEmpty",
+          "label": "empty · text is blank",
+          "span": 12,
+          "disabled": false,
+          "hidden": false,
+          "rules": [],
+          "condition": {
+            "logic": "and",
+            "conditions": [
+              {
+                "field": "opText",
+                "operator": "empty"
+              }
+            ]
+          },
+          "props": {
+            "level": 5
+          }
+        },
+        {
+          "id": "ks_op_not_empty",
+          "type": "title",
+          "name": "opNotEmpty",
+          "label": "notEmpty · tags chosen",
+          "span": 12,
+          "disabled": false,
+          "hidden": false,
+          "rules": [],
+          "condition": {
+            "logic": "and",
+            "conditions": [
+              {
+                "field": "opTags",
+                "operator": "notEmpty"
+              }
+            ]
+          },
+          "props": {
+            "level": 5
+          }
+        },
+        {
+          "id": "ks_op_and",
+          "type": "title",
+          "name": "opAnd",
+          "label": "AND · text set and number over 10",
+          "span": 12,
+          "disabled": false,
+          "hidden": false,
+          "rules": [],
+          "condition": {
+            "logic": "and",
+            "conditions": [
+              {
+                "field": "opText",
+                "operator": "notEmpty"
+              },
+              {
+                "field": "opNumber",
+                "operator": "gt",
+                "value": 10
+              }
+            ]
+          },
+          "props": {
+            "level": 5
+          }
+        },
+        {
+          "id": "ks_op_or",
+          "type": "title",
+          "name": "opOr",
+          "label": "OR · text is \"alpha\" or tags include red",
+          "span": 12,
+          "disabled": false,
+          "hidden": false,
+          "rules": [],
+          "condition": {
+            "logic": "or",
+            "conditions": [
+              {
+                "field": "opText",
+                "operator": "eq",
+                "value": "alpha"
+              },
+              {
+                "field": "opTags",
+                "operator": "contains",
+                "value": "red"
+              }
+            ]
+          },
+          "props": {
+            "level": 5
+          }
+        }
+      ]
+    },
+    {
+      "id": "ks_div_footer",
+      "type": "divider",
+      "name": "divFooter",
+      "label": "Field states",
+      "span": 24,
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "props": {}
+    },
+    {
+      "id": "ks_read_only",
+      "type": "input",
+      "name": "readOnlyId",
+      "label": "Read only",
+      "span": 12,
+      "tooltip": "Disabled fields still reach the payload.",
+      "defaultValue": "REF-0001",
+      "disabled": true,
+      "hidden": false,
+      "rules": [],
+      "props": {}
+    },
+    {
+      "id": "ks_schema_version",
+      "type": "input",
+      "name": "schemaVersion",
+      "label": "Hidden",
+      "span": 12,
+      "defaultValue": "1",
+      "disabled": false,
+      "hidden": true,
+      "rules": [],
+      "props": {}
+    },
+    {
+      "id": "ks_div_more",
+      "type": "divider",
+      "name": "divMore",
+      "label": "More controls",
+      "span": 24,
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "props": {}
+    },
+    {
+      "id": "ks_otp",
+      "type": "otp",
+      "name": "otpCode",
+      "label": "One-time code",
+      "span": 12,
+      "disabled": false,
+      "hidden": false,
+      "rules": [
+        {
+          "kind": "required"
+        },
+        {
+          "kind": "len",
+          "value": 6
+        }
+      ],
+      "props": {
+        "length": 6
+      }
+    },
+    {
+      "id": "ks_autocomplete",
+      "type": "autoComplete",
+      "name": "city",
+      "label": "Autocomplete",
+      "span": 12,
+      "placeholder": "Start typing",
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "options": [
+        {
+          "label": "London",
+          "value": "london"
+        },
+        {
+          "label": "Lisbon",
+          "value": "lisbon"
+        },
+        {
+          "label": "Los Angeles",
+          "value": "la"
+        }
+      ],
+      "props": {}
+    },
+    {
+      "id": "ks_mentions",
+      "type": "mentions",
+      "name": "mentionNote",
+      "label": "Mentions",
+      "span": 24,
+      "placeholder": "Type @ to mention someone",
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "options": [
+        {
+          "label": "ada",
+          "value": "ada"
+        },
+        {
+          "label": "grace",
+          "value": "grace"
+        },
+        {
+          "label": "alan",
+          "value": "alan"
+        }
+      ],
+      "props": {
+        "rows": 2,
+        "prefix": "@"
+      }
+    },
+    {
+      "id": "ks_segmented",
+      "type": "segmented",
+      "name": "billingCycle",
+      "label": "Segmented",
+      "span": 12,
+      "defaultValue": "monthly",
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "options": [
+        {
+          "label": "Monthly",
+          "value": "monthly"
+        },
+        {
+          "label": "Yearly",
+          "value": "yearly"
+        }
+      ],
+      "props": {}
+    },
+    {
+      "id": "ks_colour",
+      "type": "colorPicker",
+      "name": "brandColour",
+      "label": "Colour",
+      "span": 12,
+      "extra": "Submitted as a hex string.",
+      "defaultValue": "#1677ff",
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "props": {}
+    },
+    {
+      "id": "ks_cascader",
+      "type": "cascader",
+      "name": "productPath",
+      "label": "Cascader",
+      "span": 12,
+      "placeholder": "Choose a path",
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "treeOptions": [
+        {
+          "label": "Hardware",
+          "value": "hardware",
+          "children": [
+            {
+              "label": "Laptops",
+              "value": "laptops",
+              "children": [
+                {
+                  "label": "13 inch",
+                  "value": "13"
+                },
+                {
+                  "label": "16 inch",
+                  "value": "16"
+                }
+              ]
+            },
+            {
+              "label": "Monitors",
+              "value": "monitors"
+            }
+          ]
+        },
+        {
+          "label": "Software",
+          "value": "software",
+          "children": [
+            {
+              "label": "Licences",
+              "value": "licences"
+            },
+            {
+              "label": "Support",
+              "value": "support"
+            }
+          ]
+        }
+      ],
+      "props": {
+        "showSearch": true
+      }
+    },
+    {
+      "id": "ks_treeselect",
+      "type": "treeSelect",
+      "name": "team",
+      "label": "Tree select",
+      "span": 12,
+      "placeholder": "Choose one",
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "treeOptions": [
+        {
+          "label": "Engineering",
+          "value": "eng",
+          "children": [
+            {
+              "label": "Platform",
+              "value": "platform"
+            },
+            {
+              "label": "Mobile",
+              "value": "mobile"
+            }
+          ]
+        },
+        {
+          "label": "Operations",
+          "value": "ops",
+          "children": [
+            {
+              "label": "Support",
+              "value": "ops-support"
+            }
+          ]
+        }
+      ],
+      "props": {
+        "showSearch": true,
+        "expandAll": true
+      }
+    },
+    {
+      "id": "ks_transfer",
+      "type": "transfer",
+      "name": "permissions",
+      "label": "Transfer",
+      "span": 24,
+      "disabled": false,
+      "hidden": false,
+      "rules": [
+        {
+          "kind": "min",
+          "value": 1
+        }
+      ],
+      "options": [
+        {
+          "label": "Read",
+          "value": "read"
+        },
+        {
+          "label": "Write",
+          "value": "write"
+        },
+        {
+          "label": "Delete",
+          "value": "delete"
+        },
+        {
+          "label": "Administer",
+          "value": "admin"
+        }
+      ],
+      "props": {
+        "showSearch": true,
+        "leftTitle": "Available",
+        "rightTitle": "Granted"
+      }
+    },
+    {
+      "id": "ks_time_range",
+      "type": "timeRange",
+      "name": "openingHours",
+      "label": "Time range",
+      "span": 12,
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "props": {
+        "format": "HH:mm",
+        "valueFormat": "HH:mm:ss",
+        "startPlaceholder": "Opens",
+        "endPlaceholder": "Closes",
+        "minuteStep": 15
+      }
+    },
+    {
+      "id": "ks_dropzone",
+      "type": "upload",
+      "name": "dropped",
+      "label": "Drop zone",
+      "span": 12,
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "props": {
+        "drag": true,
+        "dragHint": "PDF or JPG, up to 10 MB",
+        "showUploadList": true
+      }
+    }
+  ]
+}

@@ -2,11 +2,11 @@ import { ArrowLeftOutlined, ReloadOutlined, ThunderboltOutlined } from '@ant-des
 import { Alert, Button, Card, Col, Empty, Result, Row, Space, Tag, Timeline, Typography } from 'antd';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { edgeCaption } from '@/builder/workflow/conditionText';
-import { FormRenderer } from '@/renderer/FormRenderer';
-import { PageRenderer } from '@/renderer/page/PageRenderer';
+import { ScreenRenderer } from '@/renderer/ScreenRenderer';
 import type { WorkflowRunState } from '@/renderer/workflow/engine';
 import { advanceWorkflow, describeBlock, startWorkflow } from '@/renderer/workflow/engine';
-import type { FormSchema } from '@/schema/schema';
+import type { ScreenSchema } from '@/schema/screen';
+import { collectScreenActions, screenCollectsValues } from '@/schema/screen';
 import type { WorkflowSchema } from '@/schema/workflow';
 import { findWorkflowNode, validateWorkflow } from '@/schema/workflowGraph';
 import { nodeCaption, workflowMetaFor } from '@/schema/workflowRegistry';
@@ -44,12 +44,12 @@ export function WorkflowPreviewPane({ schema }: WorkflowPreviewPaneProps) {
     [schema],
   );
 
-  // A `summary` block names the form step it lays out, so the run has to hand
-  // the schemas over — a payload alone carries no layout.
+  // A `summary` node names the step it lays out, so the run has to hand the
+  // schemas over — a payload alone carries no layout.
   const formSources = useMemo(() => {
-    const sources: Record<string, FormSchema> = {};
+    const sources: Record<string, ScreenSchema> = {};
     for (const node of schema.nodes) {
-      if (node.kind === 'form' && node.form) sources[node.id] = node.form;
+      if (node.kind === 'screen' && node.screen) sources[node.id] = node.screen;
     }
     return sources;
   }, [schema.nodes]);
@@ -155,7 +155,7 @@ function StepBody({
   schema: WorkflowSchema;
   state: WorkflowRunState;
   onStep: (contribution?: Record<string, unknown>) => void;
-  formSources: Record<string, FormSchema>;
+  formSources: Record<string, ScreenSchema>;
 }) {
   const node = state.nodeId ? findWorkflowNode(schema, state.nodeId) : null;
 
@@ -195,51 +195,40 @@ function StepBody({
     );
   }
 
-  if (node.kind === 'form') {
-    if (!node.form || node.form.fields.length === 0) {
+  if (node.kind === 'screen') {
+    if (!node.screen || node.screen.nodes.length === 0) {
       return (
         <Space orientation="vertical" size={12} style={{ width: '100%' }}>
-          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="This step has no fields yet" />
+          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="This step is empty" />
           <Button type="primary" onClick={() => onStep()}>
             Skip this step
           </Button>
         </Space>
       );
     }
-    return (
-      // Keyed by node so a loop back to a step it already visited gets a fresh
-      // form instance; `values` is what puts the earlier answers back into it.
-      <FormRenderer
-        key={node.id}
-        schema={node.form}
-        values={state.values}
-        onSubmit={(submitted) => onStep(submitted)}
-      />
-    );
-  }
 
-  if (node.kind === 'page') {
-    if (!node.page || node.page.blocks.length === 0) {
-      return (
-        <Space orientation="vertical" size={12} style={{ width: '100%' }}>
-          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="This page has no blocks yet" />
-          <Button type="primary" onClick={() => onStep()}>
-            Skip this step
-          </Button>
-        </Space>
-      );
-    }
+    const actions = collectScreenActions(node.screen);
     return (
       <Space orientation="vertical" size={12} style={{ width: '100%' }}>
-        <PageRenderer
-          schema={node.page}
+        {/* Keyed by node so a loop back to a step it already visited gets a
+            fresh form instance; `values` is what puts the earlier answers back
+            into it. */}
+        <ScreenRenderer
+          key={node.id}
+          schema={node.screen}
           values={state.values}
           formSources={formSources}
-          // A button is an outcome: the same merge an approval does, which is
-          // why a branch tests it with an ordinary condition.
-          onAction={(actionId) => onStep({ [node.name || 'choice']: actionId })}
+          onSubmit={(submitted) => onStep(submitted)}
+          // A button is an outcome carrying whatever the screen also collected:
+          // the same merge an approval does, which is why a branch tests it
+          // with an ordinary condition.
+          onAction={(actionId, collected) =>
+            onStep({ ...collected, [node.name || 'choice']: actionId })
+          }
         />
-        {node.page.blocks.every((block) => block.type !== 'actions') ? (
+        {actions.length === 0 && !screenCollectsValues(node.screen) ? (
+          // Nothing to submit and no button to press — the validator warns
+          // about this, but a run that hit it still needs a way out.
           <Button type="primary" onClick={() => onStep()}>
             Continue
           </Button>

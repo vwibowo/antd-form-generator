@@ -1,6 +1,6 @@
 import dayjs, { type Dayjs } from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
-import type { FieldNode, FieldType } from '@/schema/schema';
+import type { ScreenNode, ScreenNodeType } from '@/schema/screen';
 
 // Needed to read a default value back from a custom pattern like `DD/MM/YYYY`.
 dayjs.extend(customParseFormat);
@@ -18,7 +18,7 @@ dayjs.extend(customParseFormat);
 export const VALUE_FORMAT_KEYWORDS = ['iso', 'timestamp', 'unix'] as const;
 
 /** Types whose value is a dayjs object (or a pair of them). */
-export const DATE_FIELD_TYPES = new Set<FieldType>([
+export const DATE_TYPES = new Set<ScreenNodeType>([
   'date',
   'dateRange',
   'time',
@@ -26,22 +26,22 @@ export const DATE_FIELD_TYPES = new Set<FieldType>([
 ]);
 
 /** Types whose value is a *pair* of dayjs objects rather than one. */
-export const DATE_RANGE_FIELD_TYPES = new Set<FieldType>(['dateRange', 'timeRange']);
+export const DATE_RANGE_TYPES = new Set<ScreenNodeType>(['dateRange', 'timeRange']);
 
-export function isDateRangeFieldType(type: FieldType): boolean {
-  return DATE_RANGE_FIELD_TYPES.has(type);
+export function isDateRangeType(type: ScreenNodeType): boolean {
+  return DATE_RANGE_TYPES.has(type);
 }
 
-export function isDateFieldType(type: FieldType): boolean {
-  return DATE_FIELD_TYPES.has(type);
+export function isDateType(type: ScreenNodeType): boolean {
+  return DATE_TYPES.has(type);
 }
 
-export function valueFormatOf(node: FieldNode): string | undefined {
+export function valueFormatOf(node: ScreenNode): string | undefined {
   const value = node.props?.valueFormat;
   return typeof value === 'string' && value !== '' ? value : undefined;
 }
 
-export function displayFormatOf(node: FieldNode): string | undefined {
+export function displayFormatOf(node: ScreenNode): string | undefined {
   const value = node.props?.format;
   return typeof value === 'string' && value !== '' ? value : undefined;
 }
@@ -84,9 +84,9 @@ export function serializeDateValue(value: unknown, valueFormat?: string): unknow
 }
 
 /** dayjs → JSON for one field, honouring `dateRange`'s two-element value. */
-export function serializeDateField(node: FieldNode, value: unknown): unknown {
+export function serializeDateField(node: ScreenNode, value: unknown): unknown {
   const valueFormat = valueFormatOf(node);
-  if (isDateRangeFieldType(node.type) && Array.isArray(value)) {
+  if (isDateRangeType(node.type) && Array.isArray(value)) {
     return value.map((entry) => serializeDateValue(entry, valueFormat));
   }
   return serializeDateValue(value, valueFormat);

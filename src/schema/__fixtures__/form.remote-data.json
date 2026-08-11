@@ -1,0 +1,256 @@
+{
+  "version": 1,
+  "title": "Remote option sources",
+  "description": "Each field below reads a differently shaped JSON response from dummyjson.com. Open the Options panel in the Builder to see how each one is mapped.",
+  "layout": "vertical",
+  "size": "large",
+  "colon": true,
+  "gutter": 16,
+  "submitText": "Show payload",
+  "showReset": true,
+  "fields": [
+    {
+      "id": "rd_heading",
+      "type": "title",
+      "name": "rdHeading",
+      "label": "Response shapes",
+      "span": 24,
+      "extra": "Four fields, four different JSON layouts, one mapper.",
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "props": {
+        "level": 4
+      }
+    },
+    {
+      "id": "rd_post_tag",
+      "type": "select",
+      "name": "postTag",
+      "label": "Post tag",
+      "span": 12,
+      "placeholder": "Choose a tag",
+      "extra": "Bare array of objects · label \"name\", value \"slug\"",
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "dataSource": {
+        "kind": "remote",
+        "url": "https://dummyjson.com/posts/tags",
+        "dataPath": "",
+        "labelKey": "name",
+        "valueKey": "slug"
+      },
+      "props": {
+        "showSearch": true
+      }
+    },
+    {
+      "id": "rd_recipe_tag",
+      "type": "select",
+      "name": "recipeTag",
+      "label": "Recipe tags",
+      "span": 12,
+      "placeholder": "Choose any number",
+      "extra": "Bare array of strings · label and value keys are ignored",
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "dataSource": {
+        "kind": "remote",
+        "url": "https://dummyjson.com/recipes/tags",
+        "dataPath": "",
+        "labelKey": "label",
+        "valueKey": "value"
+      },
+      "props": {
+        "mode": "multiple",
+        "showSearch": true
+      }
+    },
+    {
+      "id": "rd_top_product",
+      "type": "radio",
+      "name": "topProduct",
+      "label": "Top product",
+      "span": 24,
+      "extra": "Nested under \"products\" · numeric values · remote options on a radio group",
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "dataSource": {
+        "kind": "remote",
+        "url": "https://dummyjson.com/products?limit=4&select=title",
+        "dataPath": "products",
+        "labelKey": "title",
+        "valueKey": "id"
+      },
+      "props": {
+        "button": true
+      }
+    },
+    {
+      "id": "rd_company",
+      "type": "checkboxGroup",
+      "name": "companyDept",
+      "label": "Companies",
+      "span": 24,
+      "extra": "Dot-path label \"company.name\" · remote options on a checkbox group",
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "dataSource": {
+        "kind": "remote",
+        "url": "https://dummyjson.com/users?limit=6&select=company",
+        "dataPath": "users",
+        "labelKey": "company.name",
+        "valueKey": "id"
+      },
+      "props": {}
+    },
+    {
+      "id": "rd_div_cascade",
+      "type": "divider",
+      "name": "divCascade",
+      "label": "Cascading",
+      "span": 24,
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "props": {}
+    },
+    {
+      "id": "rd_cascade_category",
+      "type": "select",
+      "name": "cascadeCategory",
+      "label": "Category",
+      "span": 12,
+      "placeholder": "Choose a category",
+      "extra": "Feeds the field beside it.",
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "dataSource": {
+        "kind": "remote",
+        "url": "https://dummyjson.com/products/categories",
+        "dataPath": "",
+        "labelKey": "name",
+        "valueKey": "slug"
+      },
+      "props": {
+        "showSearch": true
+      }
+    },
+    {
+      "id": "rd_cascade_product",
+      "type": "select",
+      "name": "cascadeProduct",
+      "label": "Products in that category",
+      "span": 12,
+      "placeholder": "Choose any number",
+      "extra": "URL contains {{cascadeCategory}}",
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "dataSource": {
+        "kind": "remote",
+        "url": "https://dummyjson.com/products/category/{{cascadeCategory}}",
+        "dataPath": "products",
+        "labelKey": "title",
+        "valueKey": "id"
+      },
+      "props": {
+        "mode": "multiple",
+        "showSearch": true
+      }
+    },
+    {
+      "id": "rd_div_search",
+      "type": "divider",
+      "name": "divSearch",
+      "label": "Server-side search",
+      "span": 24,
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "props": {}
+    },
+    {
+      "id": "rd_owner",
+      "type": "select",
+      "name": "owner",
+      "label": "Find a user",
+      "span": 24,
+      "placeholder": "Type at least 2 characters",
+      "extra": "One request per settled keystroke, not per keystroke.",
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "dataSource": {
+        "kind": "remote",
+        "url": "https://dummyjson.com/users/search",
+        "dataPath": "users",
+        "labelKey": "email",
+        "valueKey": "id",
+        "search": {
+          "param": "q",
+          "debounceMs": 300,
+          "minChars": 2
+        }
+      },
+      "props": {}
+    },
+    {
+      "id": "rd_div_error",
+      "type": "divider",
+      "name": "divError",
+      "label": "Failure state",
+      "span": 24,
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "props": {}
+    },
+    {
+      "id": "rd_error_demo",
+      "type": "switch",
+      "name": "errorDemo",
+      "label": "Load a broken source",
+      "span": 8,
+      "defaultValue": false,
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "props": {}
+    },
+    {
+      "id": "rd_broken",
+      "type": "select",
+      "name": "brokenSelect",
+      "label": "Broken endpoint",
+      "span": 16,
+      "placeholder": "Nothing will load",
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "condition": {
+        "logic": "and",
+        "conditions": [
+          {
+            "field": "errorDemo",
+            "operator": "eq",
+            "value": true
+          }
+        ]
+      },
+      "dataSource": {
+        "kind": "remote",
+        "url": "https://dummyjson.com/no-such-endpoint",
+        "dataPath": "",
+        "labelKey": "name",
+        "valueKey": "id"
+      },
+      "props": {}
+    }
+  ]
+}

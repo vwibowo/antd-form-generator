@@ -1,7 +1,6 @@
 import { createId } from '@/lib/ids';
-import { pageSchemaSchema } from './page';
-import { createPageBlock } from './pageFactory';
-import { createEmptySchema } from './schema';
+import { createNode } from './factory';
+import { screenSchemaSchema } from './screen';
 import type { WorkflowEdge, WorkflowNode, WorkflowNodeKind, WorkflowSchema } from './workflow';
 import { workflowNodeSchema } from './workflow';
 import { outgoingEdges } from './workflowGraph';
@@ -19,9 +18,10 @@ export function uniqueWorkflowName(nodes: WorkflowNode[], base: string): string 
 /**
  * Build a new node of `kind` with registry defaults applied.
  *
- * A `form` node arrives with a parsed empty form rather than nothing, so the
- * builder never has to special-case "not authored yet"; the schema keeps
- * `form` optional so that hand-written JSON for the other kinds stays clean.
+ * A `screen` node arrives with a heading, a paragraph and one button rather
+ * than nothing, so the builder never has to special-case "not authored yet" and
+ * a fresh node can already advance a run. The schema keeps `screen` optional so
+ * hand-written JSON for the other kinds stays clean.
  */
 export function createWorkflowNode(
   kind: WorkflowNodeKind,
@@ -37,17 +37,10 @@ export function createWorkflowNode(
     y: at?.y ?? 48,
     ...meta.defaults,
     name: meta.supports.carriesName ? uniqueWorkflowName(existing, meta.namePrefix) : '',
-    ...(meta.supports.holdsForm ? { form: createEmptySchema() } : {}),
-    // A page arrives with one button, so a fresh page node can already advance
-    // a run — an actions-less page is a dead end the validator would flag.
-    ...(meta.supports.holdsPage
+    ...(meta.supports.holdsScreen
       ? {
-          page: pageSchemaSchema.parse({
-            blocks: [
-              createPageBlock('heading'),
-              createPageBlock('text'),
-              createPageBlock('actions'),
-            ],
+          screen: screenSchemaSchema.parse({
+            nodes: [createNode('heading'), createNode('text'), createNode('actions')],
           }),
         }
       : {}),

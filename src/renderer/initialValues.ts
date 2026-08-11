@@ -1,8 +1,8 @@
-import type { FieldNode, FormSchema } from '@/schema/schema';
-import { isPresentationalType, isTransparentContainer } from '@/schema/schema';
+import type { ScreenNode, ScreenSchema } from '@/schema/screen';
+import { isDisplayType, isTransparentContainer } from '@/schema/screen';
 import {
-  isDateFieldType,
-  isDateRangeFieldType,
+  isDateType,
+  isDateRangeType,
   parseDateValue,
   valueFormatOf,
 } from './dateValue';
@@ -11,14 +11,14 @@ import {
  * Convert an authored `defaultValue` into what the antd control expects.
  * Returns `undefined` when the node has no usable default.
  */
-export function toControlDefault(node: FieldNode): unknown {
+export function toControlDefault(node: ScreenNode): unknown {
   const raw = node.defaultValue;
   if (raw === undefined || raw === '') return undefined;
 
-  if (isDateFieldType(node.type)) {
+  if (isDateType(node.type)) {
     // Authored in the field's own `valueFormat` — ISO unless it says otherwise.
     const valueFormat = valueFormatOf(node);
-    if (isDateRangeFieldType(node.type)) {
+    if (isDateRangeType(node.type)) {
       if (!Array.isArray(raw)) return undefined;
       const range = raw.map((entry) => parseDateValue(entry, valueFormat));
       return range.length === 2 && range.every(Boolean) ? range : undefined;
@@ -30,10 +30,10 @@ export function toControlDefault(node: FieldNode): unknown {
 }
 
 /** One blank row for a repeatable section, pre-filled with child defaults. */
-export function buildRowTemplate(node: FieldNode): Record<string, unknown> {
+export function buildRowTemplate(node: ScreenNode): Record<string, unknown> {
   const row: Record<string, unknown> = {};
   for (const child of node.children ?? []) {
-    if (isPresentationalType(child.type)) continue;
+    if (isDisplayType(child.type)) continue;
     const value = toControlDefault(child);
     if (value !== undefined) row[child.name] = value;
   }
@@ -45,12 +45,12 @@ export function buildRowTemplate(node: FieldNode): Record<string, unknown> {
  * `group` and `card` are chrome, so their children contribute their own names
  * here rather than nesting under the container.
  */
-export function collectPayloadKeys(schema: FormSchema): Set<string> {
+export function collectPayloadKeys(schema: ScreenSchema): Set<string> {
   const keys = new Set<string>();
 
-  const visit = (nodes: FieldNode[]) => {
+  const visit = (nodes: ScreenNode[]) => {
     for (const node of nodes) {
-      if (isPresentationalType(node.type)) continue;
+      if (isDisplayType(node.type)) continue;
       if (isTransparentContainer(node.type)) {
         visit(node.children ?? []);
         continue;
@@ -59,7 +59,7 @@ export function collectPayloadKeys(schema: FormSchema): Set<string> {
     }
   };
 
-  visit(schema.fields);
+  visit(schema.nodes);
   return keys;
 }
 
@@ -69,12 +69,12 @@ export function collectPayloadKeys(schema: FormSchema): Set<string> {
  * `group` and `card` are chrome, so their children contribute their names at
  * the top level. `list` contributes an array seeded to `minItems` blank rows.
  */
-export function buildInitialValues(schema: FormSchema): Record<string, unknown> {
+export function buildInitialValues(schema: ScreenSchema): Record<string, unknown> {
   const values: Record<string, unknown> = {};
 
-  const visit = (nodes: FieldNode[]) => {
+  const visit = (nodes: ScreenNode[]) => {
     for (const node of nodes) {
-      if (isPresentationalType(node.type)) continue;
+      if (isDisplayType(node.type)) continue;
 
       if (isTransparentContainer(node.type)) {
         visit(node.children ?? []);
@@ -95,6 +95,6 @@ export function buildInitialValues(schema: FormSchema): Record<string, unknown> 
     }
   };
 
-  visit(schema.fields);
+  visit(schema.nodes);
   return values;
 }

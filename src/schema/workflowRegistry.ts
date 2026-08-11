@@ -14,10 +14,8 @@ export interface WorkflowNodeSupports {
   outPort: boolean;
   /** The node writes into the payload, so the inspector offers a `name`. */
   carriesName: boolean;
-  /** The node holds an embedded form. */
-  holdsForm: boolean;
-  /** The node holds an embedded page. */
-  holdsPage: boolean;
+  /** The node holds an embedded screen. */
+  holdsScreen: boolean;
 }
 
 export interface WorkflowNodeMeta {
@@ -38,8 +36,7 @@ const plain: WorkflowNodeSupports = {
   inPort: true,
   outPort: true,
   carriesName: false,
-  holdsForm: false,
-  holdsPage: false,
+  holdsScreen: false,
 };
 
 export const WORKFLOW_REGISTRY: Record<WorkflowNodeKind, WorkflowNodeMeta> = {
@@ -52,25 +49,16 @@ export const WORKFLOW_REGISTRY: Record<WorkflowNodeKind, WorkflowNodeMeta> = {
     supports: { ...plain, inPort: false },
     defaults: { label: 'Start' },
   },
-  form: {
-    kind: 'form',
-    label: 'Form',
-    hint: 'Collects values the branches can test',
+  screen: {
+    kind: 'screen',
+    label: 'Screen',
+    hint: 'Asks, tells, or both — and offers a way onward',
     color: '#1677ff',
     namePrefix: 'step',
-    supports: { ...plain, holdsForm: true },
-    defaults: { label: 'Form step' },
-  },
-  page: {
-    kind: 'page',
-    label: 'Page',
-    hint: 'Shows the reader a screen, and offers a way onward',
-    color: '#13c2c2',
-    namePrefix: 'choice',
     // Carries a name because its buttons write to the payload, exactly as an
     // approval's outcomes do.
-    supports: { ...plain, carriesName: true, holdsPage: true },
-    defaults: { label: 'Page' },
+    supports: { ...plain, carriesName: true, holdsScreen: true },
+    defaults: { label: 'Screen step' },
   },
   decision: {
     kind: 'decision',

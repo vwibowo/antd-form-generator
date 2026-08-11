@@ -1,42 +1,36 @@
 import { DeleteOutlined, PlusOutlined, TableOutlined } from '@ant-design/icons';
-import { Button, Collapse, Empty, Input, InputNumber, Segmented, Select, Switch, Tag, Typography } from 'antd';
-import { useMemo } from 'react';
-import type { PageAction, PageBlock, PageDataItem } from '@/schema/page';
-import { pageBlockMetaFor } from '@/schema/pageRegistry';
-import type { FormSchema } from '@/schema/schema';
-import { usePageBuilderStore } from '@/store/PageStoreContext';
+import { Button, Input, InputNumber, Segmented, Select, Switch, Typography } from 'antd';
+import type { DataListItem, ScreenAction, ScreenNode, ScreenSchema } from '@/schema/screen';
+import { metaFor } from '@/schema/registry';
 import { useTableStore } from '@/store/useTableStore';
-import { ConditionEditor } from '../inspector/ConditionEditor';
-import { Labeled } from '../inspector/Labeled';
-import { PageSettings } from './PageSettings';
+import { Labeled } from './Labeled';
 
-export interface BlockInspectorProps {
-  /**
-   * Payload keys a condition or a `{{token}}` can reach. Empty for a standalone
-   * page, which is why `ConditionEditor` has to accept a typed name.
-   */
-  fieldChoices?: { label: string; value: string }[];
-  /** Form steps a `summary` block can lay out, when inside a workflow. */
-  formSources?: Record<string, FormSchema>;
+/**
+ * The inspector controls for nodes that show something rather than ask for it.
+ *
+ * These were the whole of `BlockInspector` when a page was its own document.
+ * They live beside the control editors now and are gated by the same
+ * `supports` flags `index.tsx` already uses, so a heading and a text input are
+ * configured by one panel.
+ */
+
+export interface DisplayPropsProps {
+  node: ScreenNode;
+  onPatch: (patch: Partial<ScreenNode>) => void;
+  /** Screens an earlier step collected, so a `summary` node can lay one out. */
+  formSources?: Record<string, ScreenSchema>;
   /** Labels for those steps, so the picker reads as node names not ids. */
   formLabels?: Record<string, string>;
 }
-
-const SPAN_OPTIONS = [
-  { label: 'Full', value: 24 },
-  { label: '1/2', value: 12 },
-  { label: '1/3', value: 8 },
-  { label: '2/3', value: 16 },
-];
 
 function DataItemsEditor({
   items,
   onChange,
 }: {
-  items: PageDataItem[];
-  onChange: (items: PageDataItem[]) => void;
+  items: DataListItem[];
+  onChange: (items: DataListItem[]) => void;
 }) {
-  const replace = (index: number, patch: Partial<PageDataItem>) =>
+  const replace = (index: number, patch: Partial<DataListItem>) =>
     onChange(items.map((entry, i) => (i === index ? { ...entry, ...patch } : entry)));
 
   return (
@@ -84,10 +78,10 @@ function ActionsEditor({
   actions,
   onChange,
 }: {
-  actions: PageAction[];
-  onChange: (actions: PageAction[]) => void;
+  actions: ScreenAction[];
+  onChange: (actions: ScreenAction[]) => void;
 }) {
-  const replace = (index: number, patch: Partial<PageAction>) =>
+  const replace = (index: number, patch: Partial<ScreenAction>) =>
     onChange(actions.map((entry, i) => (i === index ? { ...entry, ...patch } : entry)));
 
   return (
@@ -154,31 +148,31 @@ function ActionsEditor({
 }
 
 /**
- * A table block's source.
+ * A table node's source.
  *
  * Table mode is the table editor; nesting a second full one inside this panel
  * would mean giving `useTableStore` the factory-and-context treatment
- * `useSchemaStore` got, for a block most pages will not use. Copying the
+ * `useScreenStore` got, for a node most screens will not use. Copying the
  * document across is the honest small version, and the JSON tab remains
  * available for hand-authoring.
  */
-function EmbeddedTableEditor({
-  block,
+export function EmbeddedTableEditor({
+  node,
   onPatch,
 }: {
-  block: PageBlock;
-  onPatch: (patch: Partial<PageBlock>) => void;
+  node: ScreenNode;
+  onPatch: (patch: Partial<ScreenNode>) => void;
 }) {
   const tableSchema = useTableStore((state) => state.schema);
-  const columns = block.table?.columns.length ?? 0;
-  const rows = block.table?.source.rows.length ?? 0;
+  const columns = node.table?.columns.length ?? 0;
+  const rows = node.table?.source.rows.length ?? 0;
 
   return (
     <div>
-      <Labeled label="This block's table">
+      <Labeled label="This node's table">
         <Typography.Text type="secondary" style={{ fontSize: 12 }}>
           {columns} column{columns === 1 ? '' : 's'}, {rows} inline row{rows === 1 ? '' : 's'}
-          {block.table?.source.kind === 'remote' ? ', fetched remotely' : ''}
+          {node.table?.source.kind === 'remote' ? ', fetched remotely' : ''}
         </Typography.Text>
       </Labeled>
 
@@ -200,73 +194,42 @@ function EmbeddedTableEditor({
   );
 }
 
-export function BlockInspector({
-  fieldChoices = [],
-  formSources = {},
-  formLabels = {},
-}: BlockInspectorProps) {
-  const schema = usePageBuilderStore((state) => state.schema);
-  const selectedId = usePageBuilderStore((state) => state.selectedId);
-  const updateBlock = usePageBuilderStore((state) => state.updateBlock);
-
-  const selected = useMemo<PageBlock | null>(
-    () => schema.blocks.find((block) => block.id === selectedId) ?? null,
-    [schema.blocks, selectedId],
-  );
-
-  if (!selected) {
-    return (
-      <div className="fg-scroll" style={{ height: '100%', padding: 12 }}>
-        <PageSettings />
-        <Empty
-          image={Empty.PRESENTED_IMAGE_SIMPLE}
-          description={
-            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-              Select a block to edit it
-            </Typography.Text>
-          }
-          style={{ marginTop: 24 }}
-        />
-      </div>
-    );
-  }
-
-  const meta = pageBlockMetaFor(selected.type);
-  const patch = (next: Partial<PageBlock>) => updateBlock(selected.id, next);
+export function DisplayProps({ node, onPatch, formSources = {}, formLabels = {} }: DisplayPropsProps) {
+  const meta = metaFor(node.type);
   const setProp = (key: string, value: unknown) =>
-    patch({ props: { ...selected.props, [key]: value } });
+    onPatch({ props: { ...node.props, [key]: value } });
 
-  const general = (
-    <div>
+  return (
+    <>
       {meta.supports.text ? (
         <Labeled label="Text" help="{{fieldName}} is filled in from the payload.">
           <Input.TextArea
             size="small"
-            rows={selected.type === 'heading' ? 2 : 4}
-            value={selected.text}
-            onChange={(event) => patch({ text: event.target.value })}
+            rows={node.type === 'heading' ? 2 : 4}
+            value={node.text}
+            onChange={(event) => onPatch({ text: event.target.value })}
           />
         </Labeled>
       ) : null}
 
-      {selected.type === 'heading' ? (
+      {node.type === 'heading' ? (
         <Labeled label="Level">
           <Segmented
             size="small"
             block
-            value={typeof selected.props.level === 'number' ? selected.props.level : 3}
+            value={typeof node.props.level === 'number' ? node.props.level : 3}
             options={[1, 2, 3, 4, 5].map((level) => ({ label: `H${level}`, value: level }))}
             onChange={(level) => setProp('level', level)}
           />
         </Labeled>
       ) : null}
 
-      {selected.type === 'alert' ? (
+      {node.type === 'alert' ? (
         <Labeled label="Tone">
           <Segmented
             size="small"
             block
-            value={typeof selected.props.tone === 'string' ? selected.props.tone : 'info'}
+            value={typeof node.props.tone === 'string' ? node.props.tone : 'info'}
             options={[
               { label: 'Info', value: 'info' },
               { label: 'Good', value: 'success' },
@@ -283,16 +246,16 @@ export function BlockInspector({
           <Labeled label="Image URL" help="http(s) only. Takes {{fieldName}} too.">
             <Input
               size="small"
-              value={selected.src}
+              value={node.src}
               placeholder="https://…"
-              onChange={(event) => patch({ src: event.target.value })}
+              onChange={(event) => onPatch({ src: event.target.value })}
             />
           </Labeled>
           <Labeled label="Alt text" help="What a screen reader announces.">
             <Input
               size="small"
-              value={selected.alt}
-              onChange={(event) => patch({ alt: event.target.value })}
+              value={node.alt}
+              onChange={(event) => onPatch({ alt: event.target.value })}
             />
           </Labeled>
         </>
@@ -300,10 +263,7 @@ export function BlockInspector({
 
       {meta.supports.items ? (
         <Labeled label="Rows">
-          <DataItemsEditor
-            items={selected.items ?? []}
-            onChange={(items) => patch({ items })}
-          />
+          <DataItemsEditor items={node.items ?? []} onChange={(items) => onPatch({ items })} />
         </Labeled>
       ) : null}
 
@@ -314,15 +274,15 @@ export function BlockInspector({
             help="Each button's stored value is what a workflow branch tests for."
           >
             <ActionsEditor
-              actions={selected.actions ?? []}
-              onChange={(actions) => patch({ actions })}
+              actions={node.actions ?? []}
+              onChange={(actions) => onPatch({ actions })}
             />
           </Labeled>
           <Labeled label="Align">
             <Segmented
               size="small"
               block
-              value={typeof selected.props.align === 'string' ? selected.props.align : 'left'}
+              value={typeof node.props.align === 'string' ? node.props.align : 'left'}
               options={[
                 { label: 'Left', value: 'left' },
                 { label: 'Centre', value: 'center' },
@@ -339,45 +299,45 @@ export function BlockInspector({
           label="Summarise which step"
           help={
             Object.keys(formSources).length === 0
-              ? 'Available once this page sits in a workflow that has a form step.'
-              : 'The form whose fields lay the payload out.'
+              ? 'Available once this screen sits in a workflow with an earlier screen step.'
+              : 'The screen whose fields lay the payload out.'
           }
         >
           <Select
             size="small"
             style={{ width: '100%' }}
             allowClear
-            value={selected.summarySource}
-            placeholder="Pick a form step"
+            value={node.summarySource}
+            placeholder="Pick a screen step"
             options={Object.keys(formSources).map((id) => ({
               label: formLabels[id] ?? id,
               value: id,
             }))}
-            onChange={(summarySource) => patch({ summarySource })}
+            onChange={(summarySource) => onPatch({ summarySource })}
           />
         </Labeled>
       ) : null}
 
-      {selected.type === 'spacer' ? (
+      {node.type === 'spacer' ? (
         <Labeled label="Height">
           <InputNumber
             size="small"
             style={{ width: '100%' }}
             min={4}
             max={200}
-            value={typeof selected.props.height === 'number' ? selected.props.height : 24}
+            value={typeof node.props.height === 'number' ? node.props.height : 24}
             onChange={(height) => setProp('height', height ?? 24)}
           />
         </Labeled>
       ) : null}
 
-      {selected.type === 'dataList' || selected.type === 'summary' ? (
+      {node.type === 'dataList' || node.type === 'summary' ? (
         <>
           <Labeled label="Columns">
             <Segmented
               size="small"
               block
-              value={typeof selected.props.columns === 'number' ? selected.props.columns : 1}
+              value={typeof node.props.columns === 'number' ? node.props.columns : 1}
               options={[1, 2, 3].map((columns) => ({ label: String(columns), value: columns }))}
               onChange={(columns) => setProp('columns', columns)}
             />
@@ -385,72 +345,13 @@ export function BlockInspector({
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
             <Switch
               size="small"
-              checked={selected.props.bordered !== false}
+              checked={node.props.bordered !== false}
               onChange={(bordered) => setProp('bordered', bordered)}
             />
             <Typography.Text style={{ fontSize: 13 }}>Bordered</Typography.Text>
           </div>
         </>
       ) : null}
-
-      <Labeled label={`Width — ${selected.span}/24`}>
-        <Select
-          size="small"
-          style={{ width: '100%' }}
-          value={selected.span}
-          options={SPAN_OPTIONS}
-          onChange={(span) => patch({ span })}
-        />
-      </Labeled>
-
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <Switch
-          size="small"
-          checked={selected.hidden}
-          onChange={(hidden) => patch({ hidden })}
-        />
-        <Typography.Text style={{ fontSize: 13 }}>Hidden</Typography.Text>
-      </div>
-    </div>
-  );
-
-  const items = [
-    { key: 'general', label: 'General', children: general },
-    {
-      key: 'visibility',
-      label: 'Visibility',
-      children: (
-        <ConditionEditor
-          condition={selected.condition}
-          fieldChoices={fieldChoices}
-          onChange={(condition) => patch({ condition })}
-          label="Show only when…"
-          // A standalone page has no form to read names from, so the field has
-          // to be typeable or the editor would be unusable outside a workflow.
-          allowCustomField={fieldChoices.length === 0}
-          hint="Read from whatever the run has collected by the time this page shows."
-        />
-      ),
-    },
-  ];
-
-  if (selected.type === 'table') {
-    items.splice(1, 0, {
-      key: 'table',
-      label: 'Table',
-      children: <EmbeddedTableEditor block={selected} onPatch={patch} />,
-    });
-  }
-
-  return (
-    <div className="fg-scroll" style={{ height: '100%' }}>
-      <div className="fg-wf-inspector__head">
-        <Typography.Text strong style={{ fontSize: 13 }}>
-          {meta.label}
-        </Typography.Text>
-        <Tag style={{ marginInlineEnd: 0 }}>{selected.type}</Tag>
-      </div>
-      <Collapse ghost defaultActiveKey={['general']} items={items} size="small" />
-    </div>
+    </>
   );
 }

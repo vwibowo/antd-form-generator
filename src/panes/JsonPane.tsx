@@ -1,11 +1,9 @@
 import { Alert, Button, Card, Input, Space, Typography } from 'antd';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { parsePageSchema } from '@/schema/page';
-import { parseFormSchema } from '@/schema/schema';
+import { parseScreenSchema } from '@/schema/screen';
 import { parseTableSchema } from '@/schema/table';
 import { parseWorkflowSchema } from '@/schema/workflow';
-import { usePageStore } from '@/store/usePageStore';
-import { useSchemaStore } from '@/store/useSchemaStore';
+import { useScreenStore } from '@/store/useScreenStore';
 import { useTableStore } from '@/store/useTableStore';
 import { useWorkflowStore } from '@/store/useWorkflowStore';
 
@@ -22,8 +20,8 @@ export interface JsonEditorProps<T> {
  * shows errors and leaves the store untouched, so a half-typed edit never
  * destroys the document being built.
  *
- * Generic over the document so the form and the table share one editor — only
- * the validator and the store binding differ.
+ * Generic over the document so every kind shares one editor — only the
+ * validator and the store binding differ.
  */
 export function JsonEditor<T>({ title, document, parse, onApply }: JsonEditorProps<T>) {
   const serialized = useMemo(() => JSON.stringify(document, null, 2), [document]);
@@ -134,15 +132,15 @@ export function JsonEditor<T>({ title, document, parse, onApply }: JsonEditorPro
   );
 }
 
-export function JsonPane() {
-  const schema = useSchemaStore((state) => state.schema);
-  const setSchema = useSchemaStore((state) => state.setSchema);
+export function ScreenJsonPane() {
+  const schema = useScreenStore((state) => state.schema);
+  const setSchema = useScreenStore((state) => state.setSchema);
 
   return (
     <JsonEditor
-      title="Form schema JSON"
+      title="Screen schema JSON"
       document={schema}
-      parse={parseFormSchema}
+      parse={parseScreenSchema}
       onApply={setSchema}
     />
   );
@@ -157,20 +155,6 @@ export function TableJsonPane() {
       title="Table schema JSON"
       document={schema}
       parse={parseTableSchema}
-      onApply={setSchema}
-    />
-  );
-}
-
-export function PageJsonPane() {
-  const schema = usePageStore((state) => state.schema);
-  const setSchema = usePageStore((state) => state.setSchema);
-
-  return (
-    <JsonEditor
-      title="Page schema JSON"
-      document={schema}
-      parse={parsePageSchema}
       onApply={setSchema}
     />
   );

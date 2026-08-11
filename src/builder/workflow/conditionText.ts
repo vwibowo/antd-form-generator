@@ -1,5 +1,5 @@
-import type { ConditionGroup, ConditionOperator } from '@/schema/schema';
-import { UNARY_OPERATORS } from '@/schema/schema';
+import type { ConditionGroup, ConditionOperator } from '@/schema/screen';
+import { UNARY_OPERATORS } from '@/schema/screen';
 
 /**
  * Human wording for a branch condition, used on the canvas chip and in the run

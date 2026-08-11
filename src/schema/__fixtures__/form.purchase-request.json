@@ -1,0 +1,647 @@
+{
+  "version": 1,
+  "title": "Purchase request",
+  "description": "Raise a request against the live catalogue. Every field below is described by the JSON in the JSON tab.",
+  "layout": "vertical",
+  "size": "middle",
+  "colon": true,
+  "gutter": 16,
+  "submitText": "Submit request",
+  "showReset": true,
+  "fields": [
+    {
+      "id": "pr_heading",
+      "type": "title",
+      "name": "headingRequest",
+      "label": "Request details",
+      "span": 24,
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "props": {
+        "level": 4
+      }
+    },
+    {
+      "id": "pr_number",
+      "type": "input",
+      "name": "prNumber",
+      "label": "Reference",
+      "span": 8,
+      "tooltip": "Generated when the request is created.",
+      "defaultValue": "PR-2041",
+      "disabled": true,
+      "hidden": false,
+      "rules": [],
+      "props": {}
+    },
+    {
+      "id": "pr_cost_centre",
+      "type": "input",
+      "name": "costCentre",
+      "label": "Cost centre",
+      "span": 8,
+      "placeholder": "FI-204",
+      "disabled": false,
+      "hidden": false,
+      "rules": [
+        {
+          "kind": "required"
+        },
+        {
+          "kind": "pattern",
+          "value": "^[A-Z]{2}-\\d{3}$",
+          "message": "Two letters, a dash, three digits — e.g. FI-204"
+        }
+      ],
+      "props": {
+        "maxLength": 6
+      }
+    },
+    {
+      "id": "pr_need_by",
+      "type": "date",
+      "name": "needBy",
+      "label": "Needed by",
+      "span": 8,
+      "placeholder": "Select a date",
+      "disabled": false,
+      "hidden": false,
+      "rules": [
+        {
+          "kind": "required"
+        }
+      ],
+      "props": {
+        "picker": "date"
+      }
+    },
+    {
+      "id": "pr_department",
+      "type": "radio",
+      "name": "department",
+      "label": "Department",
+      "span": 24,
+      "defaultValue": "engineering",
+      "disabled": false,
+      "hidden": false,
+      "rules": [
+        {
+          "kind": "required"
+        }
+      ],
+      "options": [
+        {
+          "label": "Engineering",
+          "value": "engineering"
+        },
+        {
+          "label": "Operations",
+          "value": "operations"
+        },
+        {
+          "label": "Facilities",
+          "value": "facilities"
+        },
+        {
+          "label": "Marketing",
+          "value": "marketing"
+        }
+      ],
+      "props": {
+        "button": true
+      }
+    },
+    {
+      "id": "pr_category",
+      "type": "select",
+      "name": "category",
+      "label": "Catalogue category",
+      "span": 12,
+      "placeholder": "Choose a category",
+      "disabled": false,
+      "hidden": false,
+      "rules": [
+        {
+          "kind": "required"
+        }
+      ],
+      "dataSource": {
+        "kind": "remote",
+        "url": "https://dummyjson.com/products/categories",
+        "dataPath": "",
+        "labelKey": "name",
+        "valueKey": "slug"
+      },
+      "props": {
+        "showSearch": true
+      }
+    },
+    {
+      "id": "pr_priority",
+      "type": "select",
+      "name": "priority",
+      "label": "Priority",
+      "span": 12,
+      "placeholder": "Choose a priority",
+      "extra": "High and Critical need a written justification.",
+      "defaultValue": "standard",
+      "disabled": false,
+      "hidden": false,
+      "rules": [
+        {
+          "kind": "required"
+        }
+      ],
+      "options": [
+        {
+          "label": "Standard",
+          "value": "standard"
+        },
+        {
+          "label": "High",
+          "value": "high"
+        },
+        {
+          "label": "Critical",
+          "value": "critical"
+        }
+      ],
+      "props": {}
+    },
+    {
+      "id": "pr_justification",
+      "type": "textarea",
+      "name": "justification",
+      "label": "Justification",
+      "span": 24,
+      "placeholder": "Why can this not wait for the next cycle?",
+      "disabled": false,
+      "hidden": false,
+      "rules": [
+        {
+          "kind": "required",
+          "message": "Explain the urgency"
+        },
+        {
+          "kind": "min",
+          "value": 30,
+          "message": "At least 30 characters"
+        }
+      ],
+      "condition": {
+        "logic": "and",
+        "conditions": [
+          {
+            "field": "priority",
+            "operator": "in",
+            "value": "high,critical"
+          }
+        ]
+      },
+      "props": {
+        "rows": 3,
+        "maxLength": 400,
+        "showCount": true
+      }
+    },
+    {
+      "id": "pr_card_items",
+      "type": "card",
+      "name": "cardItems",
+      "label": "Line items",
+      "span": 24,
+      "extra": "Pick a category first",
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "props": {
+        "size": "medium",
+        "variant": "outlined"
+      },
+      "children": [
+        {
+          "id": "pr_list",
+          "type": "list",
+          "name": "lineItems",
+          "label": "Items",
+          "span": 24,
+          "disabled": false,
+          "hidden": false,
+          "rules": [],
+          "props": {},
+          "listConfig": {
+            "addText": "Add line item",
+            "minItems": 0,
+            "maxItems": 10
+          },
+          "children": [
+            {
+              "id": "pr_product",
+              "type": "select",
+              "name": "product",
+              "label": "Product",
+              "span": 10,
+              "placeholder": "Choose a product",
+              "disabled": false,
+              "hidden": false,
+              "rules": [
+                {
+                  "kind": "required"
+                }
+              ],
+              "dataSource": {
+                "kind": "remote",
+                "url": "https://dummyjson.com/products/category/{{category}}",
+                "dataPath": "products",
+                "labelKey": "title",
+                "valueKey": "id"
+              },
+              "props": {
+                "showSearch": true
+              }
+            },
+            {
+              "id": "pr_quantity",
+              "type": "number",
+              "name": "quantity",
+              "label": "Qty",
+              "span": 4,
+              "defaultValue": 1,
+              "disabled": false,
+              "hidden": false,
+              "rules": [
+                {
+                  "kind": "required"
+                },
+                {
+                  "kind": "type",
+                  "value": "integer",
+                  "message": "Whole units only"
+                }
+              ],
+              "props": {
+                "min": 1,
+                "max": 999,
+                "step": 1
+              }
+            },
+            {
+              "id": "pr_unit_price",
+              "type": "number",
+              "name": "unitPrice",
+              "label": "Unit price",
+              "span": 5,
+              "placeholder": "0.00",
+              "disabled": false,
+              "hidden": false,
+              "rules": [
+                {
+                  "kind": "required"
+                }
+              ],
+              "props": {
+                "min": 0,
+                "step": 0.5,
+                "precision": 2
+              }
+            },
+            {
+              "id": "pr_tax",
+              "type": "checkbox",
+              "name": "taxIncluded",
+              "label": "Tax",
+              "span": 5,
+              "defaultValue": false,
+              "disabled": false,
+              "hidden": false,
+              "rules": [],
+              "props": {
+                "text": "Tax incl."
+              }
+            },
+            {
+              "id": "pr_bulk_note",
+              "type": "textarea",
+              "name": "bulkNote",
+              "label": "Bulk order note",
+              "span": 24,
+              "placeholder": "Over 100 units — confirm storage and lead time",
+              "disabled": false,
+              "hidden": false,
+              "rules": [
+                {
+                  "kind": "required",
+                  "message": "Explain the bulk order"
+                }
+              ],
+              "condition": {
+                "logic": "and",
+                "conditions": [
+                  {
+                    "field": "quantity",
+                    "operator": "gt",
+                    "value": 100
+                  }
+                ]
+              },
+              "props": {
+                "rows": 2
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pr_card_delivery",
+      "type": "card",
+      "name": "cardDelivery",
+      "label": "Delivery",
+      "span": 24,
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "props": {
+        "size": "small",
+        "variant": "outlined"
+      },
+      "children": [
+        {
+          "id": "pr_group_where",
+          "type": "group",
+          "name": "groupWhere",
+          "label": "Destination",
+          "span": 24,
+          "disabled": false,
+          "hidden": false,
+          "rules": [],
+          "props": {},
+          "children": [
+            {
+              "id": "pr_deliver_to",
+              "type": "radio",
+              "name": "deliverTo",
+              "label": "Deliver to",
+              "span": 12,
+              "defaultValue": "office",
+              "disabled": false,
+              "hidden": false,
+              "rules": [
+                {
+                  "kind": "required"
+                }
+              ],
+              "options": [
+                {
+                  "label": "Office HQ",
+                  "value": "office"
+                },
+                {
+                  "label": "Site address",
+                  "value": "site"
+                }
+              ],
+              "props": {}
+            },
+            {
+              "id": "pr_flexibility",
+              "type": "slider",
+              "name": "deliveryFlexibility",
+              "label": "Acceptable delay (days)",
+              "span": 12,
+              "defaultValue": 5,
+              "disabled": false,
+              "hidden": false,
+              "rules": [],
+              "props": {
+                "min": 0,
+                "max": 30,
+                "step": 5
+              }
+            },
+            {
+              "id": "pr_site_address",
+              "type": "textarea",
+              "name": "siteAddress",
+              "label": "Site address",
+              "span": 12,
+              "disabled": false,
+              "hidden": false,
+              "rules": [
+                {
+                  "kind": "required"
+                }
+              ],
+              "condition": {
+                "logic": "and",
+                "conditions": [
+                  {
+                    "field": "deliverTo",
+                    "operator": "eq",
+                    "value": "site"
+                  }
+                ]
+              },
+              "props": {
+                "rows": 2
+              }
+            },
+            {
+              "id": "pr_window",
+              "type": "dateRange",
+              "name": "deliveryWindow",
+              "label": "Delivery window",
+              "span": 12,
+              "disabled": false,
+              "hidden": false,
+              "rules": [],
+              "props": {}
+            }
+          ]
+        },
+        {
+          "id": "pr_certs",
+          "type": "checkboxGroup",
+          "name": "certifications",
+          "label": "Required certifications",
+          "span": 24,
+          "disabled": false,
+          "hidden": false,
+          "rules": [],
+          "options": [
+            {
+              "label": "ISO 9001",
+              "value": "iso9001"
+            },
+            {
+              "label": "RoHS",
+              "value": "rohs"
+            },
+            {
+              "label": "REACH",
+              "value": "reach"
+            },
+            {
+              "label": "FSC",
+              "value": "fsc"
+            }
+          ],
+          "props": {}
+        }
+      ]
+    },
+    {
+      "id": "pr_divider",
+      "type": "divider",
+      "name": "dividerApproval",
+      "label": "Approval",
+      "span": 24,
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "props": {}
+    },
+    {
+      "id": "pr_total",
+      "type": "number",
+      "name": "estimatedTotal",
+      "label": "Estimated total",
+      "span": 8,
+      "placeholder": "0.00",
+      "extra": "Over 5,000 needs a budget owner and two quotes.",
+      "disabled": false,
+      "hidden": false,
+      "rules": [
+        {
+          "kind": "required"
+        },
+        {
+          "kind": "max",
+          "value": 250000,
+          "message": "Above 250,000 use a capital request"
+        }
+      ],
+      "props": {
+        "min": 0,
+        "step": 100,
+        "precision": 2
+      }
+    },
+    {
+      "id": "pr_budget_owner",
+      "type": "select",
+      "name": "budgetOwner",
+      "label": "Budget owner",
+      "span": 16,
+      "placeholder": "Type at least 2 characters",
+      "disabled": false,
+      "hidden": false,
+      "rules": [
+        {
+          "kind": "required"
+        }
+      ],
+      "condition": {
+        "logic": "and",
+        "conditions": [
+          {
+            "field": "estimatedTotal",
+            "operator": "gt",
+            "value": 5000
+          }
+        ]
+      },
+      "dataSource": {
+        "kind": "remote",
+        "url": "https://dummyjson.com/users/search",
+        "dataPath": "users",
+        "labelKey": "email",
+        "valueKey": "id",
+        "search": {
+          "param": "q",
+          "debounceMs": 300,
+          "minChars": 2
+        }
+      },
+      "props": {}
+    },
+    {
+      "id": "pr_quotes",
+      "type": "upload",
+      "name": "quotes",
+      "label": "Competing quotes",
+      "span": 24,
+      "disabled": false,
+      "hidden": false,
+      "rules": [
+        {
+          "kind": "required",
+          "message": "Two quotes are required above 5,000"
+        },
+        {
+          "kind": "min",
+          "value": 2,
+          "message": "Attach at least two competing quotes"
+        }
+      ],
+      "condition": {
+        "logic": "and",
+        "conditions": [
+          {
+            "field": "estimatedTotal",
+            "operator": "gt",
+            "value": 5000
+          }
+        ]
+      },
+      "props": {
+        "buttonText": "Attach quote",
+        "multiple": true,
+        "maxCount": 5
+      }
+    },
+    {
+      "id": "pr_notify",
+      "type": "switch",
+      "name": "notifyFinance",
+      "label": "Notify finance",
+      "span": 12,
+      "defaultValue": true,
+      "disabled": false,
+      "hidden": false,
+      "rules": [],
+      "props": {}
+    },
+    {
+      "id": "pr_terms",
+      "type": "checkbox",
+      "name": "terms",
+      "label": "Confirmation",
+      "span": 12,
+      "disabled": false,
+      "hidden": false,
+      "rules": [
+        {
+          "kind": "required",
+          "message": "Confirm the budget"
+        }
+      ],
+      "props": {
+        "text": "I confirm the budget is available"
+      }
+    },
+    {
+      "id": "pr_source",
+      "type": "input",
+      "name": "requestSource",
+      "label": "Source",
+      "span": 24,
+      "defaultValue": "web-generator",
+      "disabled": false,
+      "hidden": true,
+      "rules": [],
+      "props": {}
+    }
+  ]
+}

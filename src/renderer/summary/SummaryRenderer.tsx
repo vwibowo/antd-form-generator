@@ -1,8 +1,8 @@
 import { Card, Descriptions, Divider, Empty, Typography } from 'antd';
 import type { DescriptionsProps } from 'antd';
 import type { ReactNode } from 'react';
-import type { FieldNode, FormSchema } from '@/schema/schema';
-import { isPresentationalType, isTransparentContainer } from '@/schema/schema';
+import type { ScreenNode, ScreenSchema } from '@/schema/screen';
+import { isDisplayType, isTransparentContainer } from '@/schema/screen';
 import type { NamePath } from '../condition';
 import { evaluateCondition } from '../condition';
 import { dividerProps, titleProps } from '../controls';
@@ -13,8 +13,8 @@ import { formatFieldValue } from './format';
 type DescriptionItem = NonNullable<DescriptionsProps['items']>[number];
 
 export interface SummaryRendererProps {
-  schema: FormSchema;
-  /** A submitted payload, in the shape `FormRenderer`'s `onSubmit` hands over. */
+  schema: ScreenSchema;
+  /** A submitted payload, in the shape `ScreenRenderer`'s `onSubmit` hands over. */
   values: Record<string, unknown>;
   /** Description columns from `md` up. Always one column below that. */
   columns?: number;
@@ -30,8 +30,8 @@ export interface SummaryRendererProps {
  * Renders a submitted payload as a read-only page — the confirmation step
  * between filling a form in and sending it.
  *
- * There is no summary schema: the layout is derived from the `FormSchema` the
- * values came from. The traversal mirrors `serialize.ts` and `FieldRenderer`,
+ * There is no summary schema: the layout is derived from the `ScreenSchema` the
+ * values came from. The traversal mirrors `serialize.ts` and `ScreenNodeView`,
  * so what a reader sees here and what the payload carries cannot drift apart:
  * `group` and `card` are chrome whose children keep top-level names, a `list`
  * is an array of rows, and a field whose `condition` fails is absent from both.
@@ -53,7 +53,7 @@ export function SummaryRenderer({
     registry: components ?? inherited,
   };
 
-  const blocks = renderNodes(schema.fields, [], context);
+  const blocks = renderNodes(schema.nodes, [], context);
 
   return (
     <div className="fg-summary">
@@ -134,7 +134,7 @@ function packRows(
  * `Descriptions` and flushing it whenever a section, list or heading breaks
  * the run.
  */
-function renderNodes(nodes: FieldNode[], scopePath: NamePath, context: Context): ReactNode[] {
+function renderNodes(nodes: ScreenNode[], scopePath: NamePath, context: Context): ReactNode[] {
   const blocks: ReactNode[] = [];
   // Width travels beside each item: antd packs rows greedily and clamps an item
   // that does not fit the space left, so the packing has to be decided here.
@@ -174,12 +174,12 @@ function renderNodes(nodes: FieldNode[], scopePath: NamePath, context: Context):
       continue;
     }
 
-    if (node.type === 'title') {
+    if (node.type === 'heading') {
       flush();
       blocks.push(
         <div key={node.id} style={{ marginBottom: 8 }}>
           <Typography.Title {...titleProps(node.props)} style={{ marginBottom: 4 }}>
-            {node.label}
+            {node.text}
           </Typography.Title>
           {node.extra ? <Typography.Text type="secondary">{node.extra}</Typography.Text> : null}
         </div>,
@@ -225,7 +225,7 @@ function renderNodes(nodes: FieldNode[], scopePath: NamePath, context: Context):
       continue;
     }
 
-    if (isPresentationalType(node.type)) continue;
+    if (isDisplayType(node.type)) continue;
 
     // A full-width field keeps its whole row; anything narrower shares one.
     const width = node.span >= 24 ? context.columns : 1;
@@ -250,7 +250,7 @@ function renderNodes(nodes: FieldNode[], scopePath: NamePath, context: Context):
 }
 
 /** One block per row, so a repeatable section reads as a numbered list. */
-function renderList(node: FieldNode, scopePath: NamePath, context: Context): ReactNode {
+function renderList(node: ScreenNode, scopePath: NamePath, context: Context): ReactNode {
   const rows = readValue(context.values, [...scopePath, node.name]);
   const label = node.label || node.name;
 

@@ -1,5 +1,5 @@
-import type { FormSchema } from '../schema';
-import { formSchemaSchema } from '../schema';
+import type { ScreenSchema } from '../screen';
+import { screenSchemaSchema } from '../screen';
 
 /**
  * Reference tour of `dataSource`: every response shape the option mapper
@@ -15,8 +15,8 @@ export const remoteDataPreset = {
   key: 'remote-data',
   label: 'Remote data',
   description: 'Every API response shape the option mapper handles, plus cascading, live search, and the error state.',
-  create: (): FormSchema =>
-    formSchemaSchema.parse({
+  create: (): ScreenSchema =>
+    screenSchemaSchema.parse({
       title: 'Remote option sources',
       description:
         'Each field below reads a differently shaped JSON response from dummyjson.com. Open the Options panel in the Builder to see how each one is mapped.',
@@ -25,12 +25,11 @@ export const remoteDataPreset = {
       gutter: 16,
       submitText: 'Show payload',
       showReset: true,
-      fields: [
+      nodes: [
         {
           id: 'rd_heading',
-          type: 'title',
-          name: 'rdHeading',
-          label: 'Response shapes',
+          type: 'heading',
+          text: 'Response shapes',
           props: { level: 4 },
           extra: 'Four fields, four different JSON layouts, one mapper.',
         },
@@ -99,7 +98,7 @@ export const remoteDataPreset = {
             valueKey: 'id',
           },
         },
-        { id: 'rd_div_cascade', type: 'divider', name: 'divCascade', label: 'Cascading' },
+        { id: 'rd_div_cascade', type: 'divider', label: 'Cascading' },
         {
           id: 'rd_cascade_category',
           type: 'select',
@@ -134,7 +133,7 @@ export const remoteDataPreset = {
             valueKey: 'id',
           },
         },
-        { id: 'rd_div_search', type: 'divider', name: 'divSearch', label: 'Server-side search' },
+        { id: 'rd_div_search', type: 'divider', label: 'Server-side search' },
         {
           id: 'rd_owner',
           type: 'select',
@@ -151,7 +150,7 @@ export const remoteDataPreset = {
             search: { param: 'q', debounceMs: 300, minChars: 2 },
           },
         },
-        { id: 'rd_div_error', type: 'divider', name: 'divError', label: 'Failure state' },
+        { id: 'rd_div_error', type: 'divider', label: 'Failure state' },
         {
           id: 'rd_error_demo',
           type: 'switch',

@@ -1,33 +1,29 @@
-import type { PageSchema } from '../page';
-import { pageSchemaSchema } from '../page';
+import type { ScreenSchema } from '../screen';
+import { screenSchemaSchema } from '../screen';
 
 /**
- * Demo page documents, offered by the Sample button in page mode. Same shape as
- * the form presets in `index.ts`.
- */
-export interface PageSamplePreset {
-  key: string;
-  label: string;
-  description: string;
-  create: () => PageSchema;
-}
-
-/**
- * The reference page: one of every block type, and every binding mechanism.
+ * The screen that only tells — what the page document used to demonstrate.
  *
- * Written loosely and run through `pageSchemaSchema.parse` so zod fills every
+ * Listed alongside the asking screens in `index.ts`; it keeps its own file
+ * because it is the one sample built entirely from display nodes.
+ */
+
+/**
+ * One of every display node, and every binding mechanism.
+ *
+ * Written loosely and run through `screenSchemaSchema.parse` so zod fills every
  * default, which doubles as a check that the defaults are sane.
  */
 export const welcomePackPreset = {
   key: 'welcome-pack',
   label: 'Welcome pack',
   description: 'One of every block, bound to a payload — set values in the Preview tab.',
-  create: (): PageSchema =>
-    pageSchemaSchema.parse({
+  create: (): ScreenSchema =>
+    screenSchemaSchema.parse({
       title: 'Welcome, {{fullName}}',
       description: 'Your account is open. Here is what happens next.',
       maxWidth: 880,
-      blocks: [
+      nodes: [
         {
           id: 'wp_alert',
           type: 'alert',
@@ -77,7 +73,3 @@ export const welcomePackPreset = {
     }),
 };
 
-export const PAGE_SAMPLE_PRESETS: PageSamplePreset[] = [welcomePackPreset];
-
-/** What a plain click on the Sample button loads in page mode. */
-export const DEFAULT_PAGE_PRESET = welcomePackPreset;

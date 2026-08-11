@@ -1,5 +1,5 @@
-import type { FormSchema } from '../schema';
-import { formSchemaSchema } from '../schema';
+import type { ScreenSchema } from '../screen';
+import { screenSchemaSchema } from '../screen';
 
 /**
  * Reference form: one of every field type, every per-type `props` variant,
@@ -30,9 +30,8 @@ const operatorCases = [
   { id: 'ks_op_or', name: 'opOr', label: 'OR · text is "alpha" or tags include red', logic: 'or', conditions: [{ field: 'opText', operator: 'eq', value: 'alpha' }, { field: 'opTags', operator: 'contains', value: 'red' }] },
 ].map((entry) => ({
   id: entry.id,
-  type: 'title',
-  name: entry.name,
-  label: entry.label,
+  type: 'heading',
+  text: entry.label,
   span: 12,
   props: { level: 5 },
   condition: { logic: entry.logic, conditions: entry.conditions },
@@ -42,8 +41,8 @@ export const kitchenSinkPreset = {
   key: 'kitchen-sink',
   label: 'Kitchen sink',
   description: 'Reference form — every field type, every setting, every validation rule, and all nine condition operators.',
-  create: (): FormSchema =>
-    formSchemaSchema.parse({
+  create: (): ScreenSchema =>
+    screenSchemaSchema.parse({
       title: 'Kitchen sink',
       description:
         'Everything the generator can render, in one form. Horizontal layout with a fixed label column, small controls and no colons — all form-level settings.',
@@ -55,16 +54,15 @@ export const kitchenSinkPreset = {
       gutter: 24,
       submitText: 'Validate everything',
       showReset: false,
-      fields: [
+      nodes: [
         {
           id: 'ks_heading',
-          type: 'title',
-          name: 'sinkHeading',
-          label: 'Reference',
+          type: 'heading',
+          text: 'Reference',
           props: { level: 2 },
           extra: 'Submit with everything blank to watch each validation rule fire.',
         },
-        { id: 'ks_div_basic', type: 'divider', name: 'divBasic', label: 'Basic' },
+        { id: 'ks_div_basic', type: 'divider', label: 'Basic' },
         {
           id: 'ks_sku',
           type: 'input',
@@ -191,7 +189,7 @@ export const kitchenSinkPreset = {
           defaultValue: 'REF-000-421',
           props: { readOnly: true, variant: 'filled', allowClear: false },
         },
-        { id: 'ks_div_choice', type: 'divider', name: 'divChoice', label: 'Choice' },
+        { id: 'ks_div_choice', type: 'divider', label: 'Choice' },
         {
           id: 'ks_single',
           type: 'select',
@@ -292,7 +290,7 @@ export const kitchenSinkPreset = {
           defaultValue: true,
           props: { checkedChildren: 'On', unCheckedChildren: 'Off' },
         },
-        { id: 'ks_div_dates', type: 'divider', name: 'divDates', label: 'Date & time' },
+        { id: 'ks_div_dates', type: 'divider', label: 'Date & time' },
         {
           // Authored as an ISO string, converted to dayjs at render time.
           id: 'ks_when_datetime',
@@ -369,7 +367,7 @@ export const kitchenSinkPreset = {
           defaultValue: '09:30:00',
           props: { format: 'HH:mm', valueFormat: 'HH:mm:ss', minuteStep: 5 },
         },
-        { id: 'ks_div_advanced', type: 'divider', name: 'divAdvanced', label: 'Advanced' },
+        { id: 'ks_div_advanced', type: 'divider', label: 'Advanced' },
         {
           id: 'ks_volume',
           type: 'slider',
@@ -402,7 +400,7 @@ export const kitchenSinkPreset = {
             listType: 'picture',
           },
         },
-        { id: 'ks_div_custom', type: 'divider', name: 'divCustom', label: 'Custom components' },
+        { id: 'ks_div_custom', type: 'divider', label: 'Custom components' },
         {
           // Host-supplied controls — see `src/custom/`. The schema only names
           // them; the components themselves come from the app.
@@ -424,7 +422,7 @@ export const kitchenSinkPreset = {
           span: 12,
           props: { component: 'keyValue', keyPlaceholder: 'Header', maxRows: 3 },
         },
-        { id: 'ks_div_layout', type: 'divider', name: 'divLayout', label: 'Layout' },
+        { id: 'ks_div_layout', type: 'divider', label: 'Layout' },
         {
           // One top-level card holding both kinds of container.
           id: 'ks_card_outer',
@@ -496,7 +494,7 @@ export const kitchenSinkPreset = {
             },
           ],
         },
-        { id: 'ks_div_conditions', type: 'divider', name: 'divConditions', label: 'Condition operators' },
+        { id: 'ks_div_conditions', type: 'divider', label: 'Condition operators' },
         {
           id: 'ks_op_text',
           type: 'input',
@@ -535,7 +533,7 @@ export const kitchenSinkPreset = {
           props: { size: 'small', variant: 'outlined' },
           children: operatorCases,
         },
-        { id: 'ks_div_footer', type: 'divider', name: 'divFooter', label: 'Field states' },
+        { id: 'ks_div_footer', type: 'divider', label: 'Field states' },
         {
           id: 'ks_read_only',
           type: 'input',
@@ -556,7 +554,7 @@ export const kitchenSinkPreset = {
           defaultValue: '1',
         },
 
-        { id: 'ks_div_more', type: 'divider', name: 'divMore', label: 'More controls' },
+        { id: 'ks_div_more', type: 'divider', label: 'More controls' },
         {
           id: 'ks_otp',
           type: 'otp',

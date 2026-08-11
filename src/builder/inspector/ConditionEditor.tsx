@@ -1,8 +1,8 @@
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import { Button, Input, Segmented, Select, Space, Switch, Typography } from 'antd';
 import type { ReactNode } from 'react';
-import type { Condition, ConditionGroup, ConditionOperator } from '@/schema/schema';
-import { UNARY_OPERATORS } from '@/schema/schema';
+import type { Condition, ConditionGroup, ConditionOperator } from '@/schema/screen';
+import { UNARY_OPERATORS } from '@/schema/screen';
 
 export interface ConditionEditorProps {
   condition: ConditionGroup | undefined;

@@ -1,0 +1,592 @@
+{
+  "version": 1,
+  "kind": "workflow",
+  "title": "Current account onboarding",
+  "description": "The pages here are ordinary page documents; their buttons are what the branches test.",
+  "nodes": [
+    {
+      "id": "ob_start",
+      "kind": "start",
+      "label": "Visitor arrives",
+      "description": "",
+      "name": "",
+      "x": 48,
+      "y": 240,
+      "props": {}
+    },
+    {
+      "id": "ob_landing",
+      "kind": "page",
+      "label": "Open a current account",
+      "description": "Product information and the call to action.",
+      "name": "landingChoice",
+      "x": 336,
+      "y": 240,
+      "page": {
+        "version": 1,
+        "kind": "page",
+        "title": "A current account that fits around you",
+        "description": "No monthly fee, no minimum balance, open in about five minutes.",
+        "maxWidth": 880,
+        "gutter": 16,
+        "blocks": [
+          {
+            "id": "lp_intro",
+            "type": "text",
+            "span": 24,
+            "hidden": false,
+            "text": "Everything runs from the app: freeze your card, split a bill, or set money aside without leaving the screen.",
+            "src": "",
+            "alt": "",
+            "props": {}
+          },
+          {
+            "id": "lp_h",
+            "type": "heading",
+            "span": 24,
+            "hidden": false,
+            "text": "What you get",
+            "src": "",
+            "alt": "",
+            "props": {
+              "level": 4
+            }
+          },
+          {
+            "id": "lp_b1",
+            "type": "alert",
+            "span": 8,
+            "hidden": false,
+            "text": "No monthly account fee, ever.",
+            "src": "",
+            "alt": "",
+            "props": {
+              "tone": "success"
+            }
+          },
+          {
+            "id": "lp_b2",
+            "type": "alert",
+            "span": 8,
+            "hidden": false,
+            "text": "Fee-free spending abroad.",
+            "src": "",
+            "alt": "",
+            "props": {
+              "tone": "success"
+            }
+          },
+          {
+            "id": "lp_b3",
+            "type": "alert",
+            "span": 8,
+            "hidden": false,
+            "text": "Instant notifications on every payment.",
+            "src": "",
+            "alt": "",
+            "props": {
+              "tone": "success"
+            }
+          },
+          {
+            "id": "lp_spacer",
+            "type": "spacer",
+            "span": 24,
+            "hidden": false,
+            "text": "",
+            "src": "",
+            "alt": "",
+            "props": {
+              "height": 8
+            }
+          },
+          {
+            "id": "lp_actions",
+            "type": "actions",
+            "span": 24,
+            "hidden": false,
+            "text": "",
+            "src": "",
+            "alt": "",
+            "actions": [
+              {
+                "id": "apply",
+                "label": "Apply now",
+                "variant": "primary",
+                "danger": false
+              },
+              {
+                "id": "later",
+                "label": "Not right now",
+                "variant": "text",
+                "danger": false
+              }
+            ],
+            "props": {}
+          }
+        ],
+        "props": {}
+      },
+      "props": {}
+    },
+    {
+      "id": "ob_form",
+      "kind": "form",
+      "label": "Your details",
+      "description": "The application itself.",
+      "name": "",
+      "x": 624,
+      "y": 240,
+      "form": {
+        "version": 1,
+        "title": "Your details",
+        "layout": "vertical",
+        "size": "middle",
+        "colon": true,
+        "gutter": 16,
+        "submitText": "Review",
+        "showReset": false,
+        "fields": [
+          {
+            "id": "ob_name",
+            "type": "input",
+            "name": "fullName",
+            "label": "Full name",
+            "span": 12,
+            "placeholder": "As it appears on your passport",
+            "disabled": false,
+            "hidden": false,
+            "rules": [
+              {
+                "kind": "required"
+              }
+            ],
+            "props": {}
+          },
+          {
+            "id": "ob_dob",
+            "type": "date",
+            "name": "dateOfBirth",
+            "label": "Date of birth",
+            "span": 12,
+            "placeholder": "Select a date",
+            "disabled": false,
+            "hidden": false,
+            "rules": [
+              {
+                "kind": "required"
+              }
+            ],
+            "props": {}
+          },
+          {
+            "id": "ob_email",
+            "type": "input",
+            "name": "email",
+            "label": "Email",
+            "span": 12,
+            "disabled": false,
+            "hidden": false,
+            "rules": [
+              {
+                "kind": "required"
+              },
+              {
+                "kind": "type",
+                "value": "email"
+              }
+            ],
+            "props": {}
+          },
+          {
+            "id": "ob_address",
+            "type": "textarea",
+            "name": "address",
+            "label": "Home address",
+            "span": 12,
+            "disabled": false,
+            "hidden": false,
+            "rules": [
+              {
+                "kind": "required"
+              }
+            ],
+            "props": {
+              "rows": 3
+            }
+          },
+          {
+            "id": "ob_employment",
+            "type": "select",
+            "name": "employment",
+            "label": "Employment status",
+            "span": 12,
+            "placeholder": "Choose one",
+            "disabled": false,
+            "hidden": false,
+            "rules": [
+              {
+                "kind": "required"
+              }
+            ],
+            "options": [
+              {
+                "label": "Employed",
+                "value": "employed"
+              },
+              {
+                "label": "Self-employed",
+                "value": "self"
+              },
+              {
+                "label": "Student",
+                "value": "student"
+              },
+              {
+                "label": "Retired",
+                "value": "retired"
+              }
+            ],
+            "props": {}
+          },
+          {
+            "id": "ob_income",
+            "type": "number",
+            "name": "annualIncome",
+            "label": "Annual income",
+            "span": 12,
+            "disabled": false,
+            "hidden": false,
+            "rules": [
+              {
+                "kind": "required"
+              }
+            ],
+            "props": {
+              "prefix": "£",
+              "precision": 0,
+              "min": 0
+            }
+          },
+          {
+            "id": "ob_overdraft",
+            "type": "radio",
+            "name": "overdraft",
+            "label": "Would you like an overdraft?",
+            "span": 24,
+            "defaultValue": "no",
+            "disabled": false,
+            "hidden": false,
+            "rules": [],
+            "options": [
+              {
+                "label": "Yes",
+                "value": "yes"
+              },
+              {
+                "label": "No",
+                "value": "no"
+              }
+            ],
+            "props": {}
+          }
+        ]
+      },
+      "props": {}
+    },
+    {
+      "id": "ob_check",
+      "kind": "page",
+      "label": "Check your details",
+      "description": "A summary of the step before, with a way back.",
+      "name": "checkChoice",
+      "x": 912,
+      "y": 240,
+      "page": {
+        "version": 1,
+        "kind": "page",
+        "title": "Check your details",
+        "description": "Nothing is submitted until you confirm.",
+        "maxWidth": 880,
+        "gutter": 16,
+        "blocks": [
+          {
+            "id": "cp_summary",
+            "type": "summary",
+            "span": 24,
+            "hidden": false,
+            "text": "",
+            "src": "",
+            "alt": "",
+            "summarySource": "ob_form",
+            "props": {
+              "columns": 2,
+              "bordered": true
+            }
+          },
+          {
+            "id": "cp_actions",
+            "type": "actions",
+            "span": 24,
+            "hidden": false,
+            "text": "",
+            "src": "",
+            "alt": "",
+            "actions": [
+              {
+                "id": "confirm",
+                "label": "Confirm and open my account",
+                "variant": "primary",
+                "danger": false
+              },
+              {
+                "id": "back",
+                "label": "Change something",
+                "variant": "default",
+                "danger": false
+              }
+            ],
+            "props": {}
+          }
+        ],
+        "props": {}
+      },
+      "props": {}
+    },
+    {
+      "id": "ob_open",
+      "kind": "action",
+      "label": "Open the account",
+      "description": "Hand off to core banking.",
+      "name": "",
+      "x": 1200,
+      "y": 240,
+      "action": {
+        "id": "account.open",
+        "label": "Open the account",
+        "params": {}
+      },
+      "props": {}
+    },
+    {
+      "id": "ob_welcome",
+      "kind": "page",
+      "label": "Welcome pack",
+      "description": "What the new customer sees, bound to what they typed.",
+      "name": "welcomeChoice",
+      "x": 1488,
+      "y": 240,
+      "page": {
+        "version": 1,
+        "kind": "page",
+        "title": "Welcome, {{fullName}}",
+        "description": "Your current account is open.",
+        "maxWidth": 880,
+        "gutter": 16,
+        "blocks": [
+          {
+            "id": "wc_alert",
+            "type": "alert",
+            "span": 24,
+            "hidden": false,
+            "text": "We have emailed a copy of this to {{email}}.",
+            "src": "",
+            "alt": "",
+            "props": {
+              "tone": "success"
+            }
+          },
+          {
+            "id": "wc_h",
+            "type": "heading",
+            "span": 24,
+            "hidden": false,
+            "text": "Your account",
+            "src": "",
+            "alt": "",
+            "props": {
+              "level": 4
+            }
+          },
+          {
+            "id": "wc_details",
+            "type": "dataList",
+            "span": 24,
+            "hidden": false,
+            "text": "",
+            "src": "",
+            "alt": "",
+            "items": [
+              {
+                "label": "Name",
+                "value": "{{fullName}}"
+              },
+              {
+                "label": "Email",
+                "value": "{{email}}"
+              },
+              {
+                "label": "Employment",
+                "value": "{{employment}}"
+              }
+            ],
+            "props": {
+              "columns": 2,
+              "bordered": true
+            }
+          },
+          {
+            "id": "wc_overdraft",
+            "type": "alert",
+            "span": 24,
+            "hidden": false,
+            "condition": {
+              "logic": "and",
+              "conditions": [
+                {
+                  "field": "overdraft",
+                  "operator": "eq",
+                  "value": "yes"
+                }
+              ]
+            },
+            "text": "We will write to you separately about your overdraft request.",
+            "src": "",
+            "alt": "",
+            "props": {
+              "tone": "info"
+            }
+          },
+          {
+            "id": "wc_actions",
+            "type": "actions",
+            "span": 24,
+            "hidden": false,
+            "text": "",
+            "src": "",
+            "alt": "",
+            "actions": [
+              {
+                "id": "done",
+                "label": "Finish",
+                "variant": "primary",
+                "danger": false
+              }
+            ],
+            "props": {}
+          }
+        ],
+        "props": {}
+      },
+      "props": {}
+    },
+    {
+      "id": "ob_thanks",
+      "kind": "end",
+      "label": "Thank you",
+      "description": "",
+      "name": "",
+      "x": 1776,
+      "y": 240,
+      "props": {}
+    },
+    {
+      "id": "ob_bye",
+      "kind": "end",
+      "label": "Maybe next time",
+      "description": "",
+      "name": "",
+      "x": 624,
+      "y": 48,
+      "props": {}
+    }
+  ],
+  "edges": [
+    {
+      "id": "oe_start",
+      "from": "ob_start",
+      "to": "ob_landing",
+      "label": "",
+      "priority": 0,
+      "isDefault": false
+    },
+    {
+      "id": "oe_apply",
+      "from": "ob_landing",
+      "to": "ob_form",
+      "label": "Applied",
+      "priority": 0,
+      "isDefault": false,
+      "condition": {
+        "logic": "and",
+        "conditions": [
+          {
+            "field": "landingChoice",
+            "operator": "eq",
+            "value": "apply"
+          }
+        ]
+      }
+    },
+    {
+      "id": "oe_leave",
+      "from": "ob_landing",
+      "to": "ob_bye",
+      "label": "Otherwise",
+      "priority": 0,
+      "isDefault": true
+    },
+    {
+      "id": "oe_form",
+      "from": "ob_form",
+      "to": "ob_check",
+      "label": "",
+      "priority": 0,
+      "isDefault": false
+    },
+    {
+      "id": "oe_confirm",
+      "from": "ob_check",
+      "to": "ob_open",
+      "label": "Confirmed",
+      "priority": 0,
+      "isDefault": false,
+      "condition": {
+        "logic": "and",
+        "conditions": [
+          {
+            "field": "checkChoice",
+            "operator": "eq",
+            "value": "confirm"
+          }
+        ]
+      }
+    },
+    {
+      "id": "oe_back",
+      "from": "ob_check",
+      "to": "ob_form",
+      "label": "Otherwise",
+      "priority": 0,
+      "isDefault": true
+    },
+    {
+      "id": "oe_open",
+      "from": "ob_open",
+      "to": "ob_welcome",
+      "label": "",
+      "priority": 0,
+      "isDefault": false
+    },
+    {
+      "id": "oe_welcome",
+      "from": "ob_welcome",
+      "to": "ob_thanks",
+      "label": "",
+      "priority": 0,
+      "isDefault": false
+    }
+  ],
+  "edgeStyle": "curve",
+  "props": {}
+}

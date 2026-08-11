@@ -47,15 +47,15 @@ export const expenseClaimPreset = {
 
         {
           id: 'wf_details',
-          kind: 'form',
+          kind: 'screen',
           label: 'Claim details',
           description: 'What was spent, and on what.',
           ...at(1, 0),
-          form: {
+          screen: {
             title: 'Claim details',
             submitText: 'Continue',
             showReset: false,
-            fields: [
+            nodes: [
               {
                 id: 'ec_amount',
                 type: 'number',
@@ -142,15 +142,15 @@ export const expenseClaimPreset = {
 
         {
           id: 'wf_finance_form',
-          kind: 'form',
+          kind: 'screen',
           label: 'Finance questions',
           description: 'Extra detail the finance team always asks for.',
           ...at(3, 1),
-          form: {
+          screen: {
             title: 'Finance questions',
             submitText: 'Send to finance',
             showReset: false,
-            fields: [
+            nodes: [
               {
                 id: 'ec_budget_code',
                 type: 'input',
@@ -296,13 +296,13 @@ export const supportTriagePreset = {
         { id: 'tr_start', kind: 'start', label: 'Ticket opened', ...at(0, 0) },
         {
           id: 'tr_form',
-          kind: 'form',
+          kind: 'screen',
           label: 'Describe the problem',
           ...at(1, 0),
-          form: {
+          screen: {
             submitText: 'Send',
             showReset: false,
-            fields: [
+            nodes: [
               {
                 id: 'tr_severity',
                 type: 'radio',
@@ -381,15 +381,15 @@ export const bankingOnboardingPreset = {
 
         {
           id: 'ob_landing',
-          kind: 'page',
+          kind: 'screen',
           label: 'Open a current account',
           description: 'Product information and the call to action.',
           name: 'landingChoice',
           ...at(1, 0),
-          page: {
+          screen: {
             title: 'A current account that fits around you',
             description: 'No monthly fee, no minimum balance, open in about five minutes.',
-            blocks: [
+            nodes: [
               {
                 id: 'lp_intro',
                 type: 'text',
@@ -432,15 +432,15 @@ export const bankingOnboardingPreset = {
 
         {
           id: 'ob_form',
-          kind: 'form',
+          kind: 'screen',
           label: 'Your details',
           description: 'The application itself.',
           ...at(2, 0),
-          form: {
+          screen: {
             title: 'Your details',
             submitText: 'Review',
             showReset: false,
-            fields: [
+            nodes: [
               {
                 id: 'ob_name',
                 type: 'input',
@@ -517,15 +517,15 @@ export const bankingOnboardingPreset = {
 
         {
           id: 'ob_check',
-          kind: 'page',
+          kind: 'screen',
           label: 'Check your details',
           description: 'A summary of the step before, with a way back.',
           name: 'checkChoice',
           ...at(3, 0),
-          page: {
+          screen: {
             title: 'Check your details',
             description: 'Nothing is submitted until you confirm.',
-            blocks: [
+            nodes: [
               {
                 id: 'cp_summary',
                 type: 'summary',
@@ -556,15 +556,15 @@ export const bankingOnboardingPreset = {
 
         {
           id: 'ob_welcome',
-          kind: 'page',
+          kind: 'screen',
           label: 'Welcome pack',
           description: 'What the new customer sees, bound to what they typed.',
           name: 'welcomeChoice',
           ...at(5, 0),
-          page: {
+          screen: {
             title: 'Welcome, {{fullName}}',
             description: 'Your current account is open.',
-            blocks: [
+            nodes: [
               {
                 id: 'wc_alert',
                 type: 'alert',

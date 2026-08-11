@@ -1,6 +1,6 @@
 import { DeleteOutlined, PlusOutlined, SubnodeOutlined } from '@ant-design/icons';
 import { Button, Input, Space, Tooltip, Typography } from 'antd';
-import type { TreeOption } from '@/schema/schema';
+import type { TreeOption } from '@/schema/screen';
 
 export interface TreeOptionsEditorProps {
   options: TreeOption[];

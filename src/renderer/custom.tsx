@@ -2,7 +2,7 @@ import { Typography } from 'antd';
 import { createContext, useContext } from 'react';
 import type { ComponentType, ReactNode } from 'react';
 import type { PropSpec } from '@/schema/propSpecs';
-import type { FieldNode, SelectOption } from '@/schema/schema';
+import type { ScreenNode, SelectOption } from '@/schema/screen';
 
 /**
  * Host-supplied controls.
@@ -20,7 +20,7 @@ export interface CustomFieldProps<V = unknown> {
   disabled?: boolean;
   placeholder?: string;
   /** The whole node, so a component can read its own keys out of `props`. */
-  node: FieldNode;
+  node: ScreenNode;
   /** Static or remote options, when the field was configured with any. */
   options?: SelectOption[];
 }
@@ -43,13 +43,13 @@ export interface CustomComponentDef<V = any> {
   /** Drives how `min`/`max` rules are interpreted. Defaults to `string`. */
   valueKind?: 'string' | 'number' | 'array';
   /** Convert the live value into something JSON-serialisable at submit time. */
-  serialize?: (value: V, node: FieldNode) => unknown;
+  serialize?: (value: V, node: ScreenNode) => unknown;
   /**
    * How this component's value reads on a summary page. Receives the value as
    * it sits in the payload, so a serialised shape is what arrives. Omit it and
    * the summary prints `serialize`'s output instead.
    */
-  summary?: (value: V, node: FieldNode) => ReactNode;
+  summary?: (value: V, node: ScreenNode) => ReactNode;
 }
 
 export type CustomComponentRegistry = Record<string, CustomComponentDef>;
@@ -75,13 +75,13 @@ export function useCustomComponents(): CustomComponentRegistry {
 }
 
 /** The component key a node asks for, if any. */
-export function customKeyOf(node: FieldNode): string | undefined {
+export function customKeyOf(node: ScreenNode): string | undefined {
   const key = node.props?.component;
   return typeof key === 'string' && key !== '' ? key : undefined;
 }
 
 export function customDefFor(
-  node: FieldNode,
+  node: ScreenNode,
   registry: CustomComponentRegistry | undefined,
 ): CustomComponentDef | undefined {
   const key = customKeyOf(node);

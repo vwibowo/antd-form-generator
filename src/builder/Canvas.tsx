@@ -2,50 +2,104 @@ import { CopyOutlined, DeleteOutlined, HolderOutlined } from '@ant-design/icons'
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Button, Card, Col, Divider, Empty, Form, Row, Tag, Tooltip, Typography } from 'antd';
+import { Button, Card, Col, Empty, Form, Row, Tag, Tooltip, Typography } from 'antd';
+import { createContext, useContext } from 'react';
 import type { CSSProperties } from 'react';
-import {
-  cardSize,
-  cardVariant,
-  dividerProps,
-  renderControl,
-  titleProps,
-} from '@/renderer/controls';
+import { cardSize, cardVariant, renderControl } from '@/renderer/controls';
 import { useCustomComponents } from '@/renderer/custom';
 import { compileRules } from '@/renderer/rules';
+import { ScreenContextProvider } from '@/renderer/screenContext';
+import { DisplayNodeBody } from '@/renderer/ScreenNodeView';
 import { metaFor } from '@/schema/registry';
-import type { FieldNode } from '@/schema/schema';
+import type { ScreenNode, ScreenSchema } from '@/schema/screen';
+import { isDisplayType } from '@/schema/screen';
 import { ROOT_CONTAINER_ID } from '@/schema/walk';
-import { useFormBuilderStore } from '@/store/SchemaStoreContext';
+import { useBuilderStore } from '@/store/ScreenStoreContext';
 import { type ContainerDropData, type FieldDragData, containerDroppableId } from './dndTypes';
 
+/**
+ * A payload that answers every key with its own token.
+ *
+ * At authoring time nothing has been collected, so resolving `{{fullName}}`
+ * against an empty payload leaves a gap — and a gap is exactly what you cannot
+ * edit, because it does not say which field it was. Echoing the token back
+ * keeps the canvas showing the binding.
+ */
+const ECHO_TOKENS = new Proxy({} as Record<string, unknown>, {
+  get: (_target, key) => (typeof key === 'string' ? `{{${key}}}` : undefined),
+  has: () => true,
+});
+
+/**
+ * Earlier screen steps a `summary` node can lay out, when the screen being
+ * edited sits inside a workflow.
+ *
+ * A context rather than a prop because it would otherwise have to be threaded
+ * through `FieldList` and `SortableField`, neither of which has any other
+ * reason to know about it.
+ */
+const CanvasSourcesContext = createContext<Record<string, ScreenSchema>>({});
+
 /* -------------------------------------------------------------------------- */
-/* Static field preview                                                        */
+/* Static node preview                                                         */
 /* -------------------------------------------------------------------------- */
+
+/**
+ * What a node with nothing in it yet should say, so it still occupies space and
+ * can be clicked. `DisplayNodeBody` renders nothing for most of these, and a
+ * node you cannot see is a node you cannot select.
+ */
+function emptyDisplayHint(node: ScreenNode): string | null {
+  switch (node.type) {
+    case 'heading':
+    case 'text':
+    case 'alert':
+      return node.text.trim() === '' ? `Empty ${metaFor(node.type).label.toLowerCase()}` : null;
+    case 'image':
+      return node.src.trim() === '' ? 'No image URL yet' : null;
+    case 'dataList':
+      return (node.items ?? []).length === 0 ? 'No rows yet' : null;
+    case 'actions':
+      return (node.actions ?? []).length === 0 ? 'No buttons yet' : null;
+    case 'summary':
+      return node.summarySource ? null : 'Pick which step this summarises';
+    case 'table':
+      return (node.table?.columns.length ?? 0) === 0 ? 'No columns yet' : null;
+    // `divider` and `spacer` draw themselves whatever their settings.
+    default:
+      return null;
+  }
+}
 
 /**
  * The canvas shows a real antd control so the builder is WYSIWYG, but the
  * `Form.Item` is deliberately nameless — it renders label/required styling
  * without binding to any form store.
+ *
+ * A display node goes through the very same `DisplayNodeBody` a run uses, so
+ * what the canvas shows and what a run shows cannot drift. Two deliberate
+ * differences: `{{tokens}}` echo themselves rather than resolving, and the
+ * node's `condition` is *not* applied — a step hidden by its own condition
+ * still has to be selectable here.
  */
-function FieldPreview({ node }: { node: FieldNode }) {
+function NodePreview({ node }: { node: ScreenNode }) {
   // Custom components render for real on the canvas — the registry is app code,
   // so there is nothing to defer to runtime the way remote options are.
   const customComponents = useCustomComponents();
+  const formSources = useContext(CanvasSourcesContext);
 
-  if (node.type === 'divider') {
+  if (isDisplayType(node.type)) {
+    const hint = emptyDisplayHint(node);
     return (
-      <Divider {...dividerProps(node.props, Boolean(node.label))} style={{ margin: '8px 0' }}>
-        {node.label}
-      </Divider>
-    );
-  }
-
-  if (node.type === 'title') {
-    return (
-      <Typography.Title {...titleProps(node.props)} style={{ margin: 0 }}>
-        {node.label || 'Heading'}
-      </Typography.Title>
+      <ScreenContextProvider live={false} values={ECHO_TOKENS}>
+        {hint ? (
+          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+            {hint}
+          </Typography.Text>
+        ) : (
+          <DisplayNodeBody node={node} formSources={formSources} />
+        )}
+      </ScreenContextProvider>
     );
   }
 
@@ -108,23 +162,23 @@ function DropZone({ containerId, label }: { containerId: string; label: string }
 /* -------------------------------------------------------------------------- */
 
 /** Badge shown on a container card so its kind is readable at a glance. */
-const CONTAINER_TAG: Partial<Record<FieldNode['type'], { color: string; text: string }>> = {
+const CONTAINER_TAG: Partial<Record<ScreenNode['type'], { color: string; text: string }>> = {
   group: { color: 'blue', text: 'group' },
   card: { color: 'cyan', text: 'card' },
   list: { color: 'purple', text: 'repeatable' },
 };
 
 interface SortableFieldProps {
-  node: FieldNode;
+  node: ScreenNode;
   containerId: string;
   index: number;
 }
 
 function SortableField({ node, containerId, index }: SortableFieldProps) {
-  const selectedId = useFormBuilderStore((state) => state.selectedId);
-  const select = useFormBuilderStore((state) => state.select);
-  const removeField = useFormBuilderStore((state) => state.removeField);
-  const duplicateNode = useFormBuilderStore((state) => state.duplicateNode);
+  const selectedId = useBuilderStore((state) => state.selectedId);
+  const select = useBuilderStore((state) => state.select);
+  const removeNode = useBuilderStore((state) => state.removeNode);
+  const duplicateNode = useBuilderStore((state) => state.duplicateNode);
 
   const data: FieldDragData = {
     source: 'field',
@@ -193,7 +247,7 @@ function SortableField({ node, containerId, index }: SortableFieldProps) {
               danger
               icon={<DeleteOutlined />}
               aria-label="Delete field"
-              onClick={() => removeField(node.id)}
+              onClick={() => removeNode(node.id)}
             />
           </Tooltip>
         </div>
@@ -224,7 +278,7 @@ function SortableField({ node, containerId, index }: SortableFieldProps) {
             )}
           </div>
         ) : (
-          <FieldPreview node={node} />
+          <NodePreview node={node} />
         )}
       </div>
     </Col>
@@ -237,7 +291,7 @@ function SortableField({ node, containerId, index }: SortableFieldProps) {
 
 interface FieldListProps {
   containerId: string;
-  fields: FieldNode[];
+  fields: ScreenNode[];
   emptyLabel: string;
 }
 
@@ -246,7 +300,7 @@ interface FieldListProps {
  * empty container — and the space past the last field — accept a drop.
  */
 export function FieldList({ containerId, fields, emptyLabel }: FieldListProps) {
-  const gutter = useFormBuilderStore((state) => state.schema.gutter);
+  const gutter = useBuilderStore((state) => state.schema.gutter);
 
   return (
     <SortableContext items={fields.map((node) => node.id)} strategy={verticalListSortingStrategy}>
@@ -266,9 +320,14 @@ export function FieldList({ containerId, fields, emptyLabel }: FieldListProps) {
 /* Root canvas                                                                 */
 /* -------------------------------------------------------------------------- */
 
-export function Canvas() {
-  const schema = useFormBuilderStore((state) => state.schema);
-  const select = useFormBuilderStore((state) => state.select);
+export interface CanvasProps {
+  /** Earlier screen steps a `summary` node can lay out, inside a workflow. */
+  formSources?: Record<string, ScreenSchema>;
+}
+
+export function Canvas({ formSources = {} }: CanvasProps = {}) {
+  const schema = useBuilderStore((state) => state.schema);
+  const select = useBuilderStore((state) => state.select);
 
   return (
     <div
@@ -292,6 +351,7 @@ export function Canvas() {
         ) : null}
 
         {/* A real Form supplies layout/size context to the nameless previews. */}
+        <CanvasSourcesContext.Provider value={formSources}>
         <Form
           layout={schema.layout}
           size={schema.size}
@@ -302,15 +362,16 @@ export function Canvas() {
         >
           <FieldList
             containerId={ROOT_CONTAINER_ID}
-            fields={schema.fields}
-            emptyLabel="Drag a field here, or click one in the palette"
+            fields={schema.nodes}
+            emptyLabel="Drag a node here, or click one in the palette"
           />
         </Form>
+        </CanvasSourcesContext.Provider>
 
-        {schema.fields.length === 0 ? (
+        {schema.nodes.length === 0 ? (
           <Empty
             image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description="Your form is empty"
+            description="This screen is empty"
             style={{ marginTop: 32 }}
           />
         ) : null}

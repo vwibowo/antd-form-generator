@@ -4,11 +4,11 @@ import { useCustomComponents } from '@/renderer/custom';
 import { buildInitialValues, collectPayloadKeys } from '@/renderer/initialValues';
 import { serializeValues } from '@/renderer/serialize';
 import { SummaryRenderer } from '@/renderer/summary/SummaryRenderer';
-import type { FormSchema } from '@/schema/schema';
+import type { ScreenSchema } from '@/schema/screen';
 import { useSummaryStore } from '@/store/useSummaryStore';
 
 export interface SummaryPaneProps {
-  schema: FormSchema;
+  schema: ScreenSchema;
 }
 
 /**

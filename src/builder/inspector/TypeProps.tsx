@@ -2,15 +2,15 @@ import { Input, InputNumber, Select } from 'antd';
 import type { CustomComponentRegistry } from '@/renderer/custom';
 import { customDefFor, customKeyOf, useCustomComponents } from '@/renderer/custom';
 import { specsFor } from '@/schema/propSpecs';
-import type { FieldNode } from '@/schema/schema';
+import type { ScreenNode } from '@/schema/screen';
 import { Labeled } from './Labeled';
 import { PropSection } from './PropRow';
 
 export { hasTypeProps } from '@/schema/propSpecs';
 
 export interface TypePropsProps {
-  node: FieldNode;
-  onPatch: (patch: Partial<FieldNode>) => void;
+  node: ScreenNode;
+  onPatch: (patch: Partial<ScreenNode>) => void;
 }
 
 /**

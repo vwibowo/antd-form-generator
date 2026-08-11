@@ -1,20 +1,27 @@
-import type { FieldNode, FieldType } from './schema';
+import type { ScreenNode, ScreenNodeType } from './screen';
 
 /**
- * Per-type metadata driving the palette, the inspector, and field creation.
+ * Per-type metadata driving the palette, the inspector, and node creation.
  * The renderer does NOT read this — it switches on `type` directly, so it stays
  * independent of builder concerns.
+ *
+ * One registry for all 38 node types. The controls a form used to own and the
+ * display blocks a page used to own are the same kind of entry; what separates
+ * them is `supports`, not which file they live in.
  */
 
-export type FieldCategory =
+export type NodeCategory =
   | 'Basic'
   | 'Choice'
   | 'Date & time'
   | 'Advanced'
+  | 'Content'
+  | 'Data'
   | 'Layout'
+  | 'Actions'
   | 'Custom';
 
-export interface FieldSupports {
+export interface NodeSupports {
   /** Shows the placeholder input in the inspector. */
   placeholder: boolean;
   /** Shows the option list editor (select / radio / checkbox group). */
@@ -27,22 +34,46 @@ export interface FieldSupports {
   defaultValue: boolean;
   /** Node holds children and accepts drops. */
   children: boolean;
-  /** Node carries a form value (has a `name` that reaches the payload). */
+  /** Node carries a value (has a `name` that reaches the payload). */
   value: boolean;
+  /** Shows the text area — `{{token}}` capable. */
+  text: boolean;
+  /** Shows the image source and alt inputs. */
+  image: boolean;
+  /** Shows the label/value row editor. */
+  items: boolean;
+  /** Shows the button list editor. */
+  actions: boolean;
+  /** Shows the embedded table editor. */
+  table: boolean;
+  /** Shows the screen-source picker. */
+  summarySource: boolean;
 }
 
-export interface FieldMeta {
-  type: FieldType;
+export interface NodeMeta {
+  type: ScreenNodeType;
   label: string;
-  category: FieldCategory;
-  /** Base for auto-generated field names, e.g. `email`, `email2`. */
+  category: NodeCategory;
+  /** One line under the palette entry. Absent where the label says it all. */
+  hint?: string;
+  /** Base for auto-generated names, e.g. `email`, `email2`. */
   namePrefix: string;
-  supports: FieldSupports;
+  supports: NodeSupports;
   /** Seed values merged into a freshly created node. */
-  defaults: Partial<FieldNode>;
+  defaults: Partial<ScreenNode>;
 }
 
-const base: FieldSupports = {
+/** Every display-only switch off. Spread over, never used directly. */
+const none = {
+  text: false,
+  image: false,
+  items: false,
+  actions: false,
+  table: false,
+  summarySource: false,
+} as const;
+
+const base: NodeSupports = {
   placeholder: true,
   options: false,
   treeOptions: false,
@@ -50,16 +81,18 @@ const base: FieldSupports = {
   defaultValue: true,
   children: false,
   value: true,
+  ...none,
 };
 
-const noPlaceholder: FieldSupports = { ...base, placeholder: false };
+const noPlaceholder: NodeSupports = { ...base, placeholder: false };
 
-const withOptions: FieldSupports = { ...base, options: true };
+const withOptions: NodeSupports = { ...base, options: true };
 
 /** Hierarchical options, and no flat option editor — the two are exclusive. */
-const withTreeOptions: FieldSupports = { ...base, treeOptions: true };
+const withTreeOptions: NodeSupports = { ...base, treeOptions: true };
 
-const presentational: FieldSupports = {
+/** Renders something rather than asking for it. */
+const display: NodeSupports = {
   placeholder: false,
   options: false,
   treeOptions: false,
@@ -67,7 +100,10 @@ const presentational: FieldSupports = {
   defaultValue: false,
   children: false,
   value: false,
+  ...none,
 };
+
+const textOnly: NodeSupports = { ...display, text: true };
 
 const seedOptions = [
   { label: 'Option A', value: 'a' },
@@ -91,7 +127,7 @@ const seedTreeOptions = [
   },
 ];
 
-export const FIELD_REGISTRY: Record<FieldType, FieldMeta> = {
+export const SCREEN_REGISTRY: Record<ScreenNodeType, NodeMeta> = {
   input: {
     type: 'input',
     label: 'Text',
@@ -296,23 +332,15 @@ export const FIELD_REGISTRY: Record<FieldType, FieldMeta> = {
     label: 'Divider',
     category: 'Layout',
     namePrefix: 'divider',
-    supports: presentational,
+    supports: display,
     defaults: { label: '' },
-  },
-  title: {
-    type: 'title',
-    label: 'Heading',
-    category: 'Layout',
-    namePrefix: 'title',
-    supports: presentational,
-    defaults: { label: 'Section heading', props: { level: 4 } },
   },
   group: {
     type: 'group',
     label: 'Group',
     category: 'Layout',
     namePrefix: 'group',
-    supports: { ...presentational, children: true },
+    supports: { ...display, children: true },
     defaults: { label: 'Group', children: [] },
   },
   card: {
@@ -320,7 +348,7 @@ export const FIELD_REGISTRY: Record<FieldType, FieldMeta> = {
     label: 'Card',
     category: 'Layout',
     namePrefix: 'card',
-    supports: { ...presentational, children: true },
+    supports: { ...display, children: true },
     defaults: {
       label: 'Card title',
       children: [],
@@ -332,15 +360,7 @@ export const FIELD_REGISTRY: Record<FieldType, FieldMeta> = {
     label: 'Repeatable',
     category: 'Layout',
     namePrefix: 'items',
-    supports: {
-      placeholder: false,
-      options: false,
-      treeOptions: false,
-      rules: false,
-      defaultValue: false,
-      children: true,
-      value: true,
-    },
+    supports: { ...display, children: true, value: true },
     defaults: {
       label: 'Repeatable section',
       children: [],
@@ -357,21 +377,111 @@ export const FIELD_REGISTRY: Record<FieldType, FieldMeta> = {
     supports: base,
     defaults: { label: 'Custom field' },
   },
+  heading: {
+    type: 'heading',
+    label: 'Heading',
+    category: 'Content',
+    hint: 'A section title',
+    namePrefix: 'heading',
+    supports: textOnly,
+    defaults: { text: 'Heading', props: { level: 3 } },
+  },
+  text: {
+    type: 'text',
+    label: 'Paragraph',
+    category: 'Content',
+    hint: 'Prose, with {{field}} filled in from the payload',
+    namePrefix: 'text',
+    supports: textOnly,
+    defaults: { text: 'Tell the reader what happens next.' },
+  },
+  image: {
+    type: 'image',
+    label: 'Image',
+    category: 'Content',
+    hint: 'A picture from a URL',
+    namePrefix: 'image',
+    supports: { ...display, image: true },
+    defaults: { alt: '', props: { rounded: true } },
+  },
+  alert: {
+    type: 'alert',
+    label: 'Callout',
+    category: 'Content',
+    hint: 'Something the reader must not miss',
+    namePrefix: 'callout',
+    supports: textOnly,
+    defaults: { text: 'Keep this reference for your records.', props: { tone: 'info' } },
+  },
+  dataList: {
+    type: 'dataList',
+    label: 'Data list',
+    category: 'Data',
+    hint: 'Label and value rows read from the payload',
+    namePrefix: 'details',
+    supports: { ...display, items: true },
+    defaults: {
+      items: [{ label: 'Reference', value: '{{reference}}' }],
+      props: { columns: 1, bordered: true },
+    },
+  },
+  summary: {
+    type: 'summary',
+    label: 'Screen summary',
+    category: 'Data',
+    hint: 'Everything an earlier screen collected, laid out by that screen',
+    namePrefix: 'summary',
+    supports: { ...display, summarySource: true },
+    defaults: { props: { columns: 2, bordered: true } },
+  },
+  table: {
+    type: 'table',
+    label: 'Table',
+    category: 'Data',
+    hint: 'An embedded table document',
+    namePrefix: 'table',
+    supports: { ...display, table: true },
+    defaults: {},
+  },
+  spacer: {
+    type: 'spacer',
+    label: 'Spacer',
+    category: 'Layout',
+    hint: 'Vertical breathing room',
+    namePrefix: 'spacer',
+    supports: display,
+    defaults: { props: { height: 24 } },
+  },
+  actions: {
+    type: 'actions',
+    label: 'Buttons',
+    category: 'Actions',
+    hint: 'What the reader can do next — each one can drive a branch',
+    namePrefix: 'actions',
+    supports: { ...display, actions: true },
+    defaults: {
+      actions: [{ id: 'continue', label: 'Continue', variant: 'primary', danger: false }],
+      props: { align: 'left' },
+    },
+  },
 };
 
-export const FIELD_CATEGORIES: FieldCategory[] = [
+export const NODE_CATEGORIES: NodeCategory[] = [
   'Basic',
   'Choice',
   'Date & time',
   'Advanced',
+  'Content',
+  'Data',
   'Layout',
+  'Actions',
   'Custom',
 ];
 
-export function fieldsByCategory(category: FieldCategory): FieldMeta[] {
-  return Object.values(FIELD_REGISTRY).filter((meta) => meta.category === category);
+export function nodesByCategory(category: NodeCategory): NodeMeta[] {
+  return Object.values(SCREEN_REGISTRY).filter((meta) => meta.category === category);
 }
 
-export function metaFor(type: FieldType): FieldMeta {
-  return FIELD_REGISTRY[type];
+export function metaFor(type: ScreenNodeType): NodeMeta {
+  return SCREEN_REGISTRY[type];
 }

@@ -1,6 +1,6 @@
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import { Button, Input, Space, Typography } from 'antd';
-import type { SelectOption } from '@/schema/schema';
+import type { SelectOption } from '@/schema/screen';
 
 export interface OptionsEditorProps {
   options: SelectOption[];

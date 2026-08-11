@@ -1,13 +1,14 @@
 import { create, createStore } from 'zustand';
 import type { StateCreator, StoreApi } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import type { CreateFieldSeed } from '@/schema/factory';
-import { createField, duplicateField } from '@/schema/factory';
-import type { FieldNode, FieldType, FormSchema } from '@/schema/schema';
-import { createEmptySchema, isContainerType, parseFormSchema } from '@/schema/schema';
+import type { CreateNodeSeed } from '@/schema/factory';
+import { cloneNode, createNode } from '@/schema/factory';
+import { migrateToScreen } from '@/schema/migrate';
+import type { ScreenNode, ScreenNodeType, ScreenSchema } from '@/schema/screen';
+import { createEmptyScreenSchema, isContainerType, parseScreenSchema } from '@/schema/screen';
 import {
   ROOT_CONTAINER_ID,
-  findField,
+  findNode,
   findParent,
   getContainerChildren,
   isDescendantOf,
@@ -15,26 +16,28 @@ import {
 } from '@/schema/walk';
 import { HISTORY_LIMIT, pushHistory } from './history';
 
-const STORAGE_KEY = 'antd-form-generator:schema';
+const STORAGE_KEY = 'antd-form-generator:screen';
+/** What older builds wrote, read once so saved work survives the merge. */
+const LEGACY_KEYS = ['antd-form-generator:schema', 'antd-form-generator:page'];
 
-export interface SchemaState {
-  schema: FormSchema;
+export interface ScreenState {
+  schema: ScreenSchema;
   selectedId: string | null;
-  past: FormSchema[];
-  future: FormSchema[];
+  past: ScreenSchema[];
+  future: ScreenSchema[];
 
-  addField: (
-    type: FieldType,
+  addNode: (
+    type: ScreenNodeType,
     containerId?: string,
     index?: number,
-    seed?: CreateFieldSeed,
+    seed?: CreateNodeSeed,
   ) => void;
-  moveField: (id: string, toContainerId: string, toIndex: number) => void;
-  updateField: (id: string, patch: Partial<FieldNode>) => void;
+  moveNode: (id: string, toContainerId: string, toIndex: number) => void;
+  updateNode: (id: string, patch: Partial<ScreenNode>) => void;
   duplicateNode: (id: string) => void;
-  removeField: (id: string) => void;
-  updateSettings: (patch: Partial<FormSchema>) => void;
-  setSchema: (schema: FormSchema) => void;
+  removeNode: (id: string) => void;
+  updateSettings: (patch: Partial<ScreenSchema>) => void;
+  setSchema: (schema: ScreenSchema) => void;
   select: (id: string | null) => void;
   undo: () => void;
   redo: () => void;
@@ -42,40 +45,44 @@ export interface SchemaState {
 }
 
 /**
- * Cards are page sections, so they take other containers — a repeatable
- * belongs inside one. Everything else stays flat: `group` and `list` hold
- * plain fields only.
+ * Cards are sections, so they take other containers — a repeatable belongs
+ * inside one. Everything else stays flat: `group` and `list` hold plain nodes
+ * only.
  *
  * Requiring the receiving card to be top-level caps container nesting at two
  * levels (`root > card > list`) without tracking a depth counter, which keeps
  * both the drop logic and the generated JSON legible.
  */
 export function canDropInto(
-  schema: FormSchema,
-  type: FieldType,
+  schema: ScreenSchema,
+  type: ScreenNodeType,
   containerId: string,
 ): boolean {
   if (containerId === ROOT_CONTAINER_ID) return true;
-  const container = findField(schema.fields, containerId);
+  const container = findNode(schema.nodes, containerId);
   if (!container || !isContainerType(container.type)) return false;
 
   if (isContainerType(type)) {
     if (container.type !== 'card') return false;
-    return findParent(schema.fields, container.id) === null;
+    return findParent(schema.nodes, container.id) === null;
   }
   return true;
 }
 
 /**
- * What a form document does, separated from where it lives.
+ * What a screen document does, separated from where it lives.
  *
- * The app-level singleton below wraps this in `persist`; a workflow's `form`
+ * The app-level singleton below wraps this in `persist`; a workflow's `screen`
  * node gets an unpersisted instance of its own. Both behave identically, which
  * is what lets the same palette, canvas and inspector edit either one.
+ *
+ * A page document needed none of the tree walking — its blocks were flat. That
+ * is this store with nothing nestable in it, which is why there is no second
+ * one: `addNode(type, ROOT_CONTAINER_ID, index)` is what `addNode` was.
  */
-const schemaStateCreator: StateCreator<SchemaState> = (set, get) => {
+const screenStateCreator: StateCreator<ScreenState> = (set, get) => {
   /** Apply a mutation to a cloned schema and push the previous one onto history. */
-  const commit = (mutate: (draft: FormSchema) => void) => {
+  const commit = (mutate: (draft: ScreenSchema) => void) => {
     const { schema, past } = get();
     const draft = structuredClone(schema);
     mutate(draft);
@@ -87,16 +94,16 @@ const schemaStateCreator: StateCreator<SchemaState> = (set, get) => {
   };
 
   return {
-    schema: createEmptySchema(),
+    schema: createEmptyScreenSchema(),
     selectedId: null,
     past: [],
     future: [],
 
-    addField: (type, containerId = ROOT_CONTAINER_ID, index, seed) => {
+    addNode: (type, containerId = ROOT_CONTAINER_ID, index, seed) => {
       const state = get();
       if (!canDropInto(state.schema, type, containerId)) return;
 
-      const node = createField(type, state.schema.fields, seed);
+      const node = createNode(type, state.schema.nodes, seed);
       commit((draft) => {
         const children = getContainerChildren(draft, containerId);
         if (!children) return;
@@ -106,15 +113,15 @@ const schemaStateCreator: StateCreator<SchemaState> = (set, get) => {
       set({ selectedId: node.id });
     },
 
-    moveField: (id, toContainerId, toIndex) => {
+    moveNode: (id, toContainerId, toIndex) => {
       const state = get();
-      const node = findField(state.schema.fields, id);
+      const node = findNode(state.schema.nodes, id);
       if (!node) return;
       if (!canDropInto(state.schema, node.type, toContainerId)) return;
       // Never drop a container inside its own subtree.
       if (
         toContainerId !== ROOT_CONTAINER_ID &&
-        isDescendantOf(state.schema.fields, id, toContainerId)
+        isDescendantOf(state.schema.nodes, id, toContainerId)
       ) {
         return;
       }
@@ -136,9 +143,9 @@ const schemaStateCreator: StateCreator<SchemaState> = (set, get) => {
       });
     },
 
-    updateField: (id, patch) => {
+    updateNode: (id, patch) => {
       commit((draft) => {
-        const node = findField(draft.fields, id);
+        const node = findNode(draft.nodes, id);
         if (!node) return;
         Object.assign(node, patch);
       });
@@ -146,9 +153,9 @@ const schemaStateCreator: StateCreator<SchemaState> = (set, get) => {
 
     duplicateNode: (id) => {
       const state = get();
-      const node = findField(state.schema.fields, id);
+      const node = findNode(state.schema.nodes, id);
       if (!node) return;
-      const copy = duplicateField(node, state.schema.fields);
+      const copy = cloneNode(node, state.schema.nodes);
       commit((draft) => {
         const found = locate(draft, id);
         if (!found) return;
@@ -157,7 +164,7 @@ const schemaStateCreator: StateCreator<SchemaState> = (set, get) => {
       set({ selectedId: copy.id });
     },
 
-    removeField: (id) => {
+    removeNode: (id) => {
       commit((draft) => {
         const found = locate(draft, id);
         if (!found) return;
@@ -211,7 +218,7 @@ const schemaStateCreator: StateCreator<SchemaState> = (set, get) => {
 
     clear: () => {
       commit((draft) => {
-        draft.fields = [];
+        draft.nodes = [];
       });
       set({ selectedId: null });
     },
@@ -219,34 +226,60 @@ const schemaStateCreator: StateCreator<SchemaState> = (set, get) => {
 };
 
 /**
- * A standalone form document, not persisted and not the app's.
+ * A standalone screen document, not persisted and not the app's.
  *
- * A workflow's `form` node holds a whole `FormSchema`, and the builder panes
+ * A workflow's `screen` node holds a whole `ScreenSchema`, and the builder panes
  * were written against the singleton below; handing them one of these through
- * `SchemaStoreProvider` is what lets them edit a form they do not own.
+ * `ScreenStoreProvider` is what lets them edit a screen they do not own.
  */
-export function createSchemaStore(schema: FormSchema): StoreApi<SchemaState> {
-  const store = createStore<SchemaState>(schemaStateCreator);
+export function createScreenStore(schema: ScreenSchema): StoreApi<ScreenState> {
+  const store = createStore<ScreenState>(screenStateCreator);
   // Seeded after creation rather than through the creator so history starts
   // empty: the document this store opens with is not an edit anyone can undo.
   store.setState({ schema });
   return store;
 }
 
-export const useSchemaStore = create<SchemaState>()(
-  persist(schemaStateCreator, {
+/**
+ * A document saved by a build that still had separate form and page documents.
+ *
+ * `persist` only ever reads its own key, so the two old ones have to be looked
+ * up by hand. Whichever is found goes through `migrateToScreen` like any other
+ * legacy JSON; the first one wins, because a `screen` key already existing
+ * means this has run before and neither is worth reading again.
+ */
+function readLegacySchema(): unknown {
+  for (const key of LEGACY_KEYS) {
+    const raw = localStorage.getItem(key);
+    if (raw === null) continue;
+    try {
+      const parsed = JSON.parse(raw) as { state?: { schema?: unknown } };
+      const candidate = parsed?.state?.schema;
+      if (candidate !== undefined) return migrateToScreen(candidate);
+    } catch {
+      // Unreadable JSON under a key nothing writes any more — ignore it.
+    }
+  }
+  return undefined;
+}
+
+export const useScreenStore = create<ScreenState>()(
+  persist(screenStateCreator, {
     name: STORAGE_KEY,
     storage: createJSONStorage(() => localStorage),
     // History and selection are session state, not saved work.
-    partialize: (state) => ({ schema: state.schema }) as Partial<SchemaState>,
+    partialize: (state) => ({ schema: state.schema }) as Partial<ScreenState>,
     // Stored JSON is user-editable and may predate a schema change, so it
     // goes through the same validator as an imported file.
     merge: (persisted, current) => {
-      const candidate = (persisted as { schema?: unknown } | undefined)?.schema;
-      const result = parseFormSchema(candidate);
+      const saved = (persisted as { schema?: unknown } | undefined)?.schema;
+      // Nothing under the new key yet: this is the first load after the merge,
+      // so fall back to whatever the form or page store left behind.
+      const candidate = saved ?? readLegacySchema();
+      const result = parseScreenSchema(migrateToScreen(candidate));
       if (!result.ok) {
         if (candidate !== undefined) {
-          console.warn('[form-generator] discarding invalid saved schema', result.errors);
+          console.warn('[form-generator] discarding invalid saved screen', result.errors);
         }
         return current;
       }
@@ -255,5 +288,5 @@ export const useSchemaStore = create<SchemaState>()(
   }),
 );
 
-export const selectCanUndo = (state: SchemaState) => state.past.length > 0;
-export const selectCanRedo = (state: SchemaState) => state.future.length > 0;
+export const selectScreenCanUndo = (state: ScreenState) => state.past.length > 0;
+export const selectScreenCanRedo = (state: ScreenState) => state.future.length > 0;

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { createId } from '@/lib/ids';
-import { pageSchemaSchema } from './page';
-import { conditionGroupSchema, formSchemaSchema } from './schema';
+import { conditionGroupSchema } from './nodeBase';
+import { screenSchemaSchema } from './screen';
 
 /**
  * The workflow document — the JSON contract for "these steps, in this order,
@@ -19,8 +19,7 @@ import { conditionGroupSchema, formSchemaSchema } from './schema';
 
 export const WORKFLOW_NODE_KINDS = [
   'start',
-  'form',
-  'page',
+  'screen',
   'decision',
   'action',
   'approval',
@@ -31,7 +30,7 @@ export const workflowNodeKindSchema = z.enum(WORKFLOW_NODE_KINDS);
 export type WorkflowNodeKind = z.infer<typeof workflowNodeKindSchema>;
 
 /** Kinds that pause a run and wait for the person driving it. */
-export const INTERACTIVE_NODE_KINDS = ['form', 'page', 'action', 'approval'] as const;
+export const INTERACTIVE_NODE_KINDS = ['screen', 'action', 'approval'] as const;
 /** Kinds the engine passes straight through — they render nothing. */
 export const PASSTHROUGH_NODE_KINDS = ['start', 'decision'] as const;
 
@@ -75,14 +74,14 @@ export type NodeAction = z.infer<typeof nodeActionSchema>;
 /* -------------------------------------------------------------------------- */
 
 /**
- * One flat node with optional per-kind payloads, mirroring `FieldNode` rather
+ * One flat node with optional per-kind payloads, mirroring `ScreenNode` rather
  * than the discriminated union `ruleSpecSchema` uses.
  *
  * `updateNode(id, patch)` + `Object.assign` is the store idiom, and a
  * `Partial<>` of a discriminated union distributes into something
  * `Object.assign` cannot accept; changing a node's kind stays a one-key patch;
  * and zod reports a bad discriminator at the top level, where the JSON tab
- * needs `nodes.2.form.fields.0.type`. An `end` node carrying an inert
+ * needs `nodes.2.form.nodes.0.type`. An `end` node carrying an inert
  * `outcomes` is the same harmlessness as `options` on a `divider` — the graph
  * validator mentions it, nothing breaks.
  */
@@ -96,7 +95,7 @@ export const workflowNodeSchema = z.object({
   /**
    * Payload key this node writes under. Used by `approval`, which stores the
    * chosen outcome id there; ignored by every other kind, the way
-   * `FieldNode.name` is ignored for presentational types.
+   * `ScreenNode.name` is ignored for display types.
    */
   name: z.string().default(''),
 
@@ -104,14 +103,14 @@ export const workflowNodeSchema = z.object({
   x: z.number().default(0),
   y: z.number().default(0),
 
-  /** `form` — a whole embeddable form, edited by the ordinary form builder. */
-  form: formSchemaSchema.optional(),
   /**
-   * `page` — a whole embeddable screen, edited by the ordinary page builder.
-   * Its call-to-action buttons are outcomes, so a page branches exactly as an
-   * `approval` does: the pressed button's id lands under this node's `name`.
+   * `screen` — a whole embeddable screen, edited by the ordinary builder.
+   *
+   * It both asks and tells: fields contribute their submitted values, and its
+   * call-to-action buttons are outcomes, so it branches exactly as an
+   * `approval` does — the pressed button's id lands under this node's `name`.
    */
-  page: pageSchemaSchema.optional(),
+  screen: screenSchemaSchema.optional(),
   /** `approval` — the choices offered. One with none cannot be answered. */
   outcomes: z.array(approvalOutcomeSchema).optional(),
   /** `action` — what the host is being asked to do. */

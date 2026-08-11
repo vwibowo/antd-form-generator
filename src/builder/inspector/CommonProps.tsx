@@ -1,19 +1,27 @@
 import { Checkbox, DatePicker, Input, InputNumber, Select, Slider, Switch, TimePicker } from 'antd';
 import {
   displayFormatOf,
-  isDateRangeFieldType,
+  isDateRangeType,
   parseDateValue,
   serializeDateValue,
   valueFormatOf,
 } from '@/renderer/dateValue';
 import { metaFor } from '@/schema/registry';
-import type { FieldNode } from '@/schema/schema';
+import type { ScreenNode } from '@/schema/screen';
 import { Labeled } from './Labeled';
 
 export interface CommonPropsProps {
-  node: FieldNode;
-  onPatch: (patch: Partial<FieldNode>) => void;
+  node: ScreenNode;
+  onPatch: (patch: Partial<ScreenNode>) => void;
   duplicateName: boolean;
+  /**
+   * Show only the settings a display node can act on — width and hidden.
+   *
+   * A node that owns no payload key has no use for `name`, a label, a
+   * placeholder or a default value, and offering them would put keys in the
+   * JSON that nothing ever reads.
+   */
+  layoutOnly?: boolean;
 }
 
 const SPAN_PRESETS = [
@@ -26,7 +34,7 @@ const SPAN_PRESETS = [
 ];
 
 /** Type-appropriate editor for the field's initial value. */
-function DefaultValueInput({ node, onPatch }: { node: FieldNode; onPatch: CommonPropsProps['onPatch'] }) {
+function DefaultValueInput({ node, onPatch }: { node: ScreenNode; onPatch: CommonPropsProps['onPatch'] }) {
   const set = (defaultValue: unknown) => onPatch({ defaultValue });
 
   switch (node.type) {
@@ -62,7 +70,7 @@ function DefaultValueInput({ node, onPatch }: { node: FieldNode; onPatch: Common
       const format = displayFormatOf(node);
       const write = (value: unknown) => set(serializeDateValue(value, valueFormat) ?? undefined);
 
-      if (isDateRangeFieldType(node.type)) {
+      if (isDateRangeType(node.type)) {
         const raw = Array.isArray(node.defaultValue) ? node.defaultValue : [];
         const from = parseDateValue(raw[0], valueFormat) ?? null;
         const to = parseDateValue(raw[1], valueFormat) ?? null;
@@ -165,7 +173,12 @@ function DefaultValueInput({ node, onPatch }: { node: FieldNode; onPatch: Common
   }
 }
 
-export function CommonProps({ node, onPatch, duplicateName }: CommonPropsProps) {
+export function CommonProps({
+  node,
+  onPatch,
+  duplicateName,
+  layoutOnly = false,
+}: CommonPropsProps) {
   const meta = metaFor(node.type);
 
   return (
@@ -189,13 +202,15 @@ export function CommonProps({ node, onPatch, duplicateName }: CommonPropsProps) 
         </Labeled>
       ) : null}
 
-      <Labeled label={node.type === 'divider' ? 'Divider text' : 'Label'}>
-        <Input
-          size="small"
-          value={node.label ?? ''}
-          onChange={(event) => onPatch({ label: event.target.value })}
-        />
-      </Labeled>
+      {!layoutOnly || node.type === 'divider' ? (
+        <Labeled label={node.type === 'divider' ? 'Divider text' : 'Label'}>
+          <Input
+            size="small"
+            value={node.label ?? ''}
+            onChange={(event) => onPatch({ label: event.target.value })}
+          />
+        </Labeled>
+      ) : null}
 
       <Labeled label={`Width — ${node.span}/24`}>
         <Select
@@ -229,13 +244,15 @@ export function CommonProps({ node, onPatch, duplicateName }: CommonPropsProps) 
         </Labeled>
       ) : null}
 
-      <Labeled label="Help text">
-        <Input
-          size="small"
-          value={node.extra ?? ''}
-          onChange={(event) => onPatch({ extra: event.target.value || undefined })}
-        />
-      </Labeled>
+      {layoutOnly ? null : (
+        <Labeled label="Help text">
+          <Input
+            size="small"
+            value={node.extra ?? ''}
+            onChange={(event) => onPatch({ extra: event.target.value || undefined })}
+          />
+        </Labeled>
+      )}
 
       {meta.supports.defaultValue ? (
         <Labeled
@@ -250,22 +267,22 @@ export function CommonProps({ node, onPatch, duplicateName }: CommonPropsProps) 
         </Labeled>
       ) : null}
 
-      {meta.supports.value ? (
-        <div style={{ display: 'flex', gap: 16, marginTop: 4 }}>
+      <div style={{ display: 'flex', gap: 16, marginTop: 4 }}>
+        {meta.supports.value ? (
           <Checkbox
             checked={node.disabled}
             onChange={(event) => onPatch({ disabled: event.target.checked })}
           >
             Disabled
           </Checkbox>
-          <Checkbox
-            checked={node.hidden}
-            onChange={(event) => onPatch({ hidden: event.target.checked })}
-          >
-            Hidden
-          </Checkbox>
-        </div>
-      ) : null}
+        ) : null}
+        <Checkbox
+          checked={node.hidden}
+          onChange={(event) => onPatch({ hidden: event.target.checked })}
+        >
+          Hidden
+        </Checkbox>
+      </div>
     </>
   );
 }

@@ -1,6 +1,6 @@
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import { Button, Input, InputNumber, Select, Space } from 'antd';
-import type { RuleKind, RuleSpec } from '@/schema/schema';
+import type { RuleKind, RuleSpec } from '@/schema/screen';
 
 export interface RulesEditorProps {
   rules: RuleSpec[];

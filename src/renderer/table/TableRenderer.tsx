@@ -56,7 +56,7 @@ function scrollX(props: Props): number | string | undefined {
 /**
  * Renders a `TableSchema` as a working antd table.
  *
- * Like `FormRenderer`, this module and everything it imports are free of
+ * Like `ScreenRenderer`, this module and everything it imports are free of
  * builder imports, so `src/renderer/` can be lifted into a standalone package.
  */
 export function TableRenderer({ schema, onSelectionChange, onAction }: TableRendererProps) {

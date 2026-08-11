@@ -1,12 +1,12 @@
 import { Segmented, Space } from 'antd';
-import type { FieldNode } from '@/schema/schema';
-import { dataSourceSchema } from '@/schema/schema';
+import type { ScreenNode } from '@/schema/screen';
+import { dataSourceSchema } from '@/schema/screen';
 import { OptionsEditor } from './OptionsEditor';
 import { RemoteSourceEditor } from './RemoteSourceEditor';
 
 export interface OptionsSourceProps {
-  node: FieldNode;
-  onPatch: (patch: Partial<FieldNode>) => void;
+  node: ScreenNode;
+  onPatch: (patch: Partial<ScreenNode>) => void;
   fieldChoices: { label: string; value: string }[];
 }
 
@@ -30,7 +30,7 @@ export function OptionsSource({ node, onPatch, fieldChoices }: OptionsSourceProp
             // the seed cannot drift from the schema's defaults. `node.options` is
             // left alone, which is what makes switching back lossless.
             //
-            // Clearing writes the key as `undefined` — `updateField` uses
+            // Clearing writes the key as `undefined` — `updateNode` uses
             // Object.assign, so it stays present but empty. Harmless:
             // JSON.stringify drops it and `z.optional()` accepts it.
             dataSource: next === 'remote' ? dataSourceSchema.parse({}) : undefined,

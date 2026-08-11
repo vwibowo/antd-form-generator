@@ -13,10 +13,10 @@ import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { Tag } from 'antd';
 import { useState } from 'react';
 import { metaFor } from '@/schema/registry';
-import type { FieldType } from '@/schema/schema';
-import { isContainerType } from '@/schema/schema';
+import type { ScreenNodeType, ScreenSchema } from '@/schema/screen';
+import { isContainerType } from '@/schema/screen';
 import { ROOT_CONTAINER_ID } from '@/schema/walk';
-import { useFormBuilderStore } from '@/store/SchemaStoreContext';
+import { useBuilderStore } from '@/store/ScreenStoreContext';
 import { useCustomComponents } from '@/renderer/custom';
 import { Canvas } from './Canvas';
 import { Inspector } from './inspector';
@@ -25,7 +25,7 @@ import type { DragData } from './dndTypes';
 
 interface ActiveDrag {
   label: string;
-  type: FieldType;
+  type: ScreenNodeType;
 }
 
 /**
@@ -68,9 +68,18 @@ function resolveDropTarget(over: DragData | undefined): { containerId: string; i
   return null;
 }
 
-export function BuilderLayout() {
-  const addField = useFormBuilderStore((state) => state.addField);
-  const moveField = useFormBuilderStore((state) => state.moveField);
+export interface BuilderLayoutProps {
+  /** Payload keys from earlier workflow steps a condition can test. */
+  fieldChoices?: { label: string; value: string }[];
+  /** Earlier screen steps a `summary` node can lay out. */
+  formSources?: Record<string, ScreenSchema>;
+  /** Labels for those steps, so the picker reads as node names not ids. */
+  formLabels?: Record<string, string>;
+}
+
+export function BuilderLayout({ fieldChoices, formSources, formLabels }: BuilderLayoutProps = {}) {
+  const addNode = useBuilderStore((state) => state.addNode);
+  const moveNode = useBuilderStore((state) => state.moveNode);
   const customComponents = useCustomComponents();
   const [active, setActive] = useState<ActiveDrag | null>(null);
 
@@ -107,7 +116,7 @@ export function BuilderLayout() {
     };
 
     if (activeData?.source === 'palette') {
-      addField(
+      addNode(
         activeData.fieldType,
         target.containerId,
         target.index,
@@ -121,7 +130,7 @@ export function BuilderLayout() {
 
     if (activeData?.source === 'field') {
       if (activeItem.id === over.id) return;
-      moveField(activeData.id, target.containerId, target.index);
+      moveNode(activeData.id, target.containerId, target.index);
     }
   };
 
@@ -139,11 +148,15 @@ export function BuilderLayout() {
         </aside>
 
         <main style={{ minWidth: 0, height: '100%' }} className='fg-builder__main'>
-          <Canvas />
+          <Canvas formSources={formSources} />
         </main>
 
         <aside className="fg-builder__inspector">
-          <Inspector />
+          <Inspector
+            fieldChoices={fieldChoices}
+            formSources={formSources}
+            formLabels={formLabels}
+          />
         </aside>
       </div>
 

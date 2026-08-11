@@ -1,8 +1,8 @@
 import dayjs from 'dayjs';
-import { TOKEN } from '../remote/url';
+import { TOKEN } from './remote/url';
 
 /**
- * `{{field}}` substitution for page text.
+ * `{{field}}` substitution for screen text.
  *
  * The plain-text sibling of `resolveUrlTemplate`. That one
  * `encodeURIComponent`s every substitution, because a value the user typed
@@ -16,10 +16,10 @@ import { TOKEN } from '../remote/url';
  */
 
 /**
- * A payload value as page text.
+ * A payload value as screen text.
  *
  * Deliberately shallow. `formatFieldValue` is the field-aware formatter, but it
- * needs the `FieldNode` that produced the value, which a raw payload does not
+ * needs the `ScreenNode` that produced the value, which a raw payload does not
  * carry — that is what the `summary` block is for. Here an ISO date is the one
  * case worth special-casing, because a payload is full of them and
  * `2026-08-09T17:00:00.000Z` in a sentence is unreadable.
@@ -69,7 +69,7 @@ export function resolveTextTemplate(
   return template.replace(TOKEN, (_match, field: string) => valueToText(values[field]));
 }
 
-/** Field names a page's text refers to, for the "what can I bind?" hints. */
+/** Field names a screen's text refers to, for the "what can I bind?" hints. */
 export function textDependencies(template: string): string[] {
   const names: string[] = [];
   for (const match of template.matchAll(TOKEN)) {

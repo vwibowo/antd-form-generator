@@ -1,6 +1,5 @@
-import { hasNoWayOnward } from './page';
-import type { FieldNode } from './schema';
-import { isPresentationalType, isTransparentContainer } from './schema';
+import type { ScreenNode } from './screen';
+import { collectScreenActions, collectsValue, hasNoWayOnward, isContainerType } from './screen';
 import type { WorkflowEdge, WorkflowNode, WorkflowSchema } from './workflow';
 import { nodeCaption, workflowMetaFor } from './workflowRegistry';
 
@@ -96,18 +95,18 @@ function participatesInCycle(
 /* -------------------------------------------------------------------------- */
 
 /**
- * Top-level keys one embedded form contributes to the run payload.
+ * Top-level keys one embedded screen contributes to the run payload.
  *
  * This mirrors `collectPayloadKeys` in `src/renderer/initialValues.ts` rather
  * than importing it, so `src/schema/` never reaches into the renderer. If the
- * form's payload rules change, both sides change — there is a matching note
- * over there.
+ * payload rules change, both sides change — there is a matching note over there.
  */
-function formNames(fields: FieldNode[], out: { name: string; label: string }[]): void {
-  for (const node of fields) {
-    if (isPresentationalType(node.type)) continue;
-    if (isTransparentContainer(node.type)) {
-      formNames(node.children ?? [], out);
+function screenNames(nodes: ScreenNode[], out: { name: string; label: string }[]): void {
+  for (const node of nodes) {
+    if (!collectsValue(node.type)) {
+      // A transparent container keeps its children at this scope; a display
+      // node has no children to look through.
+      if (isContainerType(node.type)) screenNames(node.children ?? [], out);
       continue;
     }
     out.push({ name: node.name, label: node.label || node.name });
@@ -131,16 +130,17 @@ export function collectWorkflowNames(
   for (const node of schema.nodes) {
     const contributed: { name: string; label: string }[] = [];
 
-    if (node.kind === 'form' && node.form) {
-      formNames(node.form.fields, contributed);
+    // One screen contributes twice over: the keys its controls collect, and —
+    // when it has buttons — the key those buttons write their outcome to. That
+    // took two node kinds before the merge.
+    if (node.kind === 'screen' && node.screen) {
+      screenNames(node.screen.nodes, contributed);
+      if (node.name && collectScreenActions(node.screen).length > 0) {
+        contributed.push({ name: node.name, label: `${nodeCaption(node)} button` });
+      }
     }
     if (node.kind === 'approval' && node.name) {
       contributed.push({ name: node.name, label: `${nodeCaption(node)} decision` });
-    }
-    // A page's buttons are outcomes, so its key is branchable in exactly the
-    // way an approval's is.
-    if (node.kind === 'page' && node.name) {
-      contributed.push({ name: node.name, label: `${nodeCaption(node)} button` });
     }
 
     for (const entry of contributed) {
@@ -168,10 +168,9 @@ export type WorkflowIssueCode =
   | 'no-default'
   | 'multiple-default'
   | 'duplicate-name'
-  | 'empty-form'
+  | 'empty-screen'
   | 'no-outcomes'
-  | 'empty-page'
-  | 'no-page-actions'
+  | 'no-way-onward'
   | 'cycle';
 
 export interface WorkflowIssue {
@@ -256,13 +255,24 @@ export function validateWorkflow(schema: WorkflowSchema): WorkflowIssue[] {
       });
     }
 
-    if (node.kind === 'form' && (node.form?.fields.length ?? 0) === 0) {
-      issues.push({
-        level: 'warning',
-        code: 'empty-form',
-        message: `"${caption}" has no fields, so it collects nothing to branch on.`,
-        nodeId: node.id,
-      });
+    if (node.kind === 'screen') {
+      if ((node.screen?.nodes.length ?? 0) === 0) {
+        issues.push({
+          level: 'warning',
+          code: 'empty-screen',
+          message: `"${caption}" is empty, so it neither asks nor tells the reader anything.`,
+          nodeId: node.id,
+        });
+      } else if (node.screen && hasNoWayOnward(node.screen)) {
+        // Nothing to submit and no button to press, so a run reaching it cannot
+        // continue even though the edge leaving it exists.
+        issues.push({
+          level: 'warning',
+          code: 'no-way-onward',
+          message: `"${caption}" has no fields and no buttons, so a run reaching it cannot continue.`,
+          nodeId: node.id,
+        });
+      }
     }
 
     if (node.kind === 'approval' && (node.outcomes?.length ?? 0) === 0) {
@@ -272,26 +282,6 @@ export function validateWorkflow(schema: WorkflowSchema): WorkflowIssue[] {
         message: `"${caption}" offers no outcomes, so it cannot be answered.`,
         nodeId: node.id,
       });
-    }
-
-    if (node.kind === 'page') {
-      if ((node.page?.blocks.length ?? 0) === 0) {
-        issues.push({
-          level: 'warning',
-          code: 'empty-page',
-          message: `"${caption}" has no blocks, so it shows the reader nothing.`,
-          nodeId: node.id,
-        });
-      } else if (node.page && hasNoWayOnward(node.page)) {
-        // A page with no buttons cannot be advanced past, so anything after it
-        // is unreachable in practice even though the edge exists.
-        issues.push({
-          level: 'warning',
-          code: 'no-page-actions',
-          message: `"${caption}" has no buttons, so a run reaching it cannot continue.`,
-          nodeId: node.id,
-        });
-      }
     }
 
     const defaults = out.filter((edge) => edge.isDefault);
@@ -339,14 +329,14 @@ export function validateWorkflow(schema: WorkflowSchema): WorkflowIssue[] {
   }
 
   // The run payload is one flat object, so two nodes writing the same key means
-  // the later one wins. Warned, not prevented, exactly like duplicate field
-  // names inside a single form.
+  // the later one wins. Warned, not prevented, exactly like duplicate names
+  // inside a single screen.
   const owners = new Map<string, string[]>();
   for (const node of schema.nodes) {
     const contributed: string[] = [];
-    if (node.kind === 'form' && node.form) {
+    if (node.kind === 'screen' && node.screen) {
       const names: { name: string; label: string }[] = [];
-      formNames(node.form.fields, names);
+      screenNames(node.screen.nodes, names);
       contributed.push(...names.map((entry) => entry.name));
     }
     if (node.kind === 'approval' && node.name) contributed.push(node.name);

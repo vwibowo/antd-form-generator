@@ -1,8 +1,8 @@
-import type { FieldNode, FormSchema } from '@/schema/schema';
-import { isPresentationalType, isTransparentContainer } from '@/schema/schema';
+import type { ScreenNode, ScreenSchema } from '@/schema/screen';
+import { isDisplayType, isTransparentContainer } from '@/schema/screen';
 import {
-  isDateFieldType,
-  isDateRangeFieldType,
+  isDateType,
+  isDateRangeType,
   parseDateValue,
   valueFormatOf,
 } from './dateValue';
@@ -24,17 +24,17 @@ import {
  * round trip, and this is where that would go.
  */
 export function hydrateValues(
-  schema: FormSchema,
+  schema: ScreenSchema,
   values: Record<string, unknown>,
 ): Record<string, unknown> {
   const out = { ...values };
-  applyNodes(schema.fields, out);
+  applyNodes(schema.nodes, out);
   return out;
 }
 
-function applyNodes(nodes: FieldNode[], target: Record<string, unknown>): void {
+function applyNodes(nodes: ScreenNode[], target: Record<string, unknown>): void {
   for (const node of nodes) {
-    if (isPresentationalType(node.type)) continue;
+    if (isDisplayType(node.type)) continue;
 
     if (isTransparentContainer(node.type)) {
       applyNodes(node.children ?? [], target);
@@ -55,11 +55,11 @@ function applyNodes(nodes: FieldNode[], target: Record<string, unknown>): void {
 
     if (!(node.name in target)) continue;
 
-    if (isDateFieldType(node.type)) {
+    if (isDateType(node.type)) {
       const valueFormat = valueFormatOf(node);
       const raw = target[node.name];
 
-      if (isDateRangeFieldType(node.type)) {
+      if (isDateRangeType(node.type)) {
         if (!Array.isArray(raw)) continue;
         const range = raw.map((entry) => parseDateValue(entry, valueFormat));
         // A half-parsed range would put the picker in a state it cannot show,

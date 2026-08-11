@@ -162,13 +162,13 @@ function NodeCardImpl({ node, selected, issues, connecting }: NodeCardProps) {
           </Tooltip>
         </div>
 
-        {node.kind === 'form' ? (
+        {node.kind === 'screen' ? (
           <Badge
             className="fg-wf-node__count"
-            count={node.form?.fields.length ?? 0}
+            count={node.screen?.nodes.length ?? 0}
             showZero
             color={meta.color}
-            title={`${node.form?.fields.length ?? 0} fields`}
+            title={`${node.screen?.nodes.length ?? 0} nodes`}
           />
         ) : null}
 

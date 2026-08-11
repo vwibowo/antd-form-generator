@@ -1,0 +1,156 @@
+{
+  "version": 1,
+  "kind": "page",
+  "title": "Welcome, {{fullName}}",
+  "description": "Your account is open. Here is what happens next.",
+  "maxWidth": 880,
+  "gutter": 16,
+  "blocks": [
+    {
+      "id": "wp_alert",
+      "type": "alert",
+      "span": 24,
+      "hidden": false,
+      "text": "Your account number is {{accountNumber}}. Keep it somewhere safe.",
+      "src": "",
+      "alt": "",
+      "props": {
+        "tone": "success"
+      }
+    },
+    {
+      "id": "wp_h_detail",
+      "type": "heading",
+      "span": 24,
+      "hidden": false,
+      "text": "Your account",
+      "src": "",
+      "alt": "",
+      "props": {
+        "level": 4
+      }
+    },
+    {
+      "id": "wp_details",
+      "type": "dataList",
+      "span": 24,
+      "hidden": false,
+      "text": "",
+      "src": "",
+      "alt": "",
+      "items": [
+        {
+          "label": "Name",
+          "value": "{{fullName}}"
+        },
+        {
+          "label": "Account number",
+          "value": "{{accountNumber}}"
+        },
+        {
+          "label": "Sort code",
+          "value": "{{sortCode}}"
+        },
+        {
+          "label": "Opened",
+          "value": "{{openedOn}}"
+        }
+      ],
+      "props": {
+        "columns": 2,
+        "bordered": true
+      }
+    },
+    {
+      "id": "wp_divider",
+      "type": "divider",
+      "span": 24,
+      "hidden": false,
+      "text": "",
+      "src": "",
+      "alt": "",
+      "props": {}
+    },
+    {
+      "id": "wp_h_next",
+      "type": "heading",
+      "span": 24,
+      "hidden": false,
+      "text": "Next steps",
+      "src": "",
+      "alt": "",
+      "props": {
+        "level": 4
+      }
+    },
+    {
+      "id": "wp_next",
+      "type": "text",
+      "span": 24,
+      "hidden": false,
+      "text": "Your card arrives within five working days.\nSet up your online banking with the details above.",
+      "src": "",
+      "alt": "",
+      "props": {}
+    },
+    {
+      "id": "wp_conditional",
+      "type": "alert",
+      "span": 24,
+      "hidden": false,
+      "condition": {
+        "logic": "and",
+        "conditions": [
+          {
+            "field": "overdraft",
+            "operator": "eq",
+            "value": "yes"
+          }
+        ]
+      },
+      "text": "Because you asked for an overdraft, we will write to you separately about it.",
+      "src": "",
+      "alt": "",
+      "props": {
+        "tone": "info"
+      }
+    },
+    {
+      "id": "wp_spacer",
+      "type": "spacer",
+      "span": 24,
+      "hidden": false,
+      "text": "",
+      "src": "",
+      "alt": "",
+      "props": {
+        "height": 8
+      }
+    },
+    {
+      "id": "wp_actions",
+      "type": "actions",
+      "span": 24,
+      "hidden": false,
+      "text": "",
+      "src": "",
+      "alt": "",
+      "actions": [
+        {
+          "id": "online",
+          "label": "Set up online banking",
+          "variant": "primary",
+          "danger": false
+        },
+        {
+          "id": "later",
+          "label": "I will do this later",
+          "variant": "default",
+          "danger": false
+        }
+      ],
+      "props": {}
+    }
+  ],
+  "props": {}
+}

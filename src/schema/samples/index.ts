@@ -1,10 +1,12 @@
-import type { FormSchema } from '../schema';
+import type { ScreenSchema } from '../screen';
 import { kitchenSinkPreset } from './kitchenSink';
+import { welcomePackPreset } from './pages';
 import { purchaseRequestPreset } from './purchaseRequest';
 import { remoteDataPreset } from './remoteData';
+import { reviewAndConfirmPreset } from './reviewAndConfirm';
 
 /**
- * Demo schemas offered by the Sample button.
+ * Demo screens offered by the Sample button.
  *
  * Each preset module exports a plain object rather than importing this
  * interface, so nothing here is a dependency of the presets themselves —
@@ -16,12 +18,22 @@ export interface SamplePreset {
   label: string;
   /** One line, shown under the label in the Sample menu. */
   description: string;
-  create: () => FormSchema;
+  create: () => ScreenSchema;
 }
 
+/**
+ * One list, because there is one Screen mode.
+ *
+ * The three kinds of screen, in order: one that only asks
+ * (`purchaseRequest`), one that does both (`reviewAndConfirm`), and one that
+ * only tells (`welcomePack`). The middle one is what the form/page split made
+ * impossible to build.
+ */
 export const SAMPLE_PRESETS: SamplePreset[] = [
   purchaseRequestPreset,
+  reviewAndConfirmPreset,
   remoteDataPreset,
+  welcomePackPreset,
   kitchenSinkPreset,
 ];
 

@@ -1,9 +1,9 @@
 import { Typography } from 'antd';
-import type { FieldNode } from '@/schema/schema';
+import type { ScreenNode } from '@/schema/screen';
 import type { RemoteOptionsState } from './useRemoteOptions';
 
 export interface RemoteStatusProps {
-  node: FieldNode;
+  node: ScreenNode;
   state: RemoteOptionsState;
 }
 

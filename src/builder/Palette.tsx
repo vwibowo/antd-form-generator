@@ -1,4 +1,5 @@
 import {
+  AlignLeftOutlined,
   ApartmentOutlined,
   AppstoreOutlined,
   BarsOutlined,
@@ -8,15 +9,18 @@ import {
   CalendarOutlined,
   CheckSquareOutlined,
   ClockCircleOutlined,
+  ColumnHeightOutlined,
   DownSquareOutlined,
   EditOutlined,
   FieldNumberOutlined,
   FileTextOutlined,
   FontSizeOutlined,
   HistoryOutlined,
+  InfoCircleOutlined,
   LockOutlined,
   PaperClipOutlined,
   PartitionOutlined,
+  PictureOutlined,
   ProfileOutlined,
   SafetyCertificateOutlined,
   SearchOutlined,
@@ -24,22 +28,24 @@ import {
   StarOutlined,
   SwapOutlined,
   SwapRightOutlined,
+  TableOutlined,
   ThunderboltOutlined,
   UnorderedListOutlined,
   UserSwitchOutlined,
 } from '@ant-design/icons';
 import { useDraggable } from '@dnd-kit/core';
-import { Typography } from 'antd';
+import { Input, Typography } from 'antd';
+import { useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { CustomComponentDef } from '@/renderer/custom';
 import { useCustomComponents } from '@/renderer/custom';
-import type { CreateFieldSeed } from '@/schema/factory';
-import { FIELD_CATEGORIES, fieldsByCategory } from '@/schema/registry';
-import type { FieldType } from '@/schema/schema';
-import { useFormBuilderStore } from '@/store/SchemaStoreContext';
+import type { CreateNodeSeed } from '@/schema/factory';
+import { NODE_CATEGORIES, nodesByCategory } from '@/schema/registry';
+import type { ScreenNodeType } from '@/schema/screen';
+import { useBuilderStore } from '@/store/ScreenStoreContext';
 import { type PaletteDragData, paletteDraggableId } from './dndTypes';
 
-const ICONS: Record<FieldType, ReactNode> = {
+const ICONS: Record<ScreenNodeType, ReactNode> = {
   input: <EditOutlined />,
   textarea: <FileTextOutlined />,
   password: <LockOutlined />,
@@ -65,14 +71,22 @@ const ICONS: Record<FieldType, ReactNode> = {
   colorPicker: <BgColorsOutlined />,
   upload: <PaperClipOutlined />,
   divider: <BorderHorizontalOutlined />,
-  title: <FontSizeOutlined />,
+  spacer: <ColumnHeightOutlined />,
   group: <AppstoreOutlined />,
   card: <ProfileOutlined />,
   list: <UnorderedListOutlined />,
   custom: <ThunderboltOutlined />,
+  heading: <FontSizeOutlined />,
+  text: <AlignLeftOutlined />,
+  image: <PictureOutlined />,
+  alert: <InfoCircleOutlined />,
+  dataList: <UnorderedListOutlined />,
+  summary: <ProfileOutlined />,
+  table: <TableOutlined />,
+  actions: <ThunderboltOutlined />,
 };
 
-export function paletteIcon(type: FieldType): ReactNode {
+export function paletteIcon(type: ScreenNodeType): ReactNode {
   return ICONS[type];
 }
 
@@ -82,13 +96,13 @@ function PaletteItem({
   componentKey,
   def,
 }: {
-  type: FieldType;
+  type: ScreenNodeType;
   label: string;
   /** Set for entries that stand for one registered custom component. */
   componentKey?: string;
   def?: CustomComponentDef;
 }) {
-  const addField = useFormBuilderStore((state) => state.addField);
+  const addNode = useBuilderStore((state) => state.addNode);
   const data: PaletteDragData = { source: 'palette', fieldType: type, componentKey };
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: paletteDraggableId(type, componentKey),
@@ -103,7 +117,7 @@ function PaletteItem({
       // Dragging is the primary gesture; clicking appends to the root as a
       // keyboard/touch-friendly fallback.
       onClick={() =>
-        addField(type, undefined, undefined, customSeed(componentKey, def))
+        addNode(type, undefined, undefined, customSeed(componentKey, def))
       }
       {...listeners}
       {...attributes}
@@ -121,7 +135,7 @@ function PaletteItem({
 export function customSeed(
   componentKey: string | undefined,
   def: CustomComponentDef | undefined,
-): CreateFieldSeed | undefined {
+): CreateNodeSeed | undefined {
   if (!componentKey) return undefined;
   return {
     namePrefix: def?.defaults?.namePrefix ?? componentKey,
@@ -136,15 +150,38 @@ export function Palette() {
   const customComponents = useCustomComponents();
   const customEntries = Object.entries(customComponents);
 
+  // Merging the form and page palettes put 38 entries across nine categories in
+  // one column, which is more than anyone scans. The filter is not a nicety.
+  const [query, setQuery] = useState('');
+  const term = query.trim().toLowerCase();
+  const matches = useMemo(
+    () => (label: string, type: string) =>
+      term === '' || label.toLowerCase().includes(term) || type.toLowerCase().includes(term),
+    [term],
+  );
+
   return (
     <div style={{ padding: 12 }}>
-      {FIELD_CATEGORIES.map((category) => {
-        const metas = fieldsByCategory(category).filter(
-          // The bare `custom` type is only useful when something is registered
-          // to put in it; the registry entries below replace it.
-          (meta) => meta.type !== 'custom',
-        );
-        const entries = category === 'Custom' ? customEntries : [];
+      <Input.Search
+        allowClear
+        size="small"
+        placeholder="Filter"
+        value={query}
+        onChange={(event) => setQuery(event.target.value)}
+        style={{ marginBottom: 12 }}
+      />
+      {NODE_CATEGORIES.map((category) => {
+        const metas = nodesByCategory(category)
+          .filter(
+            // The bare `custom` type is only useful when something is registered
+            // to put in it; the registry entries below replace it.
+            (meta) => meta.type !== 'custom',
+          )
+          .filter((meta) => matches(meta.label, meta.type));
+        const entries =
+          category === 'Custom'
+            ? customEntries.filter(([key, def]) => matches(def.label, key))
+            : [];
         if (metas.length === 0 && entries.length === 0) return null;
 
         return (

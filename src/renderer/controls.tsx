@@ -21,7 +21,7 @@ import {
   Upload,
 } from 'antd';
 import type { ReactElement, ReactNode } from 'react';
-import type { FieldNode, SelectOption } from '@/schema/schema';
+import type { ScreenNode, SelectOption } from '@/schema/screen';
 import type { CustomComponentRegistry } from './custom';
 import { MissingCustomComponent, customDefFor, customKeyOf } from './custom';
 import { parseDateValue } from './dateValue';
@@ -154,7 +154,7 @@ export interface ControlOverrides {
  * `src/schema/propSpecs.ts`, which is what the inspector renders.
  */
 export function renderControl(
-  node: FieldNode,
+  node: ScreenNode,
   overrides?: ControlOverrides,
   /** Host-supplied controls. Only consulted for `custom` nodes. */
   registry?: CustomComponentRegistry,
@@ -637,7 +637,7 @@ export function titleProps(props: Props | undefined) {
 
 /** Controls whose value lives on `checked` rather than `value`. */
 export function valuePropNameFor(
-  node: FieldNode,
+  node: ScreenNode,
   registry?: CustomComponentRegistry,
 ): string | undefined {
   if (node.type === 'checkbox' || node.type === 'switch') return 'checked';
@@ -649,7 +649,7 @@ export function valuePropNameFor(
 }
 
 /** Upload hands `Form.Item` an event object; unwrap it to the file list. */
-export function getValueFromEventFor(node: FieldNode) {
+export function getValueFromEventFor(node: ScreenNode) {
   if (node.type !== 'upload') return undefined;
   return (event: unknown): unknown => {
     if (Array.isArray(event)) return event;

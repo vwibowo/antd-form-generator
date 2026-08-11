@@ -1,5 +1,5 @@
-import type { FormSchema } from '../schema';
-import { formSchemaSchema } from '../schema';
+import type { ScreenSchema } from '../screen';
+import { screenSchemaSchema } from '../screen';
 
 /**
  * Flagship demo: a procurement request that grows as the amount does.
@@ -9,15 +9,15 @@ import { formSchemaSchema } from '../schema';
  *   - `lineItems.product` has no rows on mount, and `{{category}}` is blank
  *   - `budgetOwner` is condition-hidden, and its search needs 2 characters
  *
- * Written loosely and run through `formSchemaSchema.parse` so zod fills in
+ * Written loosely and run through `screenSchemaSchema.parse` so zod fills in
  * every default — this doubles as a check that the defaults are sane.
  */
 export const purchaseRequestPreset = {
   key: 'purchase-request',
   label: 'Purchase request',
   description: 'Procurement flow — remote catalogue cascade, line items, and rules that appear as the total grows.',
-  create: (): FormSchema =>
-    formSchemaSchema.parse({
+  create: (): ScreenSchema =>
+    screenSchemaSchema.parse({
       title: 'Purchase request',
       description:
         'Raise a request against the live catalogue. Every field below is described by the JSON in the JSON tab.',
@@ -26,12 +26,11 @@ export const purchaseRequestPreset = {
       gutter: 16,
       submitText: 'Submit request',
       showReset: true,
-      fields: [
+      nodes: [
         {
           id: 'pr_heading',
-          type: 'title',
-          name: 'headingRequest',
-          label: 'Request details',
+          type: 'heading',
+          text: 'Request details',
           props: { level: 4 },
         },
         {
@@ -298,7 +297,7 @@ export const purchaseRequestPreset = {
             },
           ],
         },
-        { id: 'pr_divider', type: 'divider', name: 'dividerApproval', label: 'Approval' },
+        { id: 'pr_divider', type: 'divider', label: 'Approval' },
         {
           // `max` on a number means magnitude, not length.
           id: 'pr_total',

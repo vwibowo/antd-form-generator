@@ -1,6 +1,6 @@
 import { Rate, Space, Tag, Typography } from 'antd';
 import type { ReactNode } from 'react';
-import type { FieldNode, SelectOption, TreeOption } from '@/schema/schema';
+import type { ScreenNode, SelectOption, TreeOption } from '@/schema/screen';
 import type { CustomComponentRegistry } from '../custom';
 import { customDefFor } from '../custom';
 import { displayFormatOf, parseDateValue, valueFormatOf } from '../dateValue';
@@ -122,7 +122,7 @@ function defaultDateFormat(props: Props): string {
 }
 
 /** dates arrive as whatever `valueFormat` produced; show them in the field's display format. */
-function dateText(node: FieldNode, value: unknown, fallbackFormat: string): string {
+function dateText(node: ScreenNode, value: unknown, fallbackFormat: string): string {
   const parsed = parseDateValue(value, valueFormatOf(node));
   if (!parsed) return String(value);
   return parsed.format(displayFormatOf(node) ?? fallbackFormat);
@@ -152,7 +152,7 @@ function plain(value: unknown): string {
 }
 
 export function formatFieldValue(
-  node: FieldNode,
+  node: ScreenNode,
   value: unknown,
   registry?: CustomComponentRegistry,
 ): ReactNode {

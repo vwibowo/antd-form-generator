@@ -1,37 +1,56 @@
 import { Collapse, Empty, Tag, Typography } from 'antd';
 import { useMemo } from 'react';
 import { metaFor } from '@/schema/registry';
-import type { FieldNode } from '@/schema/schema';
-import { collectNames, findDuplicateNames, findField, findParent } from '@/schema/walk';
-import { useFormBuilderStore } from '@/store/SchemaStoreContext';
+import type { ScreenNode, ScreenSchema } from '@/schema/screen';
+import { collectsValue } from '@/schema/screen';
+import { collectNames, findDuplicateNames, findNode, findParent } from '@/schema/walk';
+import { useBuilderStore } from '@/store/ScreenStoreContext';
 import { FormSettings } from '../FormSettings';
 import { CommonProps } from './CommonProps';
 import { ConditionEditor } from './ConditionEditor';
+import { DisplayProps, EmbeddedTableEditor } from './DisplayProps';
 import { OptionsSource } from './OptionsSource';
 import { RulesEditor } from './RulesEditor';
 import { TreeOptionsEditor } from './TreeOptionsEditor';
 import { TypeProps, hasTypeProps } from './TypeProps';
 
-export function Inspector() {
-  const schema = useFormBuilderStore((state) => state.schema);
-  const selectedId = useFormBuilderStore((state) => state.selectedId);
-  const updateField = useFormBuilderStore((state) => state.updateField);
+export interface InspectorProps {
+  /**
+   * Payload keys a condition or a `{{token}}` can reach beyond this screen.
+   * Supplied when the screen sits inside a workflow; empty otherwise, which is
+   * why `ConditionEditor` has to accept a typed name.
+   */
+  fieldChoices?: { label: string; value: string }[];
+  /** Earlier screen steps a `summary` node can lay out, when inside a workflow. */
+  formSources?: Record<string, ScreenSchema>;
+  /** Labels for those steps, so the picker reads as node names not ids. */
+  formLabels?: Record<string, string>;
+}
 
-  const selected = useMemo<FieldNode | null>(
-    () => (selectedId ? findField(schema.fields, selectedId) : null),
+export function Inspector({
+  fieldChoices: workflowChoices,
+  formSources = {},
+  formLabels = {},
+}: InspectorProps = {}) {
+  const schema = useBuilderStore((state) => state.schema);
+  const selectedId = useBuilderStore((state) => state.selectedId);
+  const updateNode = useBuilderStore((state) => state.updateNode);
+
+  const selected = useMemo<ScreenNode | null>(
+    () => (selectedId ? findNode(schema.nodes, selectedId) : null),
     [schema, selectedId],
   );
 
-  const duplicateNames = useMemo(() => findDuplicateNames(schema.fields), [schema]);
+  const duplicateNames = useMemo(() => findDuplicateNames(schema.nodes), [schema]);
 
   // A condition may only reference fields in the same row (for list children)
   // or at the top level — plus never the field itself.
   const fieldChoices = useMemo(() => {
     if (!selected) return [];
-    const parent = findParent(schema.fields, selected.id);
-    const scope = parent?.type === 'list' ? (parent.children ?? []) : schema.fields;
+    const parent = findParent(schema.nodes, selected.id);
+    const scope = parent?.type === 'list' ? (parent.children ?? []) : schema.nodes;
     const inScope = collectNames(scope);
-    const topLevel = parent?.type === 'list' ? collectNames(schema.fields) : [];
+    const topLevel = parent?.type === 'list' ? collectNames(schema.nodes) : [];
     const merged = [...inScope, ...topLevel];
     const seen = new Set<string>();
     return merged
@@ -40,8 +59,11 @@ export function Inspector() {
         seen.add(entry.name);
         return true;
       })
-      .map((entry) => ({ label: `${entry.label} (${entry.name})`, value: entry.name }));
-  }, [schema, selected]);
+      .map((entry) => ({ label: `${entry.label} (${entry.name})`, value: entry.name }))
+      // Keys collected by earlier steps are just as testable as this screen's
+      // own, and a standalone screen simply has none to add.
+      .concat(workflowChoices ?? []);
+  }, [schema, selected, workflowChoices]);
 
   if (!selected) {
     return (
@@ -51,7 +73,7 @@ export function Inspector() {
           image={Empty.PRESENTED_IMAGE_SIMPLE}
           description={
             <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-              Select a field to edit it
+              Select a node to edit it
             </Typography.Text>
           }
           style={{ marginTop: 24 }}
@@ -61,18 +83,35 @@ export function Inspector() {
   }
 
   const meta = metaFor(selected.type);
-  const onPatch = (patch: Partial<FieldNode>) => updateField(selected.id, patch);
+  const onPatch = (patch: Partial<ScreenNode>) => updateNode(selected.id, patch);
 
   const items = [
     {
       key: 'general',
       label: 'General',
-      children: (
+      children: collectsValue(selected.type) ? (
         <CommonProps
           node={selected}
           onPatch={onPatch}
           duplicateName={duplicateNames.includes(selected.name)}
         />
+      ) : (
+        // A display node owns no payload key, so `name`, rules and defaults
+        // would all be inert — `collectsValue` is what decides.
+        <>
+          <DisplayProps
+            node={selected}
+            onPatch={onPatch}
+            formSources={formSources}
+            formLabels={formLabels}
+          />
+          <CommonProps
+            node={selected}
+            onPatch={onPatch}
+            duplicateName={false}
+            layoutOnly
+          />
+        </>
       ),
     },
   ];
@@ -102,6 +141,14 @@ export function Inspector() {
     });
   }
 
+  if (meta.supports.table) {
+    items.push({
+      key: 'table',
+      label: 'Table',
+      children: <EmbeddedTableEditor node={selected} onPatch={onPatch} />,
+    });
+  }
+
   if (hasTypeProps(selected.type)) {
     items.push({
       key: 'settings',
@@ -128,6 +175,9 @@ export function Inspector() {
         condition={selected.condition}
         fieldChoices={fieldChoices}
         onChange={(condition) => onPatch({ condition })}
+        // Outside a workflow a screen has nothing but its own fields to offer,
+        // so the field must stay typeable or the editor is unusable there.
+        allowCustomField={fieldChoices.length === 0}
         hint="Inside a repeatable section, a condition matches the field in the same row first, then falls back to the top level."
       />
     ),
@@ -145,7 +195,7 @@ export function Inspector() {
         }}
       >
         <Typography.Text strong style={{ fontSize: 13 }}>
-          {selected.label || selected.name}
+          {selected.label || selected.name || meta.label}
         </Typography.Text>
         <Tag style={{ marginInlineEnd: 0 }}>{meta.label}</Tag>
       </div>

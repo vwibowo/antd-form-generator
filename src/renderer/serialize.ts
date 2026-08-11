@@ -1,9 +1,9 @@
-import type { FieldNode, FormSchema } from '@/schema/schema';
-import { isPresentationalType, isTransparentContainer } from '@/schema/schema';
+import type { ScreenNode, ScreenSchema } from '@/schema/screen';
+import { isDisplayType, isTransparentContainer } from '@/schema/screen';
 import type { CustomComponentRegistry } from './custom';
 import { customDefFor } from './custom';
 import { serializeColorValue } from './colorValue';
-import { isDateFieldType, serializeDateField } from './dateValue';
+import { isDateType, serializeDateField } from './dateValue';
 
 /**
  * Turn the live form values into the submitted payload.
@@ -18,22 +18,22 @@ import { isDateFieldType, serializeDateField } from './dateValue';
  * a `list` recurses once per row.
  */
 export function serializeValues(
-  schema: FormSchema,
+  schema: ScreenSchema,
   values: Record<string, unknown>,
   registry?: CustomComponentRegistry,
 ): Record<string, unknown> {
   const out = { ...values };
-  applyNodes(schema.fields, out, registry);
+  applyNodes(schema.nodes, out, registry);
   return out;
 }
 
 function applyNodes(
-  nodes: FieldNode[],
+  nodes: ScreenNode[],
   target: Record<string, unknown>,
   registry: CustomComponentRegistry | undefined,
 ): void {
   for (const node of nodes) {
-    if (isPresentationalType(node.type)) continue;
+    if (isDisplayType(node.type)) continue;
 
     if (isTransparentContainer(node.type)) {
       applyNodes(node.children ?? [], target, registry);
@@ -54,7 +54,7 @@ function applyNodes(
 
     if (!(node.name in target)) continue;
 
-    if (isDateFieldType(node.type)) {
+    if (isDateType(node.type)) {
       target[node.name] = serializeDateField(node, target[node.name]);
       continue;
     }

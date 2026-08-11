@@ -1,12 +1,12 @@
 import type { FormItemProps } from 'antd';
-import type { FieldType, RuleSpec } from '@/schema/schema';
+import type { ScreenNodeType, RuleSpec } from '@/schema/screen';
 
 export type AntdRule = NonNullable<FormItemProps['rules']>[number];
 
 export type ValueKind = 'number' | 'array' | 'string';
 
 /** antd applies min/max/len differently per value kind. */
-function valueKind(fieldType: FieldType): ValueKind {
+function valueKind(fieldType: ScreenNodeType): ValueKind {
   switch (fieldType) {
     case 'number':
     case 'slider':
@@ -35,7 +35,7 @@ function withMessage<T extends object>(rule: T, message?: string): T {
  */
 export function compileRules(
   specs: RuleSpec[],
-  fieldType: FieldType,
+  fieldType: ScreenNodeType,
   /** Custom components declare their own kind — the type alone cannot say. */
   kindOverride?: ValueKind,
 ): AntdRule[] {
