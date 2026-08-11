@@ -1,3 +1,4 @@
+import { hasNoWayOnward } from './page';
 import type { FieldNode } from './schema';
 import { isPresentationalType, isTransparentContainer } from './schema';
 import type { WorkflowEdge, WorkflowNode, WorkflowSchema } from './workflow';
@@ -136,6 +137,11 @@ export function collectWorkflowNames(
     if (node.kind === 'approval' && node.name) {
       contributed.push({ name: node.name, label: `${nodeCaption(node)} decision` });
     }
+    // A page's buttons are outcomes, so its key is branchable in exactly the
+    // way an approval's is.
+    if (node.kind === 'page' && node.name) {
+      contributed.push({ name: node.name, label: `${nodeCaption(node)} button` });
+    }
 
     for (const entry of contributed) {
       if (entry.name === '' || seen.has(entry.name)) continue;
@@ -164,6 +170,8 @@ export type WorkflowIssueCode =
   | 'duplicate-name'
   | 'empty-form'
   | 'no-outcomes'
+  | 'empty-page'
+  | 'no-page-actions'
   | 'cycle';
 
 export interface WorkflowIssue {
@@ -264,6 +272,26 @@ export function validateWorkflow(schema: WorkflowSchema): WorkflowIssue[] {
         message: `"${caption}" offers no outcomes, so it cannot be answered.`,
         nodeId: node.id,
       });
+    }
+
+    if (node.kind === 'page') {
+      if ((node.page?.blocks.length ?? 0) === 0) {
+        issues.push({
+          level: 'warning',
+          code: 'empty-page',
+          message: `"${caption}" has no blocks, so it shows the reader nothing.`,
+          nodeId: node.id,
+        });
+      } else if (node.page && hasNoWayOnward(node.page)) {
+        // A page with no buttons cannot be advanced past, so anything after it
+        // is unreachable in practice even though the edge exists.
+        issues.push({
+          level: 'warning',
+          code: 'no-page-actions',
+          message: `"${caption}" has no buttons, so a run reaching it cannot continue.`,
+          nodeId: node.id,
+        });
+      }
     }
 
     const defaults = out.filter((edge) => edge.isDefault);

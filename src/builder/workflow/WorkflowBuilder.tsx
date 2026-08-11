@@ -18,6 +18,7 @@ import { FormNodeEditor } from './FormNodeEditor';
 import { GraphCanvas } from './GraphCanvas';
 import { GraphOverlay } from './GraphOverlay';
 import { NodePalette } from './NodePalette';
+import { PageNodeEditor } from './PageNodeEditor';
 import { WorkflowInspector } from './WorkflowInspector';
 
 /**
@@ -56,6 +57,8 @@ export function WorkflowBuilder() {
   const [drag, setDrag] = useState<ActiveDrag | null>(null);
   /** Set while a form node's fields are being edited; null shows the graph. */
   const [editingFormId, setEditingFormId] = useState<string | null>(null);
+  /** The same, for a page node's blocks. */
+  const [editingPageId, setEditingPageId] = useState<string | null>(null);
 
   const sensors = useSensors(
     // Matches the form canvas: a small distance so a click still selects.
@@ -66,6 +69,11 @@ export function WorkflowBuilder() {
   const editingNode = useMemo(
     () => schema.nodes.find((node) => node.id === editingFormId) ?? null,
     [schema.nodes, editingFormId],
+  );
+
+  const editingPageNode = useMemo(
+    () => schema.nodes.find((node) => node.id === editingPageId) ?? null,
+    [schema.nodes, editingPageId],
   );
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -136,12 +144,24 @@ export function WorkflowBuilder() {
     }
   };
 
+  // Either editor replaces the graph rather than nesting inside it, so the two
+  // `DndContext`s are never mounted at the same time.
   if (editingNode) {
     return (
       <FormNodeEditor
         key={editingNode.id}
         node={editingNode}
         onBack={() => setEditingFormId(null)}
+      />
+    );
+  }
+
+  if (editingPageNode) {
+    return (
+      <PageNodeEditor
+        key={editingPageNode.id}
+        node={editingPageNode}
+        onBack={() => setEditingPageId(null)}
       />
     );
   }
@@ -168,7 +188,7 @@ export function WorkflowBuilder() {
         </main>
 
         <aside className="fg-builder__inspector">
-          <WorkflowInspector onEditForm={setEditingFormId} />
+          <WorkflowInspector onEditForm={setEditingFormId} onEditPage={setEditingPageId} />
         </aside>
       </div>
     </DndContext>

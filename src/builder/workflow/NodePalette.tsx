@@ -3,6 +3,7 @@ import {
   AuditOutlined,
   CheckCircleOutlined,
   FormOutlined,
+  LayoutOutlined,
   PlayCircleOutlined,
   ThunderboltOutlined,
 } from '@ant-design/icons';
@@ -18,6 +19,7 @@ import { type NodePaletteDragData, nodePaletteDraggableId } from './dndTypes';
 const ICONS: Record<WorkflowNodeKind, ReactNode> = {
   start: <PlayCircleOutlined />,
   form: <FormOutlined />,
+  page: <LayoutOutlined />,
   decision: <ApartmentOutlined />,
   action: <ThunderboltOutlined />,
   approval: <AuditOutlined />,

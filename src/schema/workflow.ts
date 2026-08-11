@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { createId } from '@/lib/ids';
+import { pageSchemaSchema } from './page';
 import { conditionGroupSchema, formSchemaSchema } from './schema';
 
 /**
@@ -19,6 +20,7 @@ import { conditionGroupSchema, formSchemaSchema } from './schema';
 export const WORKFLOW_NODE_KINDS = [
   'start',
   'form',
+  'page',
   'decision',
   'action',
   'approval',
@@ -29,7 +31,7 @@ export const workflowNodeKindSchema = z.enum(WORKFLOW_NODE_KINDS);
 export type WorkflowNodeKind = z.infer<typeof workflowNodeKindSchema>;
 
 /** Kinds that pause a run and wait for the person driving it. */
-export const INTERACTIVE_NODE_KINDS = ['form', 'action', 'approval'] as const;
+export const INTERACTIVE_NODE_KINDS = ['form', 'page', 'action', 'approval'] as const;
 /** Kinds the engine passes straight through — they render nothing. */
 export const PASSTHROUGH_NODE_KINDS = ['start', 'decision'] as const;
 
@@ -104,6 +106,12 @@ export const workflowNodeSchema = z.object({
 
   /** `form` — a whole embeddable form, edited by the ordinary form builder. */
   form: formSchemaSchema.optional(),
+  /**
+   * `page` — a whole embeddable screen, edited by the ordinary page builder.
+   * Its call-to-action buttons are outcomes, so a page branches exactly as an
+   * `approval` does: the pressed button's id lands under this node's `name`.
+   */
+  page: pageSchemaSchema.optional(),
   /** `approval` — the choices offered. One with none cannot be answered. */
   outcomes: z.array(approvalOutcomeSchema).optional(),
   /** `action` — what the host is being asked to do. */

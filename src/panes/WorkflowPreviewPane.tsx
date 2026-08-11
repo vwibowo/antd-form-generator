@@ -1,10 +1,12 @@
 import { ArrowLeftOutlined, ReloadOutlined, ThunderboltOutlined } from '@ant-design/icons';
 import { Alert, Button, Card, Col, Empty, Result, Row, Space, Tag, Timeline, Typography } from 'antd';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { edgeCaption } from '@/builder/workflow/conditionText';
 import { FormRenderer } from '@/renderer/FormRenderer';
+import { PageRenderer } from '@/renderer/page/PageRenderer';
 import type { WorkflowRunState } from '@/renderer/workflow/engine';
 import { advanceWorkflow, describeBlock, startWorkflow } from '@/renderer/workflow/engine';
+import type { FormSchema } from '@/schema/schema';
 import type { WorkflowSchema } from '@/schema/workflow';
 import { findWorkflowNode, validateWorkflow } from '@/schema/workflowGraph';
 import { nodeCaption, workflowMetaFor } from '@/schema/workflowRegistry';
@@ -26,10 +28,31 @@ export function WorkflowPreviewPane({ schema }: WorkflowPreviewPaneProps) {
   const [history, setHistory] = useState<WorkflowRunState[]>(() => [startWorkflow(schema)]);
   const state = history[history.length - 1];
 
+  // A run holds node and edge ids, so it only means anything against the
+  // document it started from. Loading a sample, importing, an Undo or a JSON
+  // edit all replace that document — and a run left pointing at ids that no
+  // longer exist reports "nothing to run" instead of starting over.
+  const ranAgainst = useRef(schema);
+  useEffect(() => {
+    if (ranAgainst.current === schema) return;
+    ranAgainst.current = schema;
+    setHistory([startWorkflow(schema)]);
+  }, [schema]);
+
   const errors = useMemo(
     () => validateWorkflow(schema).filter((issue) => issue.level === 'error'),
     [schema],
   );
+
+  // A `summary` block names the form step it lays out, so the run has to hand
+  // the schemas over — a payload alone carries no layout.
+  const formSources = useMemo(() => {
+    const sources: Record<string, FormSchema> = {};
+    for (const node of schema.nodes) {
+      if (node.kind === 'form' && node.form) sources[node.id] = node.form;
+    }
+    return sources;
+  }, [schema.nodes]);
 
   const step = (contribution?: Record<string, unknown>) =>
     setHistory((entries) => [...entries, advanceWorkflow(schema, entries[entries.length - 1], contribution)]);
@@ -44,7 +67,7 @@ export function WorkflowPreviewPane({ schema }: WorkflowPreviewPaneProps) {
             <Alert
               type="error"
               showIcon
-              message={`${errors.length} problem${errors.length === 1 ? '' : 's'} in this workflow`}
+              title={`${errors.length} problem${errors.length === 1 ? '' : 's'} in this workflow`}
               description={
                 <ul style={{ margin: 0, paddingLeft: 18 }}>
                   {errors.slice(0, 4).map((issue) => (
@@ -80,7 +103,7 @@ export function WorkflowPreviewPane({ schema }: WorkflowPreviewPaneProps) {
               </Space>
             }
           >
-            <StepBody schema={schema} state={state} onStep={step} />
+            <StepBody schema={schema} state={state} onStep={step} formSources={formSources} />
           </Card>
         </Space>
       </Col>
@@ -127,10 +150,12 @@ function StepBody({
   schema,
   state,
   onStep,
+  formSources,
 }: {
   schema: WorkflowSchema;
   state: WorkflowRunState;
   onStep: (contribution?: Record<string, unknown>) => void;
+  formSources: Record<string, FormSchema>;
 }) {
   const node = state.nodeId ? findWorkflowNode(schema, state.nodeId) : null;
 
@@ -139,7 +164,7 @@ function StepBody({
       <Alert
         type="warning"
         showIcon
-        message="The run stopped here"
+        title="The run stopped here"
         description={
           <>
             <Typography.Paragraph style={{ marginBottom: 4 }}>
@@ -190,6 +215,36 @@ function StepBody({
         values={state.values}
         onSubmit={(submitted) => onStep(submitted)}
       />
+    );
+  }
+
+  if (node.kind === 'page') {
+    if (!node.page || node.page.blocks.length === 0) {
+      return (
+        <Space orientation="vertical" size={12} style={{ width: '100%' }}>
+          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="This page has no blocks yet" />
+          <Button type="primary" onClick={() => onStep()}>
+            Skip this step
+          </Button>
+        </Space>
+      );
+    }
+    return (
+      <Space orientation="vertical" size={12} style={{ width: '100%' }}>
+        <PageRenderer
+          schema={node.page}
+          values={state.values}
+          formSources={formSources}
+          // A button is an outcome: the same merge an approval does, which is
+          // why a branch tests it with an ordinary condition.
+          onAction={(actionId) => onStep({ [node.name || 'choice']: actionId })}
+        />
+        {node.page.blocks.every((block) => block.type !== 'actions') ? (
+          <Button type="primary" onClick={() => onStep()}>
+            Continue
+          </Button>
+        ) : null}
+      </Space>
     );
   }
 

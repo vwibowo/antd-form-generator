@@ -23,6 +23,7 @@ import { useState } from 'react';
 import { parseDocument } from '@/schema/document';
 import { DEFAULT_SAMPLE_PRESET, SAMPLE_PRESETS } from '@/schema/samples';
 import { DEFAULT_TABLE_PRESET, TABLE_SAMPLE_PRESETS } from '@/schema/samples/tables';
+import { DEFAULT_PAGE_PRESET, PAGE_SAMPLE_PRESETS } from '@/schema/samples/pages';
 import { DEFAULT_WORKFLOW_PRESET, WORKFLOW_SAMPLE_PRESETS } from '@/schema/samples/workflows';
 import { useAppMode } from '@/store/useAppMode';
 import {
@@ -30,6 +31,7 @@ import {
   selectCanUndo,
   useSchemaStore,
 } from '@/store/useSchemaStore';
+import { selectPageCanRedo, selectPageCanUndo, usePageStore } from '@/store/usePageStore';
 import {
   selectTableCanRedo,
   selectTableCanUndo,
@@ -98,6 +100,14 @@ export function Toolbar() {
   const canUndoWorkflow = useWorkflowStore(selectWorkflowCanUndo);
   const canRedoWorkflow = useWorkflowStore(selectWorkflowCanRedo);
 
+  const pageSchema = usePageStore((state) => state.schema);
+  const setPageSchema = usePageStore((state) => state.setSchema);
+  const undoPage = usePageStore((state) => state.undo);
+  const redoPage = usePageStore((state) => state.redo);
+  const clearPage = usePageStore((state) => state.clear);
+  const canUndoPage = usePageStore(selectPageCanUndo);
+  const canRedoPage = usePageStore(selectPageCanRedo);
+
   const active: ActiveDocument =
     mode === 'table'
       ? {
@@ -115,7 +125,23 @@ export function Toolbar() {
           noun: 'table',
           clearTitle: 'Remove all columns?',
         }
-      : mode === 'workflow'
+      : mode === 'page'
+        ? {
+            document: pageSchema,
+            undo: undoPage,
+            redo: redoPage,
+            clear: clearPage,
+            canUndo: canUndoPage,
+            canRedo: canRedoPage,
+            presets: PAGE_SAMPLE_PRESETS,
+            defaultPresetKey: DEFAULT_PAGE_PRESET.key,
+            apply: (next) => setPageSchema(next as typeof pageSchema),
+            isEmpty: pageSchema.blocks.length === 0,
+            filename: 'page-schema.json',
+            noun: 'page',
+            clearTitle: 'Remove all blocks?',
+          }
+        : mode === 'workflow'
         ? {
             document: workflowSchema,
             undo: undoWorkflow,
@@ -215,6 +241,8 @@ export function Toolbar() {
         setTableSchema(result.schema);
       } else if (result.kind === 'workflow') {
         setWorkflowSchema(result.schema);
+      } else if (result.kind === 'page') {
+        setPageSchema(result.schema);
       } else {
         setSchema(result.schema);
       }

@@ -9,6 +9,8 @@ export interface NodeInspectorProps {
   node: WorkflowNode;
   /** Opens the form builder on this node's embedded form. */
   onEditForm: (id: string) => void;
+  /** Opens the page builder on this node's embedded page. */
+  onEditPage: (id: string) => void;
 }
 
 /** Approve/reject style choices — what an approval writes into the payload. */
@@ -72,7 +74,7 @@ function OutcomeEditor({
   );
 }
 
-export function NodeInspector({ node, onEditForm }: NodeInspectorProps) {
+export function NodeInspector({ node, onEditForm, onEditPage }: NodeInspectorProps) {
   const updateNode = useWorkflowStore((state) => state.updateNode);
   const meta = workflowMetaFor(node.kind);
 
@@ -110,11 +112,26 @@ export function NodeInspector({ node, onEditForm }: NodeInspectorProps) {
         </Labeled>
       ) : null}
 
+      {meta.supports.holdsPage ? (
+        <Labeled
+          label="Blocks"
+          help="A page's buttons are what branches out of this step test, so they live with the page."
+        >
+          <Button size="small" block icon={<EditOutlined />} onClick={() => onEditPage(node.id)}>
+            Edit page ({node.page?.blocks.length ?? 0} blocks)
+          </Button>
+        </Labeled>
+      ) : null}
+
       {meta.supports.carriesName ? (
         <>
           <Labeled
             label="Payload key"
-            help="The chosen outcome is stored here, so a branch can test it by name."
+            help={
+              node.kind === 'page'
+                ? 'The pressed button is stored here, so a branch can test it by name.'
+                : 'The chosen outcome is stored here, so a branch can test it by name.'
+            }
           >
             <Input
               size="small"
@@ -124,12 +141,16 @@ export function NodeInspector({ node, onEditForm }: NodeInspectorProps) {
             />
           </Labeled>
 
-          <Labeled label="Outcomes">
-            <OutcomeEditor
-              outcomes={node.outcomes ?? []}
-              onChange={(outcomes) => patch({ outcomes })}
-            />
-          </Labeled>
+          {/* An approval's outcomes are buttons on the node; a page's are
+              buttons in an `actions` block, edited with the page itself. */}
+          {node.kind === 'approval' ? (
+            <Labeled label="Outcomes">
+              <OutcomeEditor
+                outcomes={node.outcomes ?? []}
+                onChange={(outcomes) => patch({ outcomes })}
+              />
+            </Labeled>
+          ) : null}
         </>
       ) : null}
 

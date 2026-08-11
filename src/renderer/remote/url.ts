@@ -8,7 +8,12 @@ import { isEmpty } from '../condition';
  * so row-local-then-root lookup works exactly as it does for conditions.
  */
 
-const TOKEN = /\{\{\s*([A-Za-z0-9_$]+)\s*\}\}/g;
+/**
+ * Exported so the page renderer's text templating can reuse the exact same
+ * token syntax. Two regexes would be free to drift, and an author would have no
+ * way to know which one a given field obeys.
+ */
+export const TOKEN = /\{\{\s*([A-Za-z0-9_$]+)\s*\}\}/g;
 
 /** Field names referenced as `{{name}}`, in order, deduped. */
 export function extractDependencies(template: string): string[] {

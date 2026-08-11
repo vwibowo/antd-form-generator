@@ -16,6 +16,8 @@ export interface WorkflowNodeSupports {
   carriesName: boolean;
   /** The node holds an embedded form. */
   holdsForm: boolean;
+  /** The node holds an embedded page. */
+  holdsPage: boolean;
 }
 
 export interface WorkflowNodeMeta {
@@ -37,6 +39,7 @@ const plain: WorkflowNodeSupports = {
   outPort: true,
   carriesName: false,
   holdsForm: false,
+  holdsPage: false,
 };
 
 export const WORKFLOW_REGISTRY: Record<WorkflowNodeKind, WorkflowNodeMeta> = {
@@ -57,6 +60,17 @@ export const WORKFLOW_REGISTRY: Record<WorkflowNodeKind, WorkflowNodeMeta> = {
     namePrefix: 'step',
     supports: { ...plain, holdsForm: true },
     defaults: { label: 'Form step' },
+  },
+  page: {
+    kind: 'page',
+    label: 'Page',
+    hint: 'Shows the reader a screen, and offers a way onward',
+    color: '#13c2c2',
+    namePrefix: 'choice',
+    // Carries a name because its buttons write to the payload, exactly as an
+    // approval's outcomes do.
+    supports: { ...plain, carriesName: true, holdsPage: true },
+    defaults: { label: 'Page' },
   },
   decision: {
     kind: 'decision',

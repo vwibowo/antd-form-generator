@@ -1,4 +1,6 @@
 import { createId } from '@/lib/ids';
+import { pageSchemaSchema } from './page';
+import { createPageBlock } from './pageFactory';
 import { createEmptySchema } from './schema';
 import type { WorkflowEdge, WorkflowNode, WorkflowNodeKind, WorkflowSchema } from './workflow';
 import { workflowNodeSchema } from './workflow';
@@ -36,6 +38,19 @@ export function createWorkflowNode(
     ...meta.defaults,
     name: meta.supports.carriesName ? uniqueWorkflowName(existing, meta.namePrefix) : '',
     ...(meta.supports.holdsForm ? { form: createEmptySchema() } : {}),
+    // A page arrives with one button, so a fresh page node can already advance
+    // a run — an actions-less page is a dead end the validator would flag.
+    ...(meta.supports.holdsPage
+      ? {
+          page: pageSchemaSchema.parse({
+            blocks: [
+              createPageBlock('heading'),
+              createPageBlock('text'),
+              createPageBlock('actions'),
+            ],
+          }),
+        }
+      : {}),
     ...(kind === 'approval'
       ? {
           outcomes: [

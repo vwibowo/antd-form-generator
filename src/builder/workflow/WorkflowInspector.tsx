@@ -8,6 +8,7 @@ import { WorkflowSettings } from './WorkflowSettings';
 
 export interface WorkflowInspectorProps {
   onEditForm: (id: string) => void;
+  onEditPage: (id: string) => void;
 }
 
 /**
@@ -16,7 +17,7 @@ export interface WorkflowInspectorProps {
  * Selecting one clears the other in the store, so this never has to decide
  * which wins.
  */
-export function WorkflowInspector({ onEditForm }: WorkflowInspectorProps) {
+export function WorkflowInspector({ onEditForm, onEditPage }: WorkflowInspectorProps) {
   const schema = useWorkflowStore((state) => state.schema);
   const selectedNodeId = useWorkflowStore((state) => state.selectedNodeId);
   const selectedEdgeId = useWorkflowStore((state) => state.selectedEdgeId);
@@ -36,7 +37,7 @@ export function WorkflowInspector({ onEditForm }: WorkflowInspectorProps) {
             {meta.label}
           </Tag>
         </div>
-        <NodeInspector node={node} onEditForm={onEditForm} />
+        <NodeInspector node={node} onEditForm={onEditForm} onEditPage={onEditPage} />
       </div>
     );
   }

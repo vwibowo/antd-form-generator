@@ -1,3 +1,5 @@
+import type { PageSchema } from './page';
+import { parsePageSchema } from './page';
 import type { FormSchema } from './schema';
 import { parseFormSchema } from './schema';
 import type { TableSchema } from './table';
@@ -6,17 +8,18 @@ import type { WorkflowSchema } from './workflow';
 import { parseWorkflowSchema } from './workflow';
 
 /**
- * The app edits three kinds of document. Anything that reads JSON from outside —
+ * The app edits four kinds of document. Anything that reads JSON from outside —
  * an imported file, a localStorage blob, a paste into the JSON tab — goes
  * through here so they never get confused for one another.
  */
 
-export type DocumentKind = 'form' | 'table' | 'workflow';
+export type DocumentKind = 'form' | 'table' | 'workflow' | 'page';
 
 export type DocumentParseResult =
   | { ok: true; kind: 'form'; schema: FormSchema }
   | { ok: true; kind: 'table'; schema: TableSchema }
   | { ok: true; kind: 'workflow'; schema: WorkflowSchema }
+  | { ok: true; kind: 'page'; schema: PageSchema }
   | { ok: false; errors: string[] };
 
 function hasKind(input: unknown, kind: string): boolean {
@@ -40,6 +43,11 @@ export function parseDocument(input: unknown): DocumentParseResult {
   if (hasKind(input, 'workflow')) {
     const result = parseWorkflowSchema(input);
     return result.ok ? { ok: true, kind: 'workflow', schema: result.schema } : result;
+  }
+
+  if (hasKind(input, 'page')) {
+    const result = parsePageSchema(input);
+    return result.ok ? { ok: true, kind: 'page', schema: result.schema } : result;
   }
 
   const result = parseFormSchema(input);

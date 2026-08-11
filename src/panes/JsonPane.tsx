@@ -1,8 +1,10 @@
 import { Alert, Button, Card, Input, Space, Typography } from 'antd';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { parsePageSchema } from '@/schema/page';
 import { parseFormSchema } from '@/schema/schema';
 import { parseTableSchema } from '@/schema/table';
 import { parseWorkflowSchema } from '@/schema/workflow';
+import { usePageStore } from '@/store/usePageStore';
 import { useSchemaStore } from '@/store/useSchemaStore';
 import { useTableStore } from '@/store/useTableStore';
 import { useWorkflowStore } from '@/store/useWorkflowStore';
@@ -155,6 +157,20 @@ export function TableJsonPane() {
       title="Table schema JSON"
       document={schema}
       parse={parseTableSchema}
+      onApply={setSchema}
+    />
+  );
+}
+
+export function PageJsonPane() {
+  const schema = usePageStore((state) => state.schema);
+  const setSchema = usePageStore((state) => state.setSchema);
+
+  return (
+    <JsonEditor
+      title="Page schema JSON"
+      document={schema}
+      parse={parsePageSchema}
       onApply={setSchema}
     />
   );

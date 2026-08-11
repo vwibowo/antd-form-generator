@@ -13,6 +13,13 @@ export interface ConditionEditorProps {
   label?: string;
   /** Small print under the list. Omit for none — there is no default. */
   hint?: ReactNode;
+  /**
+   * Type the field name instead of picking it.
+   *
+   * A standalone page has no form to enumerate names from, and the picker would
+   * be permanently empty — the author still knows what the run will contain.
+   */
+  allowCustomField?: boolean;
 }
 
 const OPERATOR_OPTIONS: { label: string; value: ConditionOperator }[] = [
@@ -35,9 +42,12 @@ export function ConditionEditor({
   onChange,
   label = 'Show only when…',
   hint,
+  allowCustomField = false,
 }: ConditionEditorProps) {
   const enabled = condition !== undefined;
   const group = condition ?? EMPTY_GROUP;
+  /** With a typeable field there is always something to add, even with no choices. */
+  const canAdd = allowCustomField || fieldChoices.length > 0;
 
   const setConditions = (conditions: Condition[]) => onChange({ ...group, conditions });
 
@@ -52,9 +62,18 @@ export function ConditionEditor({
               checked
                 ? {
                     logic: 'and',
-                    conditions: fieldChoices[0]
-                      ? [{ field: fieldChoices[0].value, operator: 'eq', value: '' }]
-                      : [],
+                    // With a typeable field, seed a blank row rather than none:
+                    // an empty group would leave nothing to edit.
+                    conditions:
+                      fieldChoices[0] || allowCustomField
+                        ? [
+                            {
+                              field: fieldChoices[0]?.value ?? '',
+                              operator: 'eq',
+                              value: '',
+                            },
+                          ]
+                        : [],
                   }
                 : undefined,
             )
@@ -98,14 +117,24 @@ export function ConditionEditor({
                 }}
               >
                 <div style={{ display: 'flex', gap: 6 }}>
-                  <Select
-                    size="small"
-                    style={{ flex: 1 }}
-                    value={item.field}
-                    placeholder="Field"
-                    options={fieldChoices}
-                    onChange={(field) => replace({ field })}
-                  />
+                  {allowCustomField ? (
+                    <Input
+                      size="small"
+                      style={{ flex: 1 }}
+                      value={item.field}
+                      placeholder="Field name"
+                      onChange={(event) => replace({ field: event.target.value })}
+                    />
+                  ) : (
+                    <Select
+                      size="small"
+                      style={{ flex: 1 }}
+                      value={item.field}
+                      placeholder="Field"
+                      options={fieldChoices}
+                      onChange={(field) => replace({ field })}
+                    />
+                  )}
                   <Button
                     size="small"
                     type="text"
@@ -144,7 +173,7 @@ export function ConditionEditor({
             type="dashed"
             block
             icon={<PlusOutlined />}
-            disabled={fieldChoices.length === 0}
+            disabled={!canAdd}
             onClick={() =>
               setConditions([
                 ...group.conditions,
