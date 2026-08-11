@@ -13,16 +13,25 @@ export const FIELD_TYPES = [
   'textarea',
   'password',
   'number',
+  'otp',
+  'autoComplete',
+  'mentions',
   'select',
   'radio',
   'checkboxGroup',
   'checkbox',
   'switch',
+  'segmented',
+  'cascader',
+  'treeSelect',
+  'transfer',
   'date',
   'dateRange',
   'time',
+  'timeRange',
   'slider',
   'rate',
+  'colorPicker',
   'upload',
   'divider',
   'title',
@@ -125,6 +134,31 @@ export const selectOptionSchema = z.object({
 });
 export type SelectOption = z.infer<typeof selectOptionSchema>;
 
+/**
+ * A nested option, for the two types that need a hierarchy — `cascader` and
+ * `treeSelect`.
+ *
+ * Kept separate from `selectOptionSchema` rather than making that one
+ * recursive. `options` is read by `useRemoteOptions`, `formatFieldValue`,
+ * `OptionsEditor`, `OptionsSource` and the summary renderer; making it nestable
+ * would force all five to handle a shape that every other type never produces.
+ * A second field keeps the blast radius to the two types that want it.
+ *
+ * Recursion through `z.lazy`, the same way `fieldNodeSchema` does it below.
+ */
+const treeOptionBase = z.object({
+  label: z.string(),
+  value: z.union([z.string(), z.number()]),
+});
+
+export type TreeOption = z.infer<typeof treeOptionBase> & {
+  children?: TreeOption[];
+};
+
+export const treeOptionSchema: z.ZodType<TreeOption> = treeOptionBase.extend({
+  children: z.lazy(() => z.array(treeOptionSchema)).optional(),
+});
+
 /** Server-side search settings. Honoured only for `select`. */
 export const remoteSearchSchema = z.object({
   /** Query parameter carrying the typed term, e.g. `q`. */
@@ -188,6 +222,14 @@ const fieldNodeBase = z.object({
   rules: z.array(ruleSpecSchema).default([]),
   condition: conditionGroupSchema.optional(),
   options: z.array(selectOptionSchema).optional(),
+  /**
+   * Hierarchical options, for `cascader` and `treeSelect` only.
+   *
+   * Static by design: `mapOptions.ts` maps a flat array, so a nested remote
+   * source would need a shape `dataSourceSchema` does not describe. The
+   * inspector says as much rather than leaving it a silent gap.
+   */
+  treeOptions: z.array(treeOptionSchema).optional(),
   /** Remote option source. When present it supersedes `options` at render time. */
   dataSource: dataSourceSchema.optional(),
   /** Escape hatch for per-type antd control props (rows, step, mode, ...). */

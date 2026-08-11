@@ -18,7 +18,19 @@ dayjs.extend(customParseFormat);
 export const VALUE_FORMAT_KEYWORDS = ['iso', 'timestamp', 'unix'] as const;
 
 /** Types whose value is a dayjs object (or a pair of them). */
-export const DATE_FIELD_TYPES = new Set<FieldType>(['date', 'dateRange', 'time']);
+export const DATE_FIELD_TYPES = new Set<FieldType>([
+  'date',
+  'dateRange',
+  'time',
+  'timeRange',
+]);
+
+/** Types whose value is a *pair* of dayjs objects rather than one. */
+export const DATE_RANGE_FIELD_TYPES = new Set<FieldType>(['dateRange', 'timeRange']);
+
+export function isDateRangeFieldType(type: FieldType): boolean {
+  return DATE_RANGE_FIELD_TYPES.has(type);
+}
 
 export function isDateFieldType(type: FieldType): boolean {
   return DATE_FIELD_TYPES.has(type);
@@ -74,7 +86,7 @@ export function serializeDateValue(value: unknown, valueFormat?: string): unknow
 /** dayjs → JSON for one field, honouring `dateRange`'s two-element value. */
 export function serializeDateField(node: FieldNode, value: unknown): unknown {
   const valueFormat = valueFormatOf(node);
-  if (node.type === 'dateRange' && Array.isArray(value)) {
+  if (isDateRangeFieldType(node.type) && Array.isArray(value)) {
     return value.map((entry) => serializeDateValue(entry, valueFormat));
   }
   return serializeDateValue(value, valueFormat);

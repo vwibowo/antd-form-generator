@@ -1,6 +1,7 @@
 import { Checkbox, DatePicker, Input, InputNumber, Select, Slider, Switch, TimePicker } from 'antd';
 import {
   displayFormatOf,
+  isDateRangeFieldType,
   parseDateValue,
   serializeDateValue,
   valueFormatOf,
@@ -53,19 +54,23 @@ function DefaultValueInput({ node, onPatch }: { node: FieldNode; onPatch: Common
 
     case 'date':
     case 'time':
-    case 'dateRange': {
+    case 'dateRange':
+    case 'timeRange': {
       // Stored in the field's own `valueFormat` (ISO unless it says otherwise)
       // and converted to dayjs at render time.
       const valueFormat = valueFormatOf(node);
       const format = displayFormatOf(node);
       const write = (value: unknown) => set(serializeDateValue(value, valueFormat) ?? undefined);
 
-      if (node.type === 'dateRange') {
+      if (isDateRangeFieldType(node.type)) {
         const raw = Array.isArray(node.defaultValue) ? node.defaultValue : [];
         const from = parseDateValue(raw[0], valueFormat) ?? null;
         const to = parseDateValue(raw[1], valueFormat) ?? null;
+        // A time range wants clocks, not calendars — otherwise identical.
+        const RangeControl =
+          node.type === 'timeRange' ? TimePicker.RangePicker : DatePicker.RangePicker;
         return (
-          <DatePicker.RangePicker
+          <RangeControl
             size="small"
             style={{ width: '100%' }}
             showTime={node.props?.showTime === true}

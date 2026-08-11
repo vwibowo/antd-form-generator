@@ -14,6 +14,10 @@ function valueKind(fieldType: FieldType): ValueKind {
       return 'number';
     case 'checkboxGroup':
     case 'upload':
+    // A transfer's value is the list of keys moved across, so min/max/len are
+    // counts. A cascader path and a checkable tree select are arrays too.
+    case 'transfer':
+    case 'cascader':
       return 'array';
     default:
       return 'string';

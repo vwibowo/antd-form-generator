@@ -1,6 +1,6 @@
 import { Rate, Space, Tag, Typography } from 'antd';
 import type { ReactNode } from 'react';
-import type { FieldNode, SelectOption } from '@/schema/schema';
+import type { FieldNode, SelectOption, TreeOption } from '@/schema/schema';
 import type { CustomComponentRegistry } from '../custom';
 import { customDefFor } from '../custom';
 import { displayFormatOf, parseDateValue, valueFormatOf } from '../dateValue';
@@ -53,6 +53,41 @@ export function blankText(): ReactNode {
 function labelFor(value: unknown, options: SelectOption[] | undefined): string {
   const match = options?.find((option) => String(option.value) === String(value));
   return match ? match.label : String(value);
+}
+
+/**
+ * Labels for a cascader path or a tree select's value.
+ *
+ * A cascader submits the whole path (`['a','a1']`), so each entry is resolved
+ * one level deeper than the last. A tree select submits leaf values that may
+ * sit anywhere, so those are looked up across the whole tree. Both cases fall
+ * back to the raw value, which is what keeps a stale option list readable.
+ */
+function treeLabels(value: unknown, treeOptions: TreeOption[]): string[] {
+  const values = Array.isArray(value) ? value : value === undefined ? [] : [value];
+  if (values.length === 0) return [];
+
+  const findDeep = (options: TreeOption[], target: unknown): TreeOption | undefined => {
+    for (const option of options) {
+      if (String(option.value) === String(target)) return option;
+      const nested = option.children ? findDeep(option.children, target) : undefined;
+      if (nested) return nested;
+    }
+    return undefined;
+  };
+
+  // Try the value as a path first: every step found at successive depths.
+  let level = treeOptions;
+  const path: string[] = [];
+  for (const entry of values) {
+    const match = level.find((option) => String(option.value) === String(entry));
+    if (!match) break;
+    path.push(match.label);
+    level = match.children ?? [];
+  }
+  if (path.length === values.length) return path;
+
+  return values.map((entry) => findDeep(treeOptions, entry)?.label ?? String(entry));
 }
 
 function tagList(values: unknown[], options: SelectOption[] | undefined): ReactNode {
@@ -155,11 +190,27 @@ export function formatFieldValue(
     }
 
     case 'select':
+    case 'autoComplete':
       if (Array.isArray(value)) return tagList(value, node.options);
       return labelFor(value, node.options);
 
     case 'radio':
+    case 'segmented':
       return labelFor(value, node.options);
+
+    case 'transfer':
+      // The payload holds the keys that moved across, so the option list is
+      // what turns them back into something readable.
+      return tagList(Array.isArray(value) ? value : [value], node.options);
+
+    case 'cascader':
+    case 'treeSelect': {
+      // A cascader's value is the path down the tree, so the labels along it
+      // read better joined than as separate tags.
+      const labels = treeLabels(value, node.treeOptions ?? []);
+      if (labels.length === 0) return plain(value);
+      return labels.join(node.type === 'cascader' ? ' / ' : ', ');
+    }
 
     case 'checkboxGroup':
       return tagList(Array.isArray(value) ? value : [value], node.options);
@@ -184,6 +235,37 @@ export function formatFieldValue(
       const separator = str(props, 'separator') ?? '→';
       const fallback = defaultDateFormat(props);
       return value.map((entry) => dateText(node, entry, fallback)).join(` ${separator} `);
+    }
+
+    case 'timeRange': {
+      if (!Array.isArray(value)) return plain(value);
+      const separator = str(props, 'separator') ?? '→';
+      return value.map((entry) => dateText(node, entry, 'HH:mm:ss')).join(` ${separator} `);
+    }
+
+    case 'otp':
+      // A code is a code — never reformatted, and never masked here, because a
+      // summary page exists so the reader can check what they entered.
+      return plain(value);
+
+    case 'colorPicker': {
+      if (isBlank(value)) return blankText();
+      const css = String(value);
+      return (
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <span
+            aria-hidden
+            style={{
+              width: 14,
+              height: 14,
+              borderRadius: 3,
+              background: css,
+              border: '1px solid rgba(5, 5, 5, 0.15)',
+            }}
+          />
+          {css}
+        </span>
+      );
     }
 
     case 'rate':

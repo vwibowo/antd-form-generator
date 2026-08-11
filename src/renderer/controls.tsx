@@ -1,16 +1,23 @@
-import { UploadOutlined } from '@ant-design/icons';
+import { InboxOutlined, UploadOutlined } from '@ant-design/icons';
 import {
+  AutoComplete,
   Button,
+  Cascader,
   Checkbox,
+  ColorPicker,
   DatePicker,
   Input,
   InputNumber,
+  Mentions,
   Radio,
   Rate,
+  Segmented,
   Select,
   Slider,
   Switch,
   TimePicker,
+  Transfer,
+  TreeSelect,
   Upload,
 } from 'antd';
 import type { ReactElement, ReactNode } from 'react';
@@ -21,6 +28,7 @@ import { parseDateValue } from './dateValue';
 import { numberFormatters } from './numberFormat';
 
 const { RangePicker } = DatePicker;
+const TimeRangePicker = TimePicker.RangePicker;
 
 type Props = Record<string, unknown>;
 
@@ -88,6 +96,24 @@ function readOnlySelectProps(props: Props): Record<string, unknown> {
 }
 
 /** `responsive` or a count; anything else means no limit. */
+/**
+ * `Input.OTP`'s mask takes a boolean or the single character to show.
+ * A one-character string means "mask with this"; anything else is a plain flag.
+ */
+function otpMask(props: Props): boolean | string | undefined {
+  const raw = props.mask;
+  if (typeof raw === 'string' && raw.length === 1) return raw;
+  return typeof raw === 'boolean' ? raw : undefined;
+}
+
+/** Cascader search matches on any label along the path, not just the leaf. */
+function cascaderFilter(input: string, path: { label?: ReactNode }[]): boolean {
+  const term = input.toLowerCase();
+  return path.some(
+    (step) => typeof step.label === 'string' && step.label.toLowerCase().includes(term),
+  );
+}
+
 function maxTagCount(props: Props): number | 'responsive' | undefined {
   const raw = props.maxTagCount;
   if (raw === 'responsive') return 'responsive';
@@ -140,6 +166,7 @@ export function renderControl(
     placeholder: node.placeholder,
   };
   const options = overrides?.options ?? node.options ?? [];
+  const treeOptions = node.treeOptions ?? [];
   const readOnly = bool(props, 'readOnly');
 
   switch (node.type) {
@@ -209,6 +236,114 @@ export function renderControl(
         />
       );
     }
+
+    case 'otp':
+      return (
+        <Input.OTP
+          disabled={disabled}
+          length={num(props, 'length', 6)}
+          mask={otpMask(props)}
+          {...appearance(props)}
+          formatter={bool(props, 'upperCase') ? (text) => text.toUpperCase() : undefined}
+        />
+      );
+
+    case 'autoComplete':
+      return (
+        <AutoComplete
+          {...common}
+          {...appearance(props)}
+          options={options}
+          allowClear={bool(props, 'allowClear', true)}
+          backfill={bool(props, 'backfill')}
+          // In server-search mode the list already IS the result, so antd must
+          // not filter it again — the same rule `select` follows.
+          filterOption={overrides?.onSearch !== undefined ? false : bool(props, 'filterOption', true)}
+          onSearch={overrides?.onSearch}
+        />
+      );
+
+    case 'mentions':
+      return (
+        <Mentions
+          {...common}
+          {...appearance(props)}
+          rows={num(props, 'rows', 3)}
+          prefix={str(props, 'prefix', '@')}
+          split={str(props, 'split')}
+          options={options.map((option) => ({
+            value: String(option.value),
+            label: option.label,
+          }))}
+        />
+      );
+
+    case 'segmented':
+      return (
+        <Segmented
+          disabled={disabled}
+          block={bool(props, 'block', true)}
+          // `Segmented` takes a size but no variant, so `appearance` cannot be
+          // spread here without passing antd an unknown prop.
+          size={appearance(props).size}
+          vertical={bool(props, 'vertical')}
+          options={options.map((option) => ({ label: option.label, value: option.value }))}
+        />
+      );
+
+    case 'cascader':
+      return (
+        <Cascader
+          {...common}
+          {...appearance(props)}
+          style={{ width: '100%' }}
+          options={treeOptions}
+          expandTrigger={bool(props, 'expandOnHover') ? 'hover' : 'click'}
+          changeOnSelect={bool(props, 'changeOnSelect')}
+          multiple={bool(props, 'multiple') || undefined}
+          showSearch={bool(props, 'showSearch') ? { filter: cascaderFilter } : undefined}
+          allowClear={bool(props, 'allowClear', true)}
+        />
+      );
+
+    case 'treeSelect':
+      return (
+        <TreeSelect
+          {...common}
+          {...appearance(props)}
+          style={{ width: '100%' }}
+          treeData={treeOptions}
+          treeCheckable={bool(props, 'checkable')}
+          multiple={bool(props, 'multiple')}
+          showSearch={bool(props, 'showSearch', true)}
+          treeDefaultExpandAll={bool(props, 'expandAll')}
+          allowClear={bool(props, 'allowClear', true)}
+          treeNodeFilterProp="label"
+        />
+      );
+
+    case 'transfer':
+      return (
+        <Transfer
+          disabled={disabled}
+          // `Transfer` wants a keyed list, and an option's value is its key.
+          dataSource={options.map((option) => ({
+            key: String(option.value),
+            title: option.label,
+          }))}
+          render={(item) => item.title ?? item.key}
+          titles={[str(props, 'leftTitle', 'Available'), str(props, 'rightTitle', 'Chosen')]}
+          showSearch={bool(props, 'showSearch')}
+          oneWay={bool(props, 'oneWay')}
+          // `styles.section`, not `listStyle`: antd 6 deprecates the latter.
+          styles={{
+            section: {
+              width: num(props, 'paneWidth', 220),
+              height: num(props, 'paneHeight', 220),
+            },
+          }}
+        />
+      );
 
     case 'select': {
       // In server-search mode the list already IS the search result, so antd
@@ -331,6 +466,42 @@ export function renderControl(
         />
       );
 
+    case 'timeRange': {
+      const start = str(props, 'startPlaceholder');
+      const end = str(props, 'endPlaceholder');
+      return (
+        <TimeRangePicker
+          disabled={disabled}
+          style={{ width: '100%' }}
+          placeholder={start || end ? [start ?? '', end ?? ''] : undefined}
+          {...appearance(props)}
+          format={str(props, 'format')}
+          use12Hours={bool(props, 'use12Hours')}
+          hourStep={num(props, 'hourStep') as 1 | undefined}
+          minuteStep={num(props, 'minuteStep') as 1 | undefined}
+          secondStep={num(props, 'secondStep') as 1 | undefined}
+          order={bool(props, 'order', true)}
+          allowClear={bool(props, 'allowClear', true)}
+          inputReadOnly={bool(props, 'inputReadOnly')}
+          {...readOnlyPickerProps(props)}
+        />
+      );
+    }
+
+    case 'colorPicker':
+      return (
+        <ColorPicker
+          disabled={disabled}
+          showText={bool(props, 'showText', true)}
+          allowClear={bool(props, 'allowClear')}
+          format={str(props, 'format') as 'rgb' | 'hex' | 'hsb' | undefined}
+          size={appearance(props).size}
+          // The value leaves antd as a `Color` object; `serializeValues` turns it
+          // into a hex string on the way out and `hydrateValues` reads it back.
+          disabledAlpha={bool(props, 'disabledAlpha')}
+        />
+      );
+
     case 'slider': {
       const unit = str(props, 'unit');
       return (
@@ -358,22 +529,52 @@ export function renderControl(
         />
       );
 
-    case 'upload':
-      return (
+    case 'upload': {
+      const shared = {
         // No backend in this app — keep files client-side.
-        <Upload
-          beforeUpload={() => false}
-          multiple={bool(props, 'multiple')}
-          maxCount={num(props, 'maxCount')}
-          accept={str(props, 'accept')}
-          listType={str(props, 'listType') as 'picture' | 'picture-card' | 'picture-circle' | undefined}
-          showUploadList={bool(props, 'showUploadList', true)}
-        >
-          <Button icon={<UploadOutlined />} disabled={disabled}>
+        beforeUpload: () => false,
+        multiple: bool(props, 'multiple'),
+        maxCount: num(props, 'maxCount'),
+        accept: str(props, 'accept'),
+        listType: str(props, 'listType') as
+          | 'picture'
+          | 'picture-card'
+          | 'picture-circle'
+          | undefined,
+        showUploadList: bool(props, 'showUploadList', true),
+      };
+
+      // A dragger is the same Upload with its own layout, so it shares every
+      // prop and only differs in what it renders inside.
+      if (bool(props, 'drag')) {
+        return (
+          <Upload.Dragger {...shared} disabled={disabled}>
+            <p className="ant-upload-drag-icon" style={{ marginBottom: 8 }}>
+              <InboxOutlined />
+            </p>
+            <p className="ant-upload-text">
+              {str(props, 'dragText', 'Click or drag a file here to upload')}
+            </p>
+            {str(props, 'dragHint') ? (
+              <p className="ant-upload-hint">{str(props, 'dragHint')}</p>
+            ) : null}
+          </Upload.Dragger>
+        );
+      }
+
+      return (
+        <Upload {...shared}>
+          <Button
+            icon={<UploadOutlined />}
+            disabled={disabled}
+            // A picture-card list expects a compact tile, not a labelled button.
+            type={shared.listType === 'picture-card' ? 'text' : 'default'}
+          >
             {str(props, 'buttonText', 'Select file')}
           </Button>
         </Upload>
       );
+    }
 
     case 'custom': {
       const def = customDefFor(node, registry);
@@ -441,6 +642,8 @@ export function valuePropNameFor(
 ): string | undefined {
   if (node.type === 'checkbox' || node.type === 'switch') return 'checked';
   if (node.type === 'upload') return 'fileList';
+  // `Transfer` reports the keys that have moved across as `targetKeys`.
+  if (node.type === 'transfer') return 'targetKeys';
   if (node.type === 'custom') return customDefFor(node, registry)?.valuePropName;
   return undefined;
 }

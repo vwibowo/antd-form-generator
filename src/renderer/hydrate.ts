@@ -1,6 +1,11 @@
 import type { FieldNode, FormSchema } from '@/schema/schema';
 import { isPresentationalType, isTransparentContainer } from '@/schema/schema';
-import { isDateFieldType, parseDateValue, valueFormatOf } from './dateValue';
+import {
+  isDateFieldType,
+  isDateRangeFieldType,
+  parseDateValue,
+  valueFormatOf,
+} from './dateValue';
 
 /**
  * Turn a submitted payload back into values a live form can hold — the inverse
@@ -54,7 +59,7 @@ function applyNodes(nodes: FieldNode[], target: Record<string, unknown>): void {
       const valueFormat = valueFormatOf(node);
       const raw = target[node.name];
 
-      if (node.type === 'dateRange') {
+      if (isDateRangeFieldType(node.type)) {
         if (!Array.isArray(raw)) continue;
         const range = raw.map((entry) => parseDateValue(entry, valueFormat));
         // A half-parsed range would put the picker in a state it cannot show,

@@ -606,6 +606,27 @@ const timeSpecs: PropSpec[] = [
   valueFormatSpec,
 ];
 
+const timeRangeSpecs: PropSpec[] = [
+  { key: 'startPlaceholder', label: 'Start placeholder', group: 'Appearance', editor: { kind: 'text' } },
+  { key: 'endPlaceholder', label: 'End placeholder', group: 'Appearance', editor: { kind: 'text' } },
+  { key: 'separator', label: 'Separator', group: 'Appearance', editor: { kind: 'text', placeholder: '→' } },
+  ...pickerAppearance,
+  { key: 'use12Hours', label: '12-hour clock', group: 'Behavior', editor: { kind: 'bool' }, default: false },
+  { key: 'hourStep', label: 'Hour step', group: 'Behavior', editor: { kind: 'number', min: 1, max: 23 } },
+  { key: 'minuteStep', label: 'Minute step', group: 'Behavior', editor: { kind: 'number', min: 1, max: 59 } },
+  { key: 'secondStep', label: 'Second step', group: 'Behavior', editor: { kind: 'number', min: 1, max: 59 } },
+  {
+    key: 'order',
+    label: 'Reorder to earliest first',
+    group: 'Behavior',
+    editor: { kind: 'bool' },
+    default: true,
+  },
+  ...pickerBehaviour,
+  displayFormatSpec(TIME_FORMAT_PRESETS),
+  valueFormatSpec,
+];
+
 const sliderSpecs: PropSpec[] = [
   { key: 'min', label: 'Minimum', group: 'Behavior', editor: { kind: 'number' }, default: 0 },
   { key: 'max', label: 'Maximum', group: 'Behavior', editor: { kind: 'number' }, default: 100 },
@@ -668,6 +689,173 @@ const uploadSpecs: PropSpec[] = [
   },
   { key: 'maxCount', label: 'Max files', group: 'Behavior', editor: { kind: 'number', min: 1 } },
   { key: 'multiple', label: 'Allow multiple files', group: 'Behavior', editor: { kind: 'bool' }, default: false },
+  {
+    key: 'drag',
+    label: 'Drop zone',
+    group: 'Appearance',
+    editor: { kind: 'bool' },
+    default: false,
+    help: 'A large area files can be dragged onto, instead of a button.',
+  },
+  {
+    key: 'dragText',
+    label: 'Drop zone text',
+    group: 'Appearance',
+    editor: { kind: 'text' },
+    default: 'Click or drag a file here to upload',
+    when: (node) => node.props?.drag === true,
+  },
+  {
+    key: 'dragHint',
+    label: 'Drop zone hint',
+    group: 'Appearance',
+    editor: { kind: 'text', placeholder: 'e.g. PDF or JPG, up to 10 MB' },
+    when: (node) => node.props?.drag === true,
+  },
+];
+
+const otpSpecs: PropSpec[] = [
+  { key: 'length', label: 'Digits', group: 'Behavior', editor: { kind: 'number', min: 2, max: 12 }, default: 6 },
+  {
+    key: 'mask',
+    label: 'Mask character',
+    group: 'Appearance',
+    editor: { kind: 'text', placeholder: 'e.g. •' },
+    help: 'One character hides what was typed. Blank shows the digits.',
+  },
+  {
+    key: 'upperCase',
+    label: 'Force upper case',
+    group: 'Format',
+    editor: { kind: 'bool' },
+    default: false,
+  },
+  variantSpec,
+  sizeSpec,
+];
+
+const autoCompleteSpecs: PropSpec[] = [
+  { key: 'allowClear', label: 'Allow clear', group: 'Behavior', editor: { kind: 'bool' }, default: true },
+  {
+    key: 'backfill',
+    label: 'Fill the input while arrowing',
+    group: 'Behavior',
+    editor: { kind: 'bool' },
+    default: false,
+  },
+  {
+    key: 'filterOption',
+    label: 'Filter as you type',
+    group: 'Behavior',
+    editor: { kind: 'bool' },
+    default: true,
+    lockedWhen: (node) =>
+      node.dataSource?.search
+        ? 'The server is doing the searching, so the list is already the result.'
+        : undefined,
+  },
+  variantSpec,
+  sizeSpec,
+];
+
+const mentionsSpecs: PropSpec[] = [
+  { key: 'rows', label: 'Rows', group: 'Appearance', editor: { kind: 'number', min: 1, max: 20 }, default: 3 },
+  {
+    key: 'prefix',
+    label: 'Trigger character',
+    group: 'Behavior',
+    editor: { kind: 'text', placeholder: '@' },
+    default: '@',
+  },
+  {
+    key: 'split',
+    label: 'Inserted after a mention',
+    group: 'Format',
+    editor: { kind: 'text', placeholder: 'a space' },
+  },
+];
+
+const segmentedSpecs: PropSpec[] = [
+  { key: 'block', label: 'Fill the width', group: 'Appearance', editor: { kind: 'bool' }, default: true },
+  { key: 'vertical', label: 'Stack vertically', group: 'Appearance', editor: { kind: 'bool' }, default: false },
+  {
+    key: 'size',
+    label: 'Size',
+    group: 'Appearance',
+    editor: {
+      kind: 'select',
+      options: [
+        { label: 'Default', value: '' },
+        { label: 'Small', value: 'small' },
+        { label: 'Middle', value: 'middle' },
+        { label: 'Large', value: 'large' },
+      ],
+    },
+    default: '',
+  },
+];
+
+const cascaderSpecs: PropSpec[] = [
+  { key: 'showSearch', label: 'Searchable', group: 'Behavior', editor: { kind: 'bool' }, default: false },
+  {
+    key: 'changeOnSelect',
+    label: 'Any level is a valid answer',
+    group: 'Behavior',
+    editor: { kind: 'bool' },
+    default: false,
+    help: 'Off means only a leaf can be chosen.',
+  },
+  { key: 'expandOnHover', label: 'Open levels on hover', group: 'Behavior', editor: { kind: 'bool' }, default: false },
+  { key: 'multiple', label: 'Allow several paths', group: 'Behavior', editor: { kind: 'bool' }, default: false },
+  { key: 'allowClear', label: 'Allow clear', group: 'Behavior', editor: { kind: 'bool' }, default: true },
+  variantSpec,
+  sizeSpec,
+];
+
+const treeSelectSpecs: PropSpec[] = [
+  { key: 'checkable', label: 'Checkboxes', group: 'Behavior', editor: { kind: 'bool' }, default: false },
+  { key: 'multiple', label: 'Allow several', group: 'Behavior', editor: { kind: 'bool' }, default: false },
+  { key: 'showSearch', label: 'Searchable', group: 'Behavior', editor: { kind: 'bool' }, default: true },
+  { key: 'expandAll', label: 'Start expanded', group: 'Appearance', editor: { kind: 'bool' }, default: false },
+  { key: 'allowClear', label: 'Allow clear', group: 'Behavior', editor: { kind: 'bool' }, default: true },
+  variantSpec,
+  sizeSpec,
+];
+
+const transferSpecs: PropSpec[] = [
+  { key: 'leftTitle', label: 'Left heading', group: 'Appearance', editor: { kind: 'text' }, default: 'Available' },
+  { key: 'rightTitle', label: 'Right heading', group: 'Appearance', editor: { kind: 'text' }, default: 'Chosen' },
+  { key: 'showSearch', label: 'Searchable', group: 'Behavior', editor: { kind: 'bool' }, default: false },
+  {
+    key: 'oneWay',
+    label: 'One way only',
+    group: 'Behavior',
+    editor: { kind: 'bool' },
+    default: false,
+    help: 'Items can be moved across but not back.',
+  },
+  { key: 'paneWidth', label: 'Pane width', group: 'Appearance', editor: { kind: 'number', min: 120 }, default: 220 },
+  { key: 'paneHeight', label: 'Pane height', group: 'Appearance', editor: { kind: 'number', min: 120 }, default: 220 },
+];
+
+const colorPickerSpecs: PropSpec[] = [
+  { key: 'showText', label: 'Show the value', group: 'Appearance', editor: { kind: 'bool' }, default: true },
+  {
+    key: 'format',
+    label: 'Submitted as',
+    group: 'Format',
+    editor: {
+      kind: 'select',
+      options: [
+        { label: 'Hex — #1677ff', value: 'hex' },
+        { label: 'RGB — rgb(22,119,255)', value: 'rgb' },
+        { label: 'HSB', value: 'hsb' },
+      ],
+    },
+    default: 'hex',
+  },
+  { key: 'disabledAlpha', label: 'No transparency', group: 'Behavior', editor: { kind: 'bool' }, default: false },
+  { key: 'allowClear', label: 'Allow clear', group: 'Behavior', editor: { kind: 'bool' }, default: false },
 ];
 
 const titleSpecs: PropSpec[] = [
@@ -782,8 +970,15 @@ export const TYPE_PROP_SPECS: Record<FieldType, PropSpec[]> = {
   textarea: textareaSpecs,
   password: passwordSpecs,
   number: numberSpecs,
+  otp: otpSpecs,
+  autoComplete: autoCompleteSpecs,
+  mentions: mentionsSpecs,
   select: selectSpecs,
   radio: radioSpecs,
+  segmented: segmentedSpecs,
+  cascader: cascaderSpecs,
+  treeSelect: treeSelectSpecs,
+  transfer: transferSpecs,
   checkboxGroup: [],
   checkbox: [
     { key: 'text', label: 'Checkbox text', group: 'Appearance', editor: { kind: 'text' } },
@@ -792,8 +987,10 @@ export const TYPE_PROP_SPECS: Record<FieldType, PropSpec[]> = {
   date: dateSpecs,
   dateRange: dateRangeSpecs,
   time: timeSpecs,
+  timeRange: timeRangeSpecs,
   slider: sliderSpecs,
   rate: rateSpecs,
+  colorPicker: colorPickerSpecs,
   upload: uploadSpecs,
   divider: dividerSpecs,
   title: titleSpecs,

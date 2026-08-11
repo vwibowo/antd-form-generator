@@ -2,6 +2,7 @@ import type { FieldNode, FormSchema } from '@/schema/schema';
 import { isPresentationalType, isTransparentContainer } from '@/schema/schema';
 import type { CustomComponentRegistry } from './custom';
 import { customDefFor } from './custom';
+import { serializeColorValue } from './colorValue';
 import { isDateFieldType, serializeDateField } from './dateValue';
 
 /**
@@ -55,6 +56,15 @@ function applyNodes(
 
     if (isDateFieldType(node.type)) {
       target[node.name] = serializeDateField(node, target[node.name]);
+      continue;
+    }
+
+    if (node.type === 'colorPicker') {
+      const format = node.props?.format;
+      target[node.name] = serializeColorValue(
+        target[node.name],
+        typeof format === 'string' ? format : undefined,
+      );
       continue;
     }
 

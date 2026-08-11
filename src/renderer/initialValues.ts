@@ -1,6 +1,11 @@
 import type { FieldNode, FormSchema } from '@/schema/schema';
 import { isPresentationalType, isTransparentContainer } from '@/schema/schema';
-import { isDateFieldType, parseDateValue, valueFormatOf } from './dateValue';
+import {
+  isDateFieldType,
+  isDateRangeFieldType,
+  parseDateValue,
+  valueFormatOf,
+} from './dateValue';
 
 /**
  * Convert an authored `defaultValue` into what the antd control expects.
@@ -13,7 +18,7 @@ export function toControlDefault(node: FieldNode): unknown {
   if (isDateFieldType(node.type)) {
     // Authored in the field's own `valueFormat` — ISO unless it says otherwise.
     const valueFormat = valueFormatOf(node);
-    if (node.type === 'dateRange') {
+    if (isDateRangeFieldType(node.type)) {
       if (!Array.isArray(raw)) return undefined;
       const range = raw.map((entry) => parseDateValue(entry, valueFormat));
       return range.length === 2 && range.every(Boolean) ? range : undefined;

@@ -9,6 +9,7 @@ import { CommonProps } from './CommonProps';
 import { ConditionEditor } from './ConditionEditor';
 import { OptionsSource } from './OptionsSource';
 import { RulesEditor } from './RulesEditor';
+import { TreeOptionsEditor } from './TreeOptionsEditor';
 import { TypeProps, hasTypeProps } from './TypeProps';
 
 export function Inspector() {
@@ -82,6 +83,21 @@ export function Inspector() {
       label: 'Options',
       children: (
         <OptionsSource node={selected} onPatch={onPatch} fieldChoices={fieldChoices} />
+      ),
+    });
+  }
+
+  // Exclusive with the flat editor above: a type has one shape of options or
+  // the other, never both.
+  if (meta.supports.treeOptions) {
+    items.push({
+      key: 'treeOptions',
+      label: 'Options',
+      children: (
+        <TreeOptionsEditor
+          options={selected.treeOptions ?? []}
+          onChange={(treeOptions) => onPatch({ treeOptions })}
+        />
       ),
     });
   }

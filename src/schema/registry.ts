@@ -19,6 +19,8 @@ export interface FieldSupports {
   placeholder: boolean;
   /** Shows the option list editor (select / radio / checkbox group). */
   options: boolean;
+  /** Shows the nested option editor instead — `cascader` and `treeSelect`. */
+  treeOptions: boolean;
   /** Shows the validation rule editor. */
   rules: boolean;
   /** Shows the default-value input. */
@@ -43,6 +45,7 @@ export interface FieldMeta {
 const base: FieldSupports = {
   placeholder: true,
   options: false,
+  treeOptions: false,
   rules: true,
   defaultValue: true,
   children: false,
@@ -53,9 +56,13 @@ const noPlaceholder: FieldSupports = { ...base, placeholder: false };
 
 const withOptions: FieldSupports = { ...base, options: true };
 
+/** Hierarchical options, and no flat option editor — the two are exclusive. */
+const withTreeOptions: FieldSupports = { ...base, treeOptions: true };
+
 const presentational: FieldSupports = {
   placeholder: false,
   options: false,
+  treeOptions: false,
   rules: false,
   defaultValue: false,
   children: false,
@@ -65,6 +72,23 @@ const presentational: FieldSupports = {
 const seedOptions = [
   { label: 'Option A', value: 'a' },
   { label: 'Option B', value: 'b' },
+];
+
+/** Two levels, so a freshly dropped cascader already demonstrates nesting. */
+const seedTreeOptions = [
+  {
+    label: 'Group A',
+    value: 'a',
+    children: [
+      { label: 'A one', value: 'a1' },
+      { label: 'A two', value: 'a2' },
+    ],
+  },
+  {
+    label: 'Group B',
+    value: 'b',
+    children: [{ label: 'B one', value: 'b1' }],
+  },
 ];
 
 export const FIELD_REGISTRY: Record<FieldType, FieldMeta> = {
@@ -100,6 +124,32 @@ export const FIELD_REGISTRY: Record<FieldType, FieldMeta> = {
     supports: base,
     defaults: { label: 'Number', placeholder: 'Enter a number' },
   },
+  otp: {
+    type: 'otp',
+    label: 'One-time code',
+    category: 'Basic',
+    namePrefix: 'code',
+    // `Input.OTP` renders its own boxes and has nowhere to put placeholder text.
+    supports: noPlaceholder,
+    defaults: { label: 'Verification code', props: { length: 6 } },
+  },
+  autoComplete: {
+    type: 'autoComplete',
+    label: 'Autocomplete',
+    category: 'Basic',
+    namePrefix: 'lookup',
+    // Free text plus suggestions, so it gets remote options for nothing.
+    supports: withOptions,
+    defaults: { label: 'Search', placeholder: 'Start typing', options: seedOptions },
+  },
+  mentions: {
+    type: 'mentions',
+    label: 'Mentions',
+    category: 'Basic',
+    namePrefix: 'note',
+    supports: withOptions,
+    defaults: { label: 'Note', placeholder: 'Type @ to mention someone', options: seedOptions },
+  },
   select: {
     type: 'select',
     label: 'Select',
@@ -107,6 +157,39 @@ export const FIELD_REGISTRY: Record<FieldType, FieldMeta> = {
     namePrefix: 'select',
     supports: withOptions,
     defaults: { label: 'Select', placeholder: 'Choose one', options: seedOptions },
+  },
+  segmented: {
+    type: 'segmented',
+    label: 'Segmented',
+    category: 'Choice',
+    namePrefix: 'choice',
+    supports: { ...withOptions, placeholder: false },
+    defaults: { label: 'Choose one', options: seedOptions, defaultValue: 'a' },
+  },
+  cascader: {
+    type: 'cascader',
+    label: 'Cascader',
+    category: 'Choice',
+    namePrefix: 'cascade',
+    supports: withTreeOptions,
+    defaults: { label: 'Category', placeholder: 'Choose a path', treeOptions: seedTreeOptions },
+  },
+  treeSelect: {
+    type: 'treeSelect',
+    label: 'Tree select',
+    category: 'Choice',
+    namePrefix: 'tree',
+    supports: withTreeOptions,
+    defaults: { label: 'Pick from a tree', placeholder: 'Choose one', treeOptions: seedTreeOptions },
+  },
+  transfer: {
+    type: 'transfer',
+    label: 'Transfer',
+    category: 'Choice',
+    namePrefix: 'picked',
+    // Two panes of its own, so there is nowhere a placeholder would show.
+    supports: { ...withOptions, placeholder: false },
+    defaults: { label: 'Move what applies', options: seedOptions },
   },
   radio: {
     type: 'radio',
@@ -164,6 +247,18 @@ export const FIELD_REGISTRY: Record<FieldType, FieldMeta> = {
     supports: base,
     defaults: { label: 'Time', placeholder: 'Select time' },
   },
+  timeRange: {
+    type: 'timeRange',
+    label: 'Time range',
+    category: 'Date & time',
+    // Two placeholders of its own, edited as start/end props like `dateRange`.
+    namePrefix: 'timeRange',
+    supports: { ...base, placeholder: false },
+    defaults: {
+      label: 'Between',
+      props: { startPlaceholder: 'From', endPlaceholder: 'To' },
+    },
+  },
   slider: {
     type: 'slider',
     label: 'Slider',
@@ -179,6 +274,14 @@ export const FIELD_REGISTRY: Record<FieldType, FieldMeta> = {
     namePrefix: 'rate',
     supports: noPlaceholder,
     defaults: { label: 'Rating', props: { count: 5 }, defaultValue: 0 },
+  },
+  colorPicker: {
+    type: 'colorPicker',
+    label: 'Colour',
+    category: 'Advanced',
+    namePrefix: 'colour',
+    supports: noPlaceholder,
+    defaults: { label: 'Colour', defaultValue: '#1677ff' },
   },
   upload: {
     type: 'upload',
@@ -232,6 +335,7 @@ export const FIELD_REGISTRY: Record<FieldType, FieldMeta> = {
     supports: {
       placeholder: false,
       options: false,
+      treeOptions: false,
       rules: false,
       defaultValue: false,
       children: true,
