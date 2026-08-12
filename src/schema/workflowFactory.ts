@@ -1,4 +1,4 @@
-import { createId } from '@/lib/ids';
+import { createId } from '../lib/ids';
 import { createNode } from './factory';
 import { screenSchemaSchema } from './screen';
 import type { WorkflowEdge, WorkflowNode, WorkflowNodeKind, WorkflowSchema } from './workflow';

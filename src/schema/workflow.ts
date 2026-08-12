@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { createId } from '@/lib/ids';
+import { createId } from '../lib/ids';
 import { conditionGroupSchema } from './nodeBase';
 import { screenSchemaSchema } from './screen';
 

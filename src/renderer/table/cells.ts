@@ -1,7 +1,7 @@
 import { parseDateValue } from '../dateValue';
 import { formatNumber } from '../numberFormat';
 import { readPath } from '../remote/mapOptions';
-import type { TableColumn } from '@/schema/table';
+import type { TableColumn } from '../../schema/table';
 
 /** Shown for a value the row does not have, or one that cannot be read. */
 export const EMPTY_CELL = '—';

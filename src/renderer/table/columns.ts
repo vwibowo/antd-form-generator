@@ -1,7 +1,7 @@
 import type { TableColumnsType } from 'antd';
 import type React from 'react';
-import type { TableColumn, TableSchema } from '@/schema/table';
-import { collectFilterValues } from '@/schema/table';
+import type { TableColumn, TableSchema } from '../../schema/table';
+import { collectFilterValues } from '../../schema/table';
 import { readPath } from '../remote/mapOptions';
 import { compareRows, formatCell } from './cells';
 

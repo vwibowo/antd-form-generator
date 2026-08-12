@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { TableSchema } from '@/schema/table';
+import type { TableSchema } from '../../schema/table';
 import { readPath } from '../remote/mapOptions';
 import { resolveUrlTemplate, withSearchParam } from '../remote/url';
 import { useFetchedBody } from '../remote/useFetchedBody';

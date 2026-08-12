@@ -13,8 +13,8 @@ import {
   Tabs,
   Typography,
 } from 'antd';
-import type { ScreenNode, ScreenSchema } from '@/schema/screen';
-import { collectsValue, isTransparentContainer } from '@/schema/screen';
+import type { ScreenNode, ScreenSchema } from '../schema/screen';
+import { collectsValue, isTransparentContainer } from '../schema/screen';
 import type { NamePath } from './condition';
 import { evaluateCondition } from './condition';
 import {

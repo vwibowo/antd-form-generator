@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { createId } from '@/lib/ids';
-import { readPath } from '@/renderer/remote/mapOptions';
+import { createId } from '../lib/ids';
+import { readPath } from '../renderer/remote/mapOptions';
 
 /**
  * The table document — the JSON contract for "show me this list as a table".

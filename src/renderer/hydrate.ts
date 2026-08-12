@@ -1,5 +1,5 @@
-import type { ScreenNode, ScreenSchema } from '@/schema/screen';
-import { isDisplayType, isTransparentContainer } from '@/schema/screen';
+import type { ScreenNode, ScreenSchema } from '../schema/screen';
+import { isDisplayType, isTransparentContainer } from '../schema/screen';
 import {
   isDateType,
   isDateRangeType,

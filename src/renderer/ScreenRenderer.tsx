@@ -1,8 +1,8 @@
 import { Button, Empty, Form, Row, Space, Typography } from 'antd';
 import { useEffect, useMemo } from 'react';
 import type { ReactNode } from 'react';
-import type { ScreenSchema } from '@/schema/screen';
-import { screenCollectsValues, showsSubmitRow } from '@/schema/screen';
+import type { ScreenSchema } from '../schema/screen';
+import { screenCollectsValues, showsSubmitRow } from '../schema/screen';
 import type { CustomComponentRegistry } from './custom';
 import { CustomComponentsProvider, useCustomComponents } from './custom';
 import { hydrateValues } from './hydrate';

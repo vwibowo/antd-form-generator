@@ -4,7 +4,7 @@ import type { TablePaginationConfig, TableProps } from 'antd';
 import type { SorterResult } from 'antd/es/table/interface';
 import type { Key } from 'react';
 import { useEffect, useMemo, useState } from 'react';
-import type { TableSchema } from '@/schema/table';
+import type { TableSchema } from '../../schema/table';
 import { readPath } from '../remote/mapOptions';
 import { useDebouncedValue } from '../remote/useDebouncedValue';
 import { buildColumns, columnById, type TableRow } from './columns';

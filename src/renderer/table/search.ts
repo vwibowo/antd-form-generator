@@ -1,4 +1,4 @@
-import type { TableColumn } from '@/schema/table';
+import type { TableColumn } from '../../schema/table';
 import { readPath } from '../remote/mapOptions';
 import { formatCell } from './cells';
 import type { TableRow } from './columns';

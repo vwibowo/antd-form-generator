@@ -1,8 +1,8 @@
 import { Typography } from 'antd';
 import { createContext, useContext } from 'react';
 import type { ComponentType, ReactNode } from 'react';
-import type { PropSpec } from '@/schema/propSpecs';
-import type { ScreenNode, SelectOption } from '@/schema/screen';
+import type { PropSpec } from '../schema/propSpecs';
+import type { ScreenNode, SelectOption } from '../schema/screen';
 
 /**
  * Host-supplied controls.

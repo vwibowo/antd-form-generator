@@ -1,6 +1,6 @@
 import { Rate, Space, Tag, Typography } from 'antd';
 import type { ReactNode } from 'react';
-import type { ScreenNode, SelectOption, TreeOption } from '@/schema/screen';
+import type { ScreenNode, SelectOption, TreeOption } from '../../schema/screen';
 import type { CustomComponentRegistry } from '../custom';
 import { customDefFor } from '../custom';
 import { displayFormatOf, parseDateValue, valueFormatOf } from '../dateValue';

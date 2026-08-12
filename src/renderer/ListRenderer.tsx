@@ -1,6 +1,6 @@
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import { Button, Col, Empty, Form, Row, Space, Typography } from 'antd';
-import type { ScreenNode } from '@/schema/screen';
+import type { ScreenNode } from '../schema/screen';
 import { ScreenNodeView } from './ScreenNodeView';
 import { buildRowTemplate } from './initialValues';
 

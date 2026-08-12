@@ -1,4 +1,4 @@
-import { createId } from '@/lib/ids';
+import { createId } from '../lib/ids';
 import { SCREEN_REGISTRY } from './registry';
 import type { ScreenNode, ScreenNodeType } from './screen';
 import { collectsValue, screenNodeSchema } from './screen';

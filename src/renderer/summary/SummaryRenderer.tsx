@@ -1,8 +1,8 @@
 import { Card, Descriptions, Divider, Empty, Typography } from 'antd';
 import type { DescriptionsProps } from 'antd';
 import type { ReactNode } from 'react';
-import type { ScreenNode, ScreenSchema } from '@/schema/screen';
-import { isDisplayType, isTransparentContainer } from '@/schema/screen';
+import type { ScreenNode, ScreenSchema } from '../../schema/screen';
+import { isDisplayType, isTransparentContainer } from '../../schema/screen';
 import type { NamePath } from '../condition';
 import { evaluateCondition } from '../condition';
 import { dividerProps, titleProps } from '../controls';

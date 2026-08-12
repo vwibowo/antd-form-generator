@@ -1,5 +1,5 @@
 import type { FormItemProps } from 'antd';
-import type { ScreenNodeType, RuleSpec } from '@/schema/screen';
+import type { ScreenNodeType, RuleSpec } from '../schema/screen';
 
 export type AntdRule = NonNullable<FormItemProps['rules']>[number];
 

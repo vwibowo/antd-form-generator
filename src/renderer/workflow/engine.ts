@@ -1,11 +1,11 @@
-import type { WorkflowEdge, WorkflowSchema } from '@/schema/workflow';
-import { isPassthroughKind } from '@/schema/workflow';
+import type { WorkflowEdge, WorkflowSchema } from '../../schema/workflow';
+import { isPassthroughKind } from '../../schema/workflow';
 import {
   defaultOutgoing,
   findStartNodes,
   findWorkflowNode,
   orderedOutgoing,
-} from '@/schema/workflowGraph';
+} from '../../schema/workflowGraph';
 import { evaluateCondition } from '../condition';
 
 /**

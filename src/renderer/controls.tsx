@@ -21,7 +21,7 @@ import {
   Upload,
 } from 'antd';
 import type { ReactElement, ReactNode } from 'react';
-import type { ScreenNode, SelectOption } from '@/schema/screen';
+import type { ScreenNode, SelectOption } from '../schema/screen';
 import type { CustomComponentRegistry } from './custom';
 import { MissingCustomComponent, customDefFor, customKeyOf } from './custom';
 import { parseDateValue } from './dateValue';

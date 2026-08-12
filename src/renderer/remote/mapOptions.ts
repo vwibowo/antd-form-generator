@@ -1,4 +1,4 @@
-import type { SelectOption } from '@/schema/screen';
+import type { SelectOption } from '../../schema/screen';
 
 /**
  * Turn an arbitrary JSON response into `SelectOption[]`.

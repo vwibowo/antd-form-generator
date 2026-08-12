@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { screenSchemaSchema } from '@/schema/screen';
+import { screenSchemaSchema } from '../schema/screen';
 import { buildInitialValues, collectPayloadKeys } from './initialValues';
 
 /**

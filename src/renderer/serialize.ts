@@ -1,5 +1,5 @@
-import type { ScreenNode, ScreenSchema } from '@/schema/screen';
-import { isDisplayType, isTransparentContainer } from '@/schema/screen';
+import type { ScreenNode, ScreenSchema } from '../schema/screen';
+import { isDisplayType, isTransparentContainer } from '../schema/screen';
 import type { CustomComponentRegistry } from './custom';
 import { customDefFor } from './custom';
 import { serializeColorValue } from './colorValue';

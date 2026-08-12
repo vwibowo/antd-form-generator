@@ -1,4 +1,4 @@
-import type { Condition, ConditionGroup } from '@/schema/screen';
+import type { Condition, ConditionGroup } from '../schema/screen';
 
 export type NamePath = (string | number)[];
 

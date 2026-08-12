@@ -1,4 +1,4 @@
-import { createId } from '@/lib/ids';
+import { createId } from '../../lib/ids';
 import type { TableSchema } from '../table';
 import { tableSchemaSchema } from '../table';
 

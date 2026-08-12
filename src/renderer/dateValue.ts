@@ -1,6 +1,6 @@
 import dayjs, { type Dayjs } from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
-import type { ScreenNode, ScreenNodeType } from '@/schema/screen';
+import type { ScreenNode, ScreenNodeType } from '../schema/screen';
 
 // Needed to read a default value back from a custom pattern like `DD/MM/YYYY`.
 dayjs.extend(customParseFormat);
