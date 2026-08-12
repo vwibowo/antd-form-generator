@@ -2,22 +2,22 @@ import { BuildOutlined, CodeOutlined, EyeOutlined, ProfileOutlined } from '@ant-
 import { Layout, Segmented, Space, Tabs, Typography } from 'antd';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
-import { BuilderLayout } from '@/builder/BuilderLayout';
-import { TableBuilder } from '@/builder/table/TableBuilder';
-import { Toolbar } from '@/builder/Toolbar';
-import { WorkflowBuilder } from '@/builder/workflow/WorkflowBuilder';
-import { appCustomComponents } from '@/custom';
-import { ScreenJsonPane, TableJsonPane, WorkflowJsonPane } from '@/panes/JsonPane';
-import { PreviewPane } from '@/panes/PreviewPane';
-import { SummaryPane } from '@/panes/SummaryPane';
-import { TablePreviewPane } from '@/panes/TablePreviewPane';
-import { WorkflowPreviewPane } from '@/panes/WorkflowPreviewPane';
+import { BuilderLayout } from '@antd-form-generator/builder/BuilderLayout';
+import { Toolbar } from '@antd-form-generator/builder/Toolbar';
+import { ScreenJsonPane, TableJsonPane, WorkflowJsonPane } from '@antd-form-generator/builder/panes/JsonPane';
+import { PreviewPane } from '@antd-form-generator/builder/panes/PreviewPane';
+import { SummaryPane } from '@antd-form-generator/builder/panes/SummaryPane';
+import { TablePreviewPane } from '@antd-form-generator/builder/panes/TablePreviewPane';
+import { WorkflowPreviewPane } from '@antd-form-generator/builder/panes/WorkflowPreviewPane';
+import { useAppMode } from '@antd-form-generator/builder/store/useAppMode';
+import { useScreenStore } from '@antd-form-generator/builder/store/useScreenStore';
+import { useTableStore } from '@antd-form-generator/builder/store/useTableStore';
+import { useWorkflowStore } from '@antd-form-generator/builder/store/useWorkflowStore';
+import { TableBuilder } from '@antd-form-generator/builder/table/TableBuilder';
+import { WorkflowBuilder } from '@antd-form-generator/builder/workflow/WorkflowBuilder';
 import { CustomComponentsProvider } from '@antd-form-generator/core/renderer/custom';
 import type { DocumentKind } from '@antd-form-generator/core/schema/document';
-import { useAppMode } from '@/store/useAppMode';
-import { useScreenStore } from '@/store/useScreenStore';
-import { useTableStore } from '@/store/useTableStore';
-import { useWorkflowStore } from '@/store/useWorkflowStore';
+import { appCustomComponents } from './custom';
 
 const HEADER_HEIGHT = 56;
 

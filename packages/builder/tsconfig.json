@@ -1,0 +1,23 @@
+{
+  // No `paths`, for the same reason the library has none: this package's source
+  // reaches itself with relative imports only, and the absence of an `@/*`
+  // mapping is what enforces that. A stray `@/` fails here, in `pnpm -r
+  // typecheck`, rather than resolving into whichever app is compiling these
+  // files — which it silently would, because Rsbuild hands rspack the *app's*
+  // tsconfig and applies its `paths` to the whole module graph.
+  //
+  // No `@rsbuild/core/types`: this package imports no CSS (the app imports
+  // `./src/styles.css` from here) and reads no `import.meta.env`.
+  //
+  // `types` must match the library's exactly. These files are checked twice —
+  // once here, once inside the app's program, where `types` also carries
+  // `@rsbuild/core/types`. Any difference lets an error appear in one pass and
+  // not the other: with `types: []`, `setTimeout` would resolve to the DOM
+  // overload returning `number` here and to the Node one returning
+  // `NodeJS.Timeout` there.
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node"]
+  },
+  "include": ["src"]
+}

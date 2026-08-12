@@ -3,15 +3,20 @@
   "compilerOptions": {
     "types": ["@rsbuild/core/types", "node"],
     "baseUrl": ".",
+    // No `@/*` mapping. This app is five files, so relative imports reach
+    // everything, and with no `@/*` anywhere in the repo a stray `@/` inside a
+    // package cannot resolve at all — not even through the bundler, which
+    // applies this file's `paths` to the whole module graph.
+    //
+    // Each package's own `exports` map would cover the two entries below, but
+    // they lean on trying `./src/*.ts`, then `.tsx`, then `/index.ts` and taking
+    // the one that exists — behaviour every resolver here is believed to have
+    // and none of them promises. A `paths` mapping probes extensions
+    // unconditionally, and Rsbuild picks it up from this file for free
+    // (resolve.aliasStrategy defaults to 'prefer-tsconfig'). Two lines to stop
+    // caring which resolver is reading which package.
     "paths": {
-      "@/*": ["./src/*"],
-      // The library's own `exports` map would cover this, but it leans on
-      // trying `./src/*.ts`, then `.tsx`, then `/index.ts` and taking the one
-      // that exists — behaviour every resolver here is believed to have and
-      // none of them promises. A `paths` mapping probes extensions
-      // unconditionally, and Rsbuild picks it up from this file for free
-      // (resolve.aliasStrategy defaults to 'prefer-tsconfig'). Two lines to
-      // stop caring which resolver is reading the package.
+      "@antd-form-generator/builder/*": ["../../packages/builder/src/*"],
       "@antd-form-generator/core/*": ["../../packages/form-generator/src/*"]
     }
   },
