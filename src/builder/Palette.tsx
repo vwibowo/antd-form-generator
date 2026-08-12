@@ -75,6 +75,7 @@ const ICONS: Record<ScreenNodeType, ReactNode> = {
   group: <AppstoreOutlined />,
   card: <ProfileOutlined />,
   list: <UnorderedListOutlined />,
+  tabs: <BorderlessTableOutlined />,
   custom: <ThunderboltOutlined />,
   heading: <FontSizeOutlined />,
   text: <AlignLeftOutlined />,

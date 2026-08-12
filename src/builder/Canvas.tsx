@@ -2,10 +2,16 @@ import { CopyOutlined, DeleteOutlined, HolderOutlined } from '@ant-design/icons'
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Button, Card, Col, Empty, Form, Row, Tag, Tooltip, Typography } from 'antd';
+import { Button, Card, Col, Empty, Form, Row, Tabs, Tag, Tooltip, Typography } from 'antd';
 import { createContext, useContext } from 'react';
 import type { CSSProperties } from 'react';
-import { cardSize, cardVariant, renderControl } from '@/renderer/controls';
+import {
+  cardCollapsible,
+  cardDefaultOpenKeys,
+  cardSize,
+  cardVariant,
+  renderControl,
+} from '@/renderer/controls';
 import { useCustomComponents } from '@/renderer/custom';
 import { compileRules } from '@/renderer/rules';
 import { ScreenContextProvider } from '@/renderer/screenContext';
@@ -143,6 +149,64 @@ function NodePreview({ node }: { node: ScreenNode }) {
 }
 
 /* -------------------------------------------------------------------------- */
+/* Tab strip                                                                   */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * A tab strip on the canvas.
+ *
+ * The panes are the tab cards' own drop targets, but the cards themselves are
+ * not `SortableField`s — nesting one inside a pane would draw a card inside a
+ * card. So the tab bar carries the affordances instead: clicking a tab selects
+ * that card so the inspector can rename it, and antd's editable bar adds and
+ * removes tabs in place.
+ */
+function TabsCanvas({ node }: { node: ScreenNode }) {
+  const selectedId = useBuilderStore((state) => state.selectedId);
+  const select = useBuilderStore((state) => state.select);
+  const addNode = useBuilderStore((state) => state.addNode);
+  const removeNode = useBuilderStore((state) => state.removeNode);
+
+  const tabs = node.children ?? [];
+  // Follow the selection when a tab is picked, so the open pane and the
+  // inspector never disagree about which tab is being edited.
+  const activeKey = tabs.some((tab) => tab.id === selectedId)
+    ? selectedId ?? undefined
+    : undefined;
+
+  return (
+    <Tabs
+      size="small"
+      type="editable-card"
+      tabPlacement={node.props?.position === 'start' ? 'start' : 'top'}
+      activeKey={activeKey}
+      onTabClick={(key) => select(key)}
+      onEdit={(targetKey, action) => {
+        if (action === 'add') {
+          addNode('card', node.id);
+          return;
+        }
+        // A tab strip with no tabs renders nothing and cannot be dropped into,
+        // so the last one stays.
+        if (tabs.length > 1) removeNode(String(targetKey));
+      }}
+      items={tabs.map((tab) => ({
+        key: tab.id,
+        label: tab.label || 'Tab',
+        closable: tabs.length > 1,
+        children: (
+          <FieldList
+            containerId={tab.id}
+            fields={tab.children ?? []}
+            emptyLabel={`Drop fields into "${tab.label || 'this tab'}"`}
+          />
+        ),
+      }))}
+    />
+  );
+}
+
+/* -------------------------------------------------------------------------- */
 /* Drop zone                                                                   */
 /* -------------------------------------------------------------------------- */
 
@@ -166,6 +230,7 @@ const CONTAINER_TAG: Partial<Record<ScreenNode['type'], { color: string; text: s
   group: { color: 'blue', text: 'group' },
   card: { color: 'cyan', text: 'card' },
   list: { color: 'purple', text: 'repeatable' },
+  tabs: { color: 'geekblue', text: 'tabs' },
 };
 
 interface SortableFieldProps {
@@ -260,9 +325,32 @@ function SortableField({ node, containerId, index }: SortableFieldProps) {
                 {node.type === 'list' ? `repeatable · ${node.name}` : CONTAINER_TAG[node.type]?.text}
               </Tag>
             </div>
-            {node.type === 'card' ? (
-              // Render the real Card so the canvas matches the preview.
-              <Card size={cardSize(node.props)} variant={cardVariant(node.props)}>
+            {node.type === 'tabs' ? (
+              // Each tab is a card, so each pane is that card's own drop target.
+              // Only the open tab accepts a drop — switching tabs is how you
+              // reach the others, the same trade the preview makes.
+              //
+              // Clicking a tab selects that card, which is the only way to reach
+              // its settings: a tab is not rendered as its own `SortableField`,
+              // so without this it had no drag handle, no delete button and no
+              // route to the inspector — and its label could not be changed.
+              <TabsCanvas node={node} />
+            ) : node.type === 'card' ? (
+              // Render the real Card so the canvas matches the preview. A
+              // collapsible one is drawn open whatever `defaultOpen` says: a
+              // folded section hides its drop zone, and the canvas has to stay
+              // editable — the same reason a conditional node is not gated here.
+              <Card
+                size={cardSize(node.props)}
+                variant={cardVariant(node.props)}
+                title={
+                  cardCollapsible(node.props) ? (
+                    <Tag color="gold">
+                      collapsible{cardDefaultOpenKeys(node.props).length === 0 ? ' · starts shut' : ''}
+                    </Tag>
+                  ) : undefined
+                }
+              >
                 <FieldList
                   containerId={node.id}
                   fields={node.children ?? []}

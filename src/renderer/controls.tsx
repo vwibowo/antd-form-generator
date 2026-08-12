@@ -611,6 +611,24 @@ export function cardVariant(props: Props | undefined): 'outlined' | 'borderless'
 }
 
 /**
+ * A card set to collapse is drawn as a one-panel `Collapse` rather than a
+ * `Card` — that is where the Collapse component lives, reached through the
+ * container that already had the drop target and the nesting rules.
+ *
+ * Collapsing hides; it never unmounts. `Form.Item` carries `preserve={false}`,
+ * so a folded section that unmounted would quietly drop its values from the
+ * payload.
+ */
+export function cardCollapsible(props: Props | undefined): boolean {
+  return props?.collapsible === true;
+}
+
+/** Panel keys an antd `Collapse` should open with. Empty means folded shut. */
+export function cardDefaultOpenKeys(props: Props | undefined): string[] {
+  return props?.defaultOpen === false ? [] : ['panel'];
+}
+
+/**
  * `divider` and `title` render no control, so they never reach `renderControl` —
  * both the renderer and the builder canvas draw them directly. Their props are
  * resolved here so the two stay identical.

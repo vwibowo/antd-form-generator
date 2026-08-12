@@ -1,6 +1,7 @@
 import type { ScreenNode } from './screen';
 import { collectScreenActions, collectsValue, hasNoWayOnward, isContainerType } from './screen';
 import type { WorkflowEdge, WorkflowNode, WorkflowSchema } from './workflow';
+import { isInteractiveKind } from './workflow';
 import { nodeCaption, workflowMetaFor } from './workflowRegistry';
 
 /**
@@ -151,6 +152,164 @@ export function collectWorkflowNames(
   }
 
   return out;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Layering                                                                    */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Edges that close a loop, found by depth-first search.
+ *
+ * Cycles are a feature here — "finance wants more detail, go back to the form"
+ * is the whole point — but a layered layout needs a DAG. These are dropped for
+ * layering only; the routing still draws them.
+ */
+export function findBackEdges(schema: WorkflowSchema, roots: string[]): Set<string> {
+  const back = new Set<string>();
+  const state = new Map<string, 'open' | 'done'>();
+  const outgoing = new Map<string, WorkflowEdge[]>();
+  for (const edge of schema.edges) {
+    outgoing.set(edge.from, [...(outgoing.get(edge.from) ?? []), edge]);
+  }
+
+  // Iterative rather than recursive: a long chain would otherwise be one deep
+  // call stack per node.
+  const visit = (start: string) => {
+    const stack: { id: string; next: number }[] = [{ id: start, next: 0 }];
+    state.set(start, 'open');
+
+    while (stack.length > 0) {
+      const frame = stack[stack.length - 1];
+      const edges = outgoing.get(frame.id) ?? [];
+
+      if (frame.next >= edges.length) {
+        state.set(frame.id, 'done');
+        stack.pop();
+        continue;
+      }
+
+      const edge = edges[frame.next];
+      frame.next += 1;
+
+      // Pointing at something still open means we have looped back onto our
+      // own path — that is exactly what a back-edge is.
+      if (state.get(edge.to) === 'open') {
+        back.add(edge.id);
+        continue;
+      }
+      if (state.get(edge.to) === 'done') continue;
+
+      state.set(edge.to, 'open');
+      stack.push({ id: edge.to, next: 0 });
+    }
+  };
+
+  for (const root of roots) if (!state.has(root)) visit(root);
+  // Anything the start could not reach still needs its own cycles broken.
+  for (const node of schema.nodes) if (!state.has(node.id)) visit(node.id);
+
+  return back;
+}
+
+/**
+ * Longest-path columns over the DAG: a node sits one past its furthest
+ * predecessor. Using the longest path rather than the shortest is what keeps a
+ * step to the right of everything that can reach it, so no branch ever points
+ * backwards except a real loop.
+ */
+export function assignColumns(
+  schema: WorkflowSchema,
+  forward: WorkflowEdge[],
+  reachable: Set<string>,
+): Map<string, number> {
+  const columns = new Map<string, number>();
+  const incoming = new Map<string, WorkflowEdge[]>();
+  const outgoing = new Map<string, WorkflowEdge[]>();
+  for (const edge of forward) {
+    incoming.set(edge.to, [...(incoming.get(edge.to) ?? []), edge]);
+    outgoing.set(edge.from, [...(outgoing.get(edge.from) ?? []), edge]);
+  }
+
+  const pending = new Map<string, number>();
+  const queue: string[] = [];
+  for (const node of schema.nodes) {
+    if (!reachable.has(node.id)) continue;
+    const count = (incoming.get(node.id) ?? []).length;
+    pending.set(node.id, count);
+    if (count === 0) {
+      columns.set(node.id, 0);
+      queue.push(node.id);
+    }
+  }
+
+  while (queue.length > 0) {
+    const id = queue.shift() as string;
+    const column = columns.get(id) ?? 0;
+    for (const edge of outgoing.get(id) ?? []) {
+      columns.set(edge.to, Math.max(columns.get(edge.to) ?? 0, column + 1));
+      const left = (pending.get(edge.to) ?? 1) - 1;
+      pending.set(edge.to, left);
+      if (left === 0) queue.push(edge.to);
+    }
+  }
+
+  // A node left unranked sat inside a knot the back-edge pass could not fully
+  // open; park it one past its deepest ranked predecessor rather than at zero.
+  for (const node of schema.nodes) {
+    if (!reachable.has(node.id) || columns.has(node.id)) continue;
+    const preds = (incoming.get(node.id) ?? [])
+      .map((edge) => columns.get(edge.from))
+      .filter((value): value is number => value !== undefined);
+    columns.set(node.id, preds.length > 0 ? Math.max(...preds) + 1 : 0);
+  }
+
+  return columns;
+}
+
+/** One stage of a run: the steps that sit at the same depth from the start. */
+export interface WorkflowStage {
+  /** 0-based depth. Two steps on parallel branches share one. */
+  index: number;
+  nodeIds: string[];
+  /** What to call the stage — the single step's caption, or a count. */
+  label: string;
+}
+
+/**
+ * The steps a run passes through, in order, for a progress indicator.
+ *
+ * Only the kinds that stop and ask: `start` and `decision` pass straight
+ * through and would show as stages nobody experiences. Parallel branches
+ * collapse into one stage, because from the reader's side "step 3 of 5" counts
+ * how far along they are, not how many routes the graph has.
+ *
+ * `findBackEdges` has already broken the loops, so a run that goes back reads
+ * as an earlier stage again rather than pushing the total past the end.
+ */
+export function workflowStages(schema: WorkflowSchema): WorkflowStage[] {
+  const starts = findStartNodes(schema).map((node) => node.id);
+  const back = findBackEdges(schema, starts);
+  const forward = schema.edges.filter((edge) => !back.has(edge.id) && edge.from !== edge.to);
+  const ranked = new Set(schema.nodes.map((node) => node.id));
+  const columnOf = assignColumns(schema, forward, ranked);
+
+  const byColumn = new Map<number, WorkflowNode[]>();
+  for (const node of schema.nodes) {
+    // The kinds that stop and ask, plus `end` — finishing is something the
+    // reader experiences, so it earns a stage.
+    if (!isInteractiveKind(node.kind) && node.kind !== 'end') continue;
+    const column = columnOf.get(node.id) ?? 0;
+    byColumn.set(column, [...(byColumn.get(column) ?? []), node]);
+  }
+
+  return [...byColumn.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([, nodes], index) => ({
+      index,
+      nodeIds: nodes.map((node) => node.id),
+      label: nodes.length === 1 ? nodeCaption(nodes[0]) : `${nodes.length} ways on`,
+    }));
 }
 
 /* -------------------------------------------------------------------------- */

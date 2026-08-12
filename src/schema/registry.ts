@@ -443,6 +443,16 @@ export const SCREEN_REGISTRY: Record<ScreenNodeType, NodeMeta> = {
     supports: { ...display, table: true },
     defaults: {},
   },
+  tabs: {
+    type: 'tabs',
+    label: 'Tabs',
+    category: 'Layout',
+    hint: 'Sections a long screen. Each tab is a card',
+    namePrefix: 'tabs',
+    supports: { ...display, children: true },
+    // Children are seeded by `createNode`, which needs fresh ids per instance.
+    defaults: { children: [] },
+  },
   spacer: {
     type: 'spacer',
     label: 'Spacer',

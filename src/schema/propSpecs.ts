@@ -932,6 +932,58 @@ const cardSpecs: PropSpec[] = [
     },
     default: 'outlined',
   },
+  /*
+   * A collapsible card is where the Collapse component lives.
+   *
+   * Not a node type of its own: a `Collapse` with one panel and a `Card` are
+   * the same thing — a titled box holding children — and the card already has
+   * the drop target, the nesting rules and the inspector. One prop reaches the
+   * component; a second type would have duplicated all of that to reach it.
+   *
+   * Collapsing only hides. The children stay mounted, so their values still
+   * submit — folding a section away must never quietly change the payload.
+   */
+  {
+    key: 'collapsible',
+    label: 'Collapsible',
+    group: 'Behavior',
+    editor: { kind: 'bool' },
+    default: false,
+  },
+  {
+    key: 'defaultOpen',
+    label: 'Open by default',
+    group: 'Behavior',
+    editor: { kind: 'bool' },
+    default: true,
+    when: (node) => node.props.collapsible === true,
+  },
+];
+
+const tabsSpecs: PropSpec[] = [
+  {
+    key: 'position',
+    label: 'Tab position',
+    group: 'Appearance',
+    editor: {
+      kind: 'select',
+      // antd 6's own vocabulary: `start` rather than `left`, so the placement
+      // follows the writing direction instead of hard-coding a side.
+      options: [
+        { label: 'Top', value: 'top' },
+        { label: 'Side', value: 'start' },
+      ],
+    },
+    default: 'top',
+  },
+  {
+    key: 'centered',
+    label: 'Centre the tabs',
+    group: 'Appearance',
+    editor: { kind: 'bool' },
+    default: false,
+    when: (node) => node.props.position !== 'start',
+  },
 ];
 
 export const TYPE_PROP_SPECS: Record<ScreenNodeType, PropSpec[]> = {
@@ -964,6 +1016,7 @@ export const TYPE_PROP_SPECS: Record<ScreenNodeType, PropSpec[]> = {
   divider: dividerSpecs,
   group: [],
   card: cardSpecs,
+  tabs: tabsSpecs,
   // Repeatable rows are configured through `listConfig`, not `props` — the
   // inspector renders that section by hand.
   list: [],

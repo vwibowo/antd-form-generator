@@ -64,6 +64,35 @@ describe('payload keys', () => {
     expect([...collectPayloadKeys(schema)]).toEqual(['only']);
   });
 
+  it('reaches fields in every tab, not just the open one', () => {
+    const schema = screen([
+      {
+        id: 't1',
+        type: 'tabs',
+        children: [
+          {
+            id: 'c1',
+            type: 'card',
+            label: 'First',
+            children: [{ id: 'f1', type: 'input', name: 'email' }],
+          },
+          {
+            id: 'c2',
+            type: 'card',
+            label: 'Second',
+            children: [{ id: 'f2', type: 'input', name: 'phone' }],
+          },
+        ],
+      },
+    ]);
+
+    // A tab strip is chrome, exactly like a card: its panes contribute their
+    // children's keys at the top level and nothing of their own. The renderer
+    // backs this by keeping every pane mounted — `preserve={false}` would
+    // otherwise take a hidden tab's values out of the submitted payload.
+    expect([...collectPayloadKeys(schema)].sort()).toEqual(['email', 'phone']);
+  });
+
   it('gives a list its own namespace', () => {
     const schema = screen([
       {

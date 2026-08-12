@@ -1,4 +1,5 @@
 import type { ScreenSchema } from '../screen';
+import { accountSettingsPreset } from './accountSettings';
 import { kitchenSinkPreset } from './kitchenSink';
 import { welcomePackPreset } from './pages';
 import { purchaseRequestPreset } from './purchaseRequest';
@@ -32,6 +33,7 @@ export interface SamplePreset {
 export const SAMPLE_PRESETS: SamplePreset[] = [
   purchaseRequestPreset,
   reviewAndConfirmPreset,
+  accountSettingsPreset,
   remoteDataPreset,
   welcomePackPreset,
   kitchenSinkPreset,

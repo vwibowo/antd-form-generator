@@ -33,6 +33,23 @@ export function findParent(nodes: ScreenNode[], id: string): ScreenNode | null {
 }
 
 /**
+ * How deeply a container is nested. 0 for one sitting at the root.
+ *
+ * What caps nesting. `tabs > card > list` is three levels of chrome, which is
+ * as much as the JSON stays readable at and as much as a drop target stays
+ * findable at.
+ */
+export function containerDepth(nodes: ScreenNode[], id: string): number {
+  let depth = 0;
+  let parent = findParent(nodes, id);
+  while (parent) {
+    depth += 1;
+    parent = findParent(nodes, parent.id);
+  }
+  return depth;
+}
+
+/**
  * The sibling array that directly contains `id`, plus the index within it.
  * Returns null when the id is not in the tree.
  */

@@ -3,12 +3,14 @@ import {
   Button,
   Card,
   Col,
+  Collapse,
   Descriptions,
   Divider,
   Form,
   Row,
   Space,
   Spin,
+  Tabs,
   Typography,
 } from 'antd';
 import type { ScreenNode, ScreenSchema } from '@/schema/screen';
@@ -16,6 +18,8 @@ import { collectsValue, isTransparentContainer } from '@/schema/screen';
 import type { NamePath } from './condition';
 import { evaluateCondition } from './condition';
 import {
+  cardCollapsible,
+  cardDefaultOpenKeys,
   cardSize,
   cardVariant,
   dividerProps,
@@ -300,10 +304,54 @@ function ControlNode({ node, scopePath, namePrefix, gutter }: ScreenNodeViewProp
 /* Containers                                                                  */
 /* -------------------------------------------------------------------------- */
 
+/**
+ * A tab strip. Its children are cards, and each card is one tab — the card's
+ * own label titles it, and its own props style the pane.
+ *
+ * `forceRender` on every pane is load-bearing, not a nicety. `Form.Item` carries
+ * `preserve={false}`, so a pane antd unmounted would take its fields' values out
+ * of the payload without saying so — you would submit a form and silently lose
+ * whatever was typed in a tab you had navigated away from.
+ */
+function TabsNode({ node, scopePath, namePrefix, gutter, onAction, formSources }: ScreenNodeViewProps) {
+  const tabs = (node.children ?? []).filter((child) => child.type === 'card');
+  if (tabs.length === 0) return null;
+
+  return (
+    <Tabs
+      style={{ marginBottom: 16 }}
+      tabPlacement={node.props?.position === 'start' ? 'start' : 'top'}
+      centered={node.props?.centered === true && node.props?.position !== 'start'}
+      items={tabs.map((tab) => ({
+        key: tab.id,
+        label: tab.label || 'Tab',
+        forceRender: true,
+        children: (
+          <Row gutter={gutter}>
+            {(tab.children ?? []).map((child) => (
+              <ScreenNodeView
+                key={child.id}
+                node={child}
+                scopePath={scopePath}
+                namePrefix={namePrefix}
+                gutter={gutter}
+                onAction={onAction}
+                formSources={formSources}
+              />
+            ))}
+          </Row>
+        ),
+      }))}
+    />
+  );
+}
+
 function ContainerNode(props: ScreenNodeViewProps) {
   const { node, scopePath, namePrefix, gutter } = props;
   const visible = useFieldVisibility(node.condition, scopePath);
   if (!visible) return null;
+
+  if (node.type === 'tabs') return <TabsNode {...props} />;
 
   // `scopePath` and `namePrefix` pass straight through: these containers are
   // chrome, so their children keep whatever scope the container itself sits
@@ -325,6 +373,27 @@ function ContainerNode(props: ScreenNodeViewProps) {
   );
 
   if (node.type === 'card') {
+    if (cardCollapsible(node.props)) {
+      return (
+        <Collapse
+          // `forceRender` is the whole point: a folded panel keeps its fields
+          // mounted, so `preserve={false}` cannot drop their values.
+          defaultActiveKey={cardDefaultOpenKeys(node.props)}
+          size={cardSize(node.props) === 'small' ? 'small' : 'middle'}
+          style={{ marginBottom: 16 }}
+          items={[
+            {
+              key: 'panel',
+              label: node.label || 'Section',
+              extra: node.extra || undefined,
+              forceRender: true,
+              children,
+            },
+          ]}
+        />
+      );
+    }
+
     return (
       <Card
         title={node.label || undefined}

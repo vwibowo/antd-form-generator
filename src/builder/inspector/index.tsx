@@ -2,7 +2,7 @@ import { Collapse, Empty, Tag, Typography } from 'antd';
 import { useMemo } from 'react';
 import { metaFor } from '@/schema/registry';
 import type { ScreenNode, ScreenSchema } from '@/schema/screen';
-import { collectsValue } from '@/schema/screen';
+import { isDisplayType } from '@/schema/screen';
 import { collectNames, findDuplicateNames, findNode, findParent } from '@/schema/walk';
 import { useBuilderStore } from '@/store/ScreenStoreContext';
 import { FormSettings } from '../FormSettings';
@@ -89,15 +89,21 @@ export function Inspector({
     {
       key: 'general',
       label: 'General',
-      children: collectsValue(selected.type) ? (
+      children: !isDisplayType(selected.type) ? (
+        // Anything that is not a display node — a control, or a container.
+        // `CommonProps` gates `name`, rules and defaults on the registry's
+        // `supports.value`, so a container gets the label and width it needs
+        // without the payload settings it cannot use.
+        //
+        // Deliberately not `collectsValue`: that is false for `card`, `group`
+        // and `tabs` too, and gating on it hid the Label input for every
+        // container — which is the only way to title a card or name a tab.
         <CommonProps
           node={selected}
           onPatch={onPatch}
           duplicateName={duplicateNames.includes(selected.name)}
         />
       ) : (
-        // A display node owns no payload key, so `name`, rules and defaults
-        // would all be inert — `collectsValue` is what decides.
         <>
           <DisplayProps
             node={selected}

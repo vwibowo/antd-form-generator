@@ -43,6 +43,17 @@ export function createNode(
     // A table node arrives with a parsed empty table rather than nothing, so
     // the inspector never has to special-case "not authored yet".
     ...(meta.supports.table ? { table: createEmptyTableSchema() } : {}),
+    // A tab strip arrives with two tabs, because one tab is not a tab strip and
+    // none is an empty box with no way to see what it is for. Built here rather
+    // than in the registry's `defaults` so each instance gets fresh ids.
+    ...(type === 'tabs'
+      ? {
+          children: [
+            createNode('card', existingNodes, { label: 'First tab' }),
+            createNode('card', existingNodes, { label: 'Second tab' }),
+          ],
+        }
+      : {}),
   });
 }
 

@@ -152,7 +152,7 @@ export type DataListItem = z.infer<typeof dataListItemSchema>;
 /* -------------------------------------------------------------------------- */
 
 /**
- * Everything a screen can hold: the 24 form controls, `custom`, the three
+ * Everything a screen can hold: the 24 form controls, `custom`, the four
  * containers, and the display nodes a page used to own.
  *
  * Two reconciliations from the merge. `divider` existed in both — the form's
@@ -194,6 +194,7 @@ export const SCREEN_NODE_TYPES = [
   'group',
   'card',
   'list',
+  'tabs',
   // Layout.
   'divider',
   'spacer',
@@ -214,14 +215,19 @@ export const screenNodeTypeSchema = z.enum(SCREEN_NODE_TYPES);
 export type ScreenNodeType = z.infer<typeof screenNodeTypeSchema>;
 
 /** Types that hold children and can be dropped into. */
-export const CONTAINER_TYPES = ['group', 'card', 'list'] as const;
+export const CONTAINER_TYPES = ['group', 'card', 'list', 'tabs'] as const;
 
 /**
  * Containers that are chrome only: they contribute no key to the payload, and
  * their children stay at the parent's scope. A `list` is the opposite — it owns
  * a name and nests its children under it.
+ *
+ * `tabs` is chrome for the same reason the others are, which is what keeps a
+ * field's payload key the same whether or not someone later wraps it in a tab.
+ * A tab strip holds `card` children and nothing else: a tab *is* a card, so its
+ * label, its props and its drop target are the card's, already built.
  */
-export const TRANSPARENT_CONTAINER_TYPES = ['group', 'card'] as const;
+export const TRANSPARENT_CONTAINER_TYPES = ['group', 'card', 'tabs'] as const;
 
 /**
  * Types that show something rather than ask for it. Everything a page document

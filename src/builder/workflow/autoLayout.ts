@@ -1,4 +1,5 @@
 import type { WorkflowEdge, WorkflowSchema } from '@/schema/workflow';
+import { assignColumns, findBackEdges } from '@/schema/workflowGraph';
 import { NODE_HEIGHT, NODE_WIDTH } from './edgeGeometry';
 
 /**
@@ -12,6 +13,10 @@ import { NODE_HEIGHT, NODE_WIDTH } from './edgeGeometry';
  * Lives in `builder/` rather than `schema/` because arranging is a builder
  * action and this needs the card dimensions from `edgeGeometry` — the schema
  * layer importing from the builder would be backwards.
+ *
+ * The cycle-breaking and the column ranking are not builder concerns, though:
+ * the workflow player needs the same ordering to say which stage a run is on.
+ * Both live in `workflowGraph.ts` and are imported here.
  */
 
 export interface LayoutOptions {
@@ -32,115 +37,6 @@ const MARGIN = 48;
 const ORPHAN_GAP = 96;
 /** Enough passes to settle the ordering; past this it stops paying for itself. */
 const SWEEPS = 4;
-
-/**
- * Edges that close a loop, found by depth-first search.
- *
- * Cycles are a feature here — "finance wants more detail, go back to the form"
- * is the whole point — but a layered layout needs a DAG. These are dropped for
- * layering only; the routing still draws them.
- */
-function findBackEdges(schema: WorkflowSchema, roots: string[]): Set<string> {
-  const back = new Set<string>();
-  const state = new Map<string, 'open' | 'done'>();
-  const outgoing = new Map<string, WorkflowEdge[]>();
-  for (const edge of schema.edges) {
-    outgoing.set(edge.from, [...(outgoing.get(edge.from) ?? []), edge]);
-  }
-
-  // Iterative rather than recursive: a long chain would otherwise be one deep
-  // call stack per node.
-  const visit = (start: string) => {
-    const stack: { id: string; next: number }[] = [{ id: start, next: 0 }];
-    state.set(start, 'open');
-
-    while (stack.length > 0) {
-      const frame = stack[stack.length - 1];
-      const edges = outgoing.get(frame.id) ?? [];
-
-      if (frame.next >= edges.length) {
-        state.set(frame.id, 'done');
-        stack.pop();
-        continue;
-      }
-
-      const edge = edges[frame.next];
-      frame.next += 1;
-
-      // Pointing at something still open means we have looped back onto our
-      // own path — that is exactly what a back-edge is.
-      if (state.get(edge.to) === 'open') {
-        back.add(edge.id);
-        continue;
-      }
-      if (state.get(edge.to) === 'done') continue;
-
-      state.set(edge.to, 'open');
-      stack.push({ id: edge.to, next: 0 });
-    }
-  };
-
-  for (const root of roots) if (!state.has(root)) visit(root);
-  // Anything the start could not reach still needs its own cycles broken.
-  for (const node of schema.nodes) if (!state.has(node.id)) visit(node.id);
-
-  return back;
-}
-
-/**
- * Longest-path columns over the DAG: a node sits one past its furthest
- * predecessor. Using the longest path rather than the shortest is what keeps a
- * step to the right of everything that can reach it, so no branch ever points
- * backwards except a real loop.
- */
-function assignColumns(
-  schema: WorkflowSchema,
-  forward: WorkflowEdge[],
-  reachable: Set<string>,
-): Map<string, number> {
-  const columns = new Map<string, number>();
-  const incoming = new Map<string, WorkflowEdge[]>();
-  const outgoing = new Map<string, WorkflowEdge[]>();
-  for (const edge of forward) {
-    incoming.set(edge.to, [...(incoming.get(edge.to) ?? []), edge]);
-    outgoing.set(edge.from, [...(outgoing.get(edge.from) ?? []), edge]);
-  }
-
-  const pending = new Map<string, number>();
-  const queue: string[] = [];
-  for (const node of schema.nodes) {
-    if (!reachable.has(node.id)) continue;
-    const count = (incoming.get(node.id) ?? []).length;
-    pending.set(node.id, count);
-    if (count === 0) {
-      columns.set(node.id, 0);
-      queue.push(node.id);
-    }
-  }
-
-  while (queue.length > 0) {
-    const id = queue.shift() as string;
-    const column = columns.get(id) ?? 0;
-    for (const edge of outgoing.get(id) ?? []) {
-      columns.set(edge.to, Math.max(columns.get(edge.to) ?? 0, column + 1));
-      const left = (pending.get(edge.to) ?? 1) - 1;
-      pending.set(edge.to, left);
-      if (left === 0) queue.push(edge.to);
-    }
-  }
-
-  // A node left unranked sat inside a knot the back-edge pass could not fully
-  // open; park it one past its deepest ranked predecessor rather than at zero.
-  for (const node of schema.nodes) {
-    if (!reachable.has(node.id) || columns.has(node.id)) continue;
-    const preds = (incoming.get(node.id) ?? [])
-      .map((edge) => columns.get(edge.from))
-      .filter((value): value is number => value !== undefined);
-    columns.set(node.id, preds.length > 0 ? Math.max(...preds) + 1 : 0);
-  }
-
-  return columns;
-}
 
 /** Median of the neighbour positions, or -1 when a node has no neighbours. */
 function median(values: number[]): number {

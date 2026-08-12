@@ -8,8 +8,8 @@ import type { ScreenNode, ScreenNodeType, ScreenSchema } from '@/schema/screen';
 import { createEmptyScreenSchema, isContainerType, parseScreenSchema } from '@/schema/screen';
 import {
   ROOT_CONTAINER_ID,
+  containerDepth,
   findNode,
-  findParent,
   getContainerChildren,
   isDescendantOf,
   locate,
@@ -47,11 +47,10 @@ export interface ScreenState {
 /**
  * Cards are sections, so they take other containers — a repeatable belongs
  * inside one. Everything else stays flat: `group` and `list` hold plain nodes
- * only.
+ * only, and a tab strip holds only tabs.
  *
- * Requiring the receiving card to be top-level caps container nesting at two
- * levels (`root > card > list`) without tracking a depth counter, which keeps
- * both the drop logic and the generated JSON legible.
+ * Nesting caps at three levels — `root > tabs > card > list` — which is as far
+ * as both the drop logic and the generated JSON stay legible.
  */
 export function canDropInto(
   schema: ScreenSchema,
@@ -62,9 +61,17 @@ export function canDropInto(
   const container = findNode(schema.nodes, containerId);
   if (!container || !isContainerType(container.type)) return false;
 
+  // A tab strip holds tabs, and a tab is a card. Nothing else goes straight in:
+  // a field dropped between two tabs has no tab to belong to.
+  if (container.type === 'tabs') return type === 'card';
+
   if (isContainerType(type)) {
+    // `group` and `list` hold plain nodes; only a card takes another container.
     if (container.type !== 'card') return false;
-    return findParent(schema.nodes, container.id) === null;
+    // Depth rather than "the card must be top-level", which is what the rule
+    // used to say — a card inside a tab strip is one level down and still has
+    // to be able to take a repeatable.
+    return containerDepth(schema.nodes, container.id) < 2;
   }
   return true;
 }
@@ -78,7 +85,7 @@ export function canDropInto(
  *
  * A page document needed none of the tree walking — its blocks were flat. That
  * is this store with nothing nestable in it, which is why there is no second
- * one: `addNode(type, ROOT_CONTAINER_ID, index)` is what `addNode` was.
+ * one: `addNode(type, ROOT_CONTAINER_ID, index)` is what `addBlock` was.
  */
 const screenStateCreator: StateCreator<ScreenState> = (set, get) => {
   /** Apply a mutation to a cloned schema and push the previous one onto history. */

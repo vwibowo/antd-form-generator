@@ -24,6 +24,7 @@ Then open http://localhost:3000. Click **Sample** in the header for the flagship
 | --- | --- |
 | **Purchase request** | A screen that only asks. A procurement flow that grows as you fill it in — a remote catalogue cascade, repeatable line items, and rules that only appear once the total passes 5,000. Opening the Preview fires exactly one request; every other one is caused by something you did. |
 | **Review and confirm** | A screen that asks *and* tells — the thing separate form and page documents made impossible. Controls and display blocks in one grid, a data list echoing what you are typing right now, a callout that appears only for the pricier delivery option, and buttons instead of a Submit row. |
+| **Account settings** | A long screen split into tabs, with a collapsible section and a repeatable inside one. The reference for how containers nest — every level the rules allow, used once. |
 | **Remote data** | Every API response shape the option mapper handles, side by side: a bare array of objects, a bare array of plain strings, a nested `dataPath`, and a dot-path label. Plus cascading, debounced server-side search, and the HTTP error state. |
 | **Welcome pack** | A screen that only tells. One of every display node, bound to a payload you type in the Preview tab — no controls at all, so no `<Form>` is rendered around it. |
 | **Kitchen sink** | Reference screen. One of every control type, every per-type setting, every validation rule, and all nine condition operators. Horizontal layout with a fixed label column. |
@@ -45,7 +46,7 @@ Between them the presets cover every feature documented below, so they double as
 
 ## The tabs
 
-- **Builder** — palette on the left, canvas in the middle, inspector on the right. Drag from the palette onto the canvas, or click a palette entry to append. Drag the handle on a node card to reorder it or move it into a container. The palette has a filter box, because one screen can hold any of 38 node types. In table mode the left pane becomes the data source and column list instead; in workflow mode the canvas is a node graph.
+- **Builder** — palette on the left, canvas in the middle, inspector on the right. Drag from the palette onto the canvas, or click a palette entry to append. Drag the handle on a node card to reorder it or move it into a container. The palette has a filter box, because one screen can hold any of 39 node types. In table mode the left pane becomes the data source and column list instead; in workflow mode the canvas is a node graph.
 - **Preview** — the schema rendered for real. A screen that collects values is submittable, with the resulting payload beside it; one that only displays gets a payload *editor* beside it instead, since there is nothing to submit and the `{{tokens}}` need something to read. For a table, the table on its own. For a workflow, the flow actually run, step by step.
 - **Summary** — a payload rendered as a read-only confirmation page. Screen mode only; a table submits nothing, and a workflow's payload is spread across several screens. See [Summary pages](#summary-pages).
 - **JSON** — the schema as text. Edits apply to the builder the moment the JSON is valid; while it is invalid the errors are listed and the builder is left alone.
@@ -64,7 +65,7 @@ the single thing that makes the merged document coherent — `collectsValue(type
 | Choice | select, radio group, checkbox group, checkbox, switch, segmented, cascader, tree select, transfer | yes |
 | Date & time | date, date range, time, time range | yes |
 | Advanced | slider, rate, colour, upload | yes |
-| Layout | divider, spacer, group, card, repeatable | repeatable only |
+| Layout | divider, spacer, group, card, **tabs**, repeatable | repeatable only |
 | Content | heading, paragraph, image, callout | no |
 | Data | data list, screen summary, table | no |
 | Actions | buttons | no |
@@ -89,8 +90,23 @@ Conflating the two is how you silently drop every field inside a card, which is 
 `src/renderer/payload.test.ts` exists to prevent.
 
 Cards are sections, so a card can hold other containers — including a repeatable. To keep the JSON
-legible that is capped: a container may only go into a card that is itself top-level, so nesting
-stops at `card > repeatable`. `group` and `repeatable` hold plain nodes only.
+legible that is capped at three containers deep: **`root > tabs > card > repeatable`**. `group` and
+`repeatable` hold plain nodes only.
+
+**Tabs** section a screen that has grown too long to scroll. A tab strip holds `card` children and
+nothing else, because **a tab is a card** — the card's own label titles the tab, and its own props
+style the pane. That is what keeps the schema flat: `children` is still one array of nodes, so the
+tree walking, the drag and drop and the payload never had to learn a second shape.
+
+Every pane stays mounted, open or not. `Form.Item` carries `preserve={false}`, so a pane antd
+unmounted would take its fields' values out of the payload without saying so — you would submit and
+silently lose whatever was typed in a tab you had navigated away from. A required field in an
+unopened tab still blocks the submit, which is the behaviour you want and the one
+`src/renderer/payload.test.ts` pins.
+
+The samples are checked against the drop rules too (`src/schema/samples/samples.test.ts`): a preset
+that describes a tree the builder would refuse to assemble is worse than a broken one, because the
+app ships it, renders it, and then cannot reproduce it.
 
 ## Screen schema shape
 
@@ -169,12 +185,18 @@ keystroke.
 | rate | `count`, `character`, `allowHalf`, `allowClear` |
 | upload | `buttonText`, `listType`, `showUploadList`, `accept`, `maxCount`, `multiple` |
 | divider | `titlePlacement`, `variant`, `size`, `plain` |
-| card | `size`, `variant` |
+| card | `size`, `variant`, `collapsible`, `defaultOpen` |
+| tabs | `position` (`top` / `start`), `centered` |
 
 Display nodes are not in that table. Their settings are few and per-type, so the inspector edits them
 directly in `src/builder/inspector/DisplayProps.tsx` rather than through generic prop rows: `heading`
 takes a `level`, `callout` a `tone`, `spacer` a `height`, `data list` and `screen summary` a column
 count and a border.
+
+**Collapse** is a card, not a type of its own. Set `collapsible` and the card draws as a one-panel
+antd `Collapse` whose header is its label; `defaultOpen` decides whether it starts folded. Folding
+only hides — the children stay mounted and still submit, so tidying a section away never changes the
+payload. The builder canvas always draws it open, because a folded section hides its drop zone.
 
 An absent key means antd's own default, so a field only carries what it deliberately changes. `prefix`, `suffix`, `checkedChildren`, `unCheckedChildren` and `character` are ReactNode props authored as plain text. `readOnly` keeps the value visible *and* submitted (unlike `disabled`); on `select` and the pickers it is emulated — no popup, no typing, no clear button. `thousandSeparator` / `decimalSeparator` are display only: the submitted value stays a plain number, so `min` / `max` rules keep working.
 
@@ -444,8 +466,22 @@ point of having them, so the wording is an observation rather than a complaint.
 
 ### Running one
 
-The Preview tab runs the flow for real: the current step on the left, the accumulated payload and
-the path taken on the right, with Back and Restart. A screen step renders through the ordinary
+The Preview tab runs the flow for real: a progress indicator and the current step on the left, the
+accumulated payload and the path taken on the right, with Back and Restart.
+
+The indicator is derived from the graph, not authored. `workflowStages` in `workflowGraph.ts` breaks
+the cycles and ranks the remaining steps by longest path — the same two helpers the Arrange button
+uses, which is why they live in the schema layer and not the builder. Steps that only route
+(`start`, `decision`) get no stage, because nobody experiences them; parallel branches collapse into
+one, because "step 3 of 5" counts how far along the reader is, not how many routes the graph has.
+
+A stage already visited is captioned with the step actually taken; one still ahead of a fork is
+captioned generically, because the graph cannot say which way the reader will be sent and guessing
+would read as a promise. Loops behave: going back makes an earlier stage current again rather than
+pushing the total past the end.
+
+Deliberately **not** a screen node. A `steps` block dropped on a screen would have to be maintained
+by hand, could not see the run, and could be placed on some screens and forgotten on others. A screen step renders through the ordinary
 `ScreenRenderer`, so validation, conditional nodes, live `{{tokens}}` and remote options all behave
 exactly as they do in screen mode. Returning to a step already answered brings its earlier answers
 back with it.
@@ -540,12 +576,15 @@ previewing, not part of either document, so they are never exported.
 src/
   schema/      zod definitions (the single source of truth for shape, TS types, and validation),
                nodeBase.ts  the keys every node shares, and the condition language
-               screen.ts    the screen document: 38 node types, collectsValue,
+               screen.ts    the screen document: 39 node types, collectsValue,
                             the submit-row-versus-buttons rule
+               walk.ts      tree queries, and `containerDepth` — the nesting cap
                migrate.ts   legacy form and page JSON -> a screen, applied on every read
                registry.ts  per-type builder metadata; the renderer never reads it
                propSpecs.ts the per-type prop rows behind the settings panel
-               the table and workflow documents, node factories, tree and graph helpers
+               workflowGraph.ts  graph queries, cycle breaking and the stage
+                            ranking the Arrange button and the run indicator share
+               the table and workflow documents, node factories
                samples/     the demo presets behind the Sample button
                __fixtures__/ sample documents frozen in their pre-merge shapes,
                             the inputs the migration tests run against
