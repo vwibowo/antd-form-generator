@@ -23,6 +23,8 @@ import { collectScreenActions, screenCollectsValues } from '@antd-form-generator
 import type { WorkflowSchema } from '@antd-form-generator/core/schema/workflow';
 import { findWorkflowNode, validateWorkflow, workflowStages } from '@antd-form-generator/core/schema/workflowGraph';
 import { nodeCaption, workflowMetaFor } from '@antd-form-generator/core/schema/workflowRegistry';
+import { usePreviewSideStore } from '../store/usePreviewSideStore';
+import { SidePanelToggle } from './SidePanelToggle';
 import { jsonReplacer } from './jsonReplacer';
 
 export interface WorkflowPreviewPaneProps {
@@ -78,8 +80,13 @@ function RunProgress({ schema, state }: { schema: WorkflowSchema; state: Workflo
 }
 
 /**
- * The workflow, actually run: the current step on the left, what it has
- * collected on the right.
+ * The workflow, actually run: the current step on the left, and — once you ask
+ * for it — what the run has collected and how it got there on the right.
+ *
+ * That column is opt-in and starts closed, so driving a flow gets the full
+ * width. One toggle covers both its cards: what has been collected and which
+ * route produced it are two halves of one answer, and reading either alone tells
+ * you very little, so there is nothing to gain from hiding them separately.
  *
  * Every step pushes a whole `WorkflowRunState` onto a stack rather than
  * recording how to undo itself — the same reasoning `src/store/history.ts`
@@ -88,6 +95,7 @@ function RunProgress({ schema, state }: { schema: WorkflowSchema; state: Workflo
 export function WorkflowPreviewPane({ schema }: WorkflowPreviewPaneProps) {
   const [history, setHistory] = useState<WorkflowRunState[]>(() => [startWorkflow(schema)]);
   const state = history[history.length - 1];
+  const shown = usePreviewSideStore((entry) => entry.shown.workflow);
 
   // A run holds node and edge ids, so it only means anything against the
   // document it started from. Loading a sample, importing, an Undo or a JSON
@@ -122,7 +130,7 @@ export function WorkflowPreviewPane({ schema }: WorkflowPreviewPaneProps) {
 
   return (
     <Row gutter={16} style={{ padding: 16, height: 'calc(100vh - 100px)' }}>
-      <Col xs={24} lg={14}>
+      <Col xs={24} lg={shown ? 14 : 24}>
         <Space orientation="vertical" size={12} style={{ width: '100%' }}>
           {errors.length > 0 ? (
             <Alert
@@ -163,6 +171,9 @@ export function WorkflowPreviewPane({ schema }: WorkflowPreviewPaneProps) {
                 >
                   Restart
                 </Button>
+                {/* Last: the run controls are what you came here to press, and
+                    this only changes how much of the window they get. */}
+                <SidePanelToggle panel="workflow" label="Run details" />
               </Space>
             }
           >
@@ -171,39 +182,41 @@ export function WorkflowPreviewPane({ schema }: WorkflowPreviewPaneProps) {
         </Space>
       </Col>
 
-      <Col xs={24} lg={10}>
-        <Space orientation="vertical" size={12} style={{ width: '100%' }}>
-          <Card size="small" title="Collected so far">
-            {Object.keys(state.values).length > 0 ? (
-              <pre
-                data-testid="workflow-values"
-                style={{
-                  margin: 0,
-                  fontSize: 12,
-                  lineHeight: 1.6,
-                  whiteSpace: 'pre-wrap',
-                  wordBreak: 'break-word',
-                }}
-              >
-                {JSON.stringify(state.values, jsonReplacer, 2)}
-              </pre>
-            ) : (
-              <Empty
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description={
-                  <Typography.Text type="secondary">
-                    Answer a step to see the payload the branches read
-                  </Typography.Text>
-                }
-              />
-            )}
-          </Card>
+      {shown ? (
+        <Col xs={24} lg={10}>
+          <Space orientation="vertical" size={12} style={{ width: '100%' }}>
+            <Card size="small" title="Collected so far">
+              {Object.keys(state.values).length > 0 ? (
+                <pre
+                  data-testid="workflow-values"
+                  style={{
+                    margin: 0,
+                    fontSize: 12,
+                    lineHeight: 1.6,
+                    whiteSpace: 'pre-wrap',
+                    wordBreak: 'break-word',
+                  }}
+                >
+                  {JSON.stringify(state.values, jsonReplacer, 2)}
+                </pre>
+              ) : (
+                <Empty
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  description={
+                    <Typography.Text type="secondary">
+                      Answer a step to see the payload the branches read
+                    </Typography.Text>
+                  }
+                />
+              )}
+            </Card>
 
-          <Card size="small" title="Path taken">
-            <RunTrace schema={schema} state={state} />
-          </Card>
-        </Space>
-      </Col>
+            <Card size="small" title="Path taken">
+              <RunTrace schema={schema} state={state} />
+            </Card>
+          </Space>
+        </Col>
+      ) : null}
     </Row>
   );
 }

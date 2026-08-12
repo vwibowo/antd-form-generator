@@ -53,7 +53,7 @@ Between them the presets cover every feature documented below, so they double as
 ## The tabs
 
 - **Builder** — palette on the left, canvas in the middle, inspector on the right. Drag from the palette onto the canvas, or click a palette entry to append. Drag the handle on a node card to reorder it or move it into a container. The palette has a filter box, because one screen can hold any of 39 node types. In table mode the left pane becomes the data source and column list instead; in workflow mode the canvas is a node graph.
-- **Preview** — the schema rendered for real. A screen that collects values is submittable, with the resulting payload beside it; one that only displays gets a payload *editor* beside it instead, since there is nothing to submit and the `{{tokens}}` need something to read. For a table, the table on its own. For a workflow, the flow actually run, step by step.
+- **Preview** — the schema rendered for real, at the full width of the window. For a table, the table on its own. For a workflow, the flow actually run, step by step. Each preview can show a column beside the render, and the eye button in the card header opens it; what it holds, and whether it starts open, depends on which way the data flows. A screen that collects values gets the payload it submitted — an *output*, so it starts closed and you ask for it when you want it. One that only displays gets a payload *editor* instead, since there is nothing to submit and the `{{tokens}}` need something to read: that is an input, the only way to drive such a screen, so it starts open. Each mode remembers its own answer.
 - **Summary** — a payload rendered as a read-only confirmation page. Screen mode only; a table submits nothing, and a workflow's payload is spread across several screens. See [Summary pages](#summary-pages).
 - **JSON** — the schema as text. Edits apply to the builder the moment the JSON is valid; while it is invalid the errors are listed and the builder is left alone.
 
@@ -356,8 +356,11 @@ formatter as the column, which is why the Status filter offers `Paid` / `Outstan
 
 Bulk actions carry only an id, a label and a `minSelected` threshold; what `act_void` *means*
 belongs to the host app. A button stays disabled below its threshold rather than failing after the
-callback has already fired. The Preview tab lists the selected keys and the last action, standing in
-for a host so the callbacks are visible while you build.
+callback has already fired. The Preview tab can list the selected keys and the last action, standing
+in for a host so the callbacks are visible while you build — behind the **Selection** button in the
+card header, since most of the time you opened the tab to look at the table itself. The button is
+there only when the document lets rows be selected at all; with selection off there is nothing to
+report and the table simply keeps the whole width.
 
 Under **client** paging all three run in the browser. Under **server** paging they become query
 parameters — `?q=phone`, and one parameter per filtered column (`filterParam`, defaulting to the
@@ -472,8 +475,10 @@ point of having them, so the wording is an observation rather than a complaint.
 
 ### Running one
 
-The Preview tab runs the flow for real: a progress indicator and the current step on the left, the
-accumulated payload and the path taken on the right, with Back and Restart.
+The Preview tab runs the flow for real, with Back and Restart beside the step. **Run details** opens
+a column holding the accumulated payload and the path taken; one button covers both, because what
+has been collected and which route produced it are two halves of one answer. It starts closed, so
+driving a flow gets the full width.
 
 The indicator is derived from the graph, not authored. `workflowStages` in `workflowGraph.ts` breaks
 the cycles and ranks the remaining steps by longest path — the same two helpers the Arrange button
