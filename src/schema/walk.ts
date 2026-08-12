@@ -1,5 +1,5 @@
-import type { ScreenNode, ScreenSchema } from './screen';
-import { collectsValue } from './screen';
+import type { ScreenNode, ScreenNodeType, ScreenSchema } from './screen';
+import { collectsValue, isContainerType } from './screen';
 
 /** Depth-first visit over every node in the tree, parents before children. */
 export function walkNodes(
@@ -141,4 +141,40 @@ export function uniqueName(nodes: ScreenNode[], base: string): string {
   let n = 2;
   while (taken.has(`${base}${n}`)) n += 1;
   return `${base}${n}`;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Drop rules                                                                  */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Cards are sections, so they take other containers — a repeatable belongs
+ * inside one. Everything else stays flat: `group` and `list` hold plain nodes
+ * only, and a tab strip holds only tabs.
+ *
+ * Nesting caps at three levels — `root > tabs > card > list` — which is as far
+ * as both the drop logic and the generated JSON stay legible.
+ */
+export function canDropInto(
+  schema: ScreenSchema,
+  type: ScreenNodeType,
+  containerId: string,
+): boolean {
+  if (containerId === ROOT_CONTAINER_ID) return true;
+  const container = findNode(schema.nodes, containerId);
+  if (!container || !isContainerType(container.type)) return false;
+
+  // A tab strip holds tabs, and a tab is a card. Nothing else goes straight in:
+  // a field dropped between two tabs has no tab to belong to.
+  if (container.type === 'tabs') return type === 'card';
+
+  if (isContainerType(type)) {
+    // `group` and `list` hold plain nodes; only a card takes another container.
+    if (container.type !== 'card') return false;
+    // Depth rather than "the card must be top-level", which is what the rule
+    // used to say — a card inside a tab strip is one level down and still has
+    // to be able to take a repeatable.
+    return containerDepth(schema.nodes, container.id) < 2;
+  }
+  return true;
 }

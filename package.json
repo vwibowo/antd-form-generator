@@ -11,7 +11,9 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "gen:fixtures": "vite-node -c vitest.config.ts scripts/genFixtures.ts"
+    "validate": "vite-node -c vitest.config.ts scripts/validateDocument.ts",
+    "gen:fixtures": "vite-node -c vitest.config.ts scripts/genFixtures.ts",
+    "gen:schema-doc": "vite-node -c vitest.config.ts scripts/genSchemaDoc.ts"
   },
   "dependencies": {
     "@ant-design/icons": "^6.3.2",

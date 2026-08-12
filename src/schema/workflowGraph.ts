@@ -1,5 +1,11 @@
 import type { ScreenNode } from './screen';
-import { collectScreenActions, collectsValue, hasNoWayOnward, isContainerType } from './screen';
+import {
+  collectScreenActions,
+  collectsValue,
+  hasNoWayOnward,
+  isContainerType,
+  walkScreenNodes,
+} from './screen';
 import type { WorkflowEdge, WorkflowNode, WorkflowSchema } from './workflow';
 import { isInteractiveKind } from './workflow';
 import { nodeCaption, workflowMetaFor } from './workflowRegistry';
@@ -330,6 +336,7 @@ export type WorkflowIssueCode =
   | 'empty-screen'
   | 'no-outcomes'
   | 'no-way-onward'
+  | 'missing-summary-source'
   | 'cycle';
 
 export interface WorkflowIssue {
@@ -429,6 +436,23 @@ export function validateWorkflow(schema: WorkflowSchema): WorkflowIssue[] {
           level: 'warning',
           code: 'no-way-onward',
           message: `"${caption}" has no fields and no buttons, so a run reaching it cannot continue.`,
+          nodeId: node.id,
+        });
+      }
+
+      // A `summary` node names the step whose layout it borrows, and the run
+      // resolves that against the workflow's own node ids. An unresolved one
+      // renders *nothing* — no gap, no message — so it has to be caught here.
+      for (const summary of walkScreenNodes(node.screen?.nodes ?? [])) {
+        if (summary.type !== 'summary') continue;
+        const source = summary.summarySource;
+        if (source && ids.has(source)) continue;
+        issues.push({
+          level: 'warning',
+          code: 'missing-summary-source',
+          message: source
+            ? `A summary in "${caption}" points at step "${source}", which is not in this workflow.`
+            : `A summary in "${caption}" names no step, so it shows nothing.`,
           nodeId: node.id,
         });
       }

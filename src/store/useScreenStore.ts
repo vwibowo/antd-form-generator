@@ -5,16 +5,20 @@ import type { CreateNodeSeed } from '@/schema/factory';
 import { cloneNode, createNode } from '@/schema/factory';
 import { migrateToScreen } from '@/schema/migrate';
 import type { ScreenNode, ScreenNodeType, ScreenSchema } from '@/schema/screen';
-import { createEmptyScreenSchema, isContainerType, parseScreenSchema } from '@/schema/screen';
+import { createEmptyScreenSchema, parseScreenSchema } from '@/schema/screen';
 import {
   ROOT_CONTAINER_ID,
-  containerDepth,
+  canDropInto,
   findNode,
   getContainerChildren,
   isDescendantOf,
   locate,
 } from '@/schema/walk';
 import { HISTORY_LIMIT, pushHistory } from './history';
+
+// Re-exported because the drop rules used to live here and callers reach for
+// them at this path. They are a schema rule, not a store one — see `walk.ts`.
+export { canDropInto } from '@/schema/walk';
 
 const STORAGE_KEY = 'antd-form-generator:screen';
 /** What older builds wrote, read once so saved work survives the merge. */
@@ -42,38 +46,6 @@ export interface ScreenState {
   undo: () => void;
   redo: () => void;
   clear: () => void;
-}
-
-/**
- * Cards are sections, so they take other containers — a repeatable belongs
- * inside one. Everything else stays flat: `group` and `list` hold plain nodes
- * only, and a tab strip holds only tabs.
- *
- * Nesting caps at three levels — `root > tabs > card > list` — which is as far
- * as both the drop logic and the generated JSON stay legible.
- */
-export function canDropInto(
-  schema: ScreenSchema,
-  type: ScreenNodeType,
-  containerId: string,
-): boolean {
-  if (containerId === ROOT_CONTAINER_ID) return true;
-  const container = findNode(schema.nodes, containerId);
-  if (!container || !isContainerType(container.type)) return false;
-
-  // A tab strip holds tabs, and a tab is a card. Nothing else goes straight in:
-  // a field dropped between two tabs has no tab to belong to.
-  if (container.type === 'tabs') return type === 'card';
-
-  if (isContainerType(type)) {
-    // `group` and `list` hold plain nodes; only a card takes another container.
-    if (container.type !== 'card') return false;
-    // Depth rather than "the card must be top-level", which is what the rule
-    // used to say — a card inside a tab strip is one level down and still has
-    // to be able to take a repeatable.
-    return containerDepth(schema.nodes, container.id) < 2;
-  }
-  return true;
 }
 
 /**

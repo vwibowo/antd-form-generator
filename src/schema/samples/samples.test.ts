@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { canDropInto } from '@/store/useScreenStore';
 import type { ScreenNode, ScreenSchema } from '../screen';
-import { isContainerType, walkScreenNodes } from '../screen';
-import { ROOT_CONTAINER_ID, findParent } from '../walk';
+import { isContainerType } from '../screen';
+import { unbuildableNodes } from '../validate';
 import { WORKFLOW_SAMPLE_PRESETS } from './workflows';
 import { SAMPLE_PRESETS } from './index';
 
@@ -16,15 +15,9 @@ import { SAMPLE_PRESETS } from './index';
  * container too deep and this is what caught it.
  */
 function unbuildable(schema: ScreenSchema): string[] {
-  const problems: string[] = [];
-  for (const node of walkScreenNodes(schema.nodes)) {
-    const parent = findParent(schema.nodes, node.id);
-    const containerId = parent ? parent.id : ROOT_CONTAINER_ID;
-    if (!canDropInto(schema, node.type, containerId)) {
-      problems.push(`${node.type} "${node.label || node.name || node.id}" cannot go in ${parent?.type ?? 'the root'}`);
-    }
-  }
-  return problems;
+  // The same replay the `validate` CLI runs, so a sample the tests accept and a
+  // sample the verifier accepts are the same set.
+  return unbuildableNodes(schema).map((entry) => `${entry.path}: ${entry.message}`);
 }
 
 /** Containers holding containers, deepest first — what the nesting cap limits. */
