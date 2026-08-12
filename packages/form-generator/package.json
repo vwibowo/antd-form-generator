@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     "./package.json": "./package.json",
+    "./styles.css": "./src/styles.css",
     "./schema/__fixtures__": null,
     "./schema/__fixtures__/*": null,
     "./*": ["./src/*.ts", "./src/*.tsx", "./src/*/index.ts"]

@@ -109,24 +109,6 @@ body {
   height: 100%;
 }
 
-/* Summary: one boxed block per repeatable row, so rows stay countable. */
-.fg-summary__row {
-  border: 1px solid rgba(5, 5, 5, 0.1);
-  border-radius: 8px;
-  padding: 8px 12px 0;
-  margin-bottom: 8px;
-}
-
-/* The blocks inside carry their own bottom margin — drop the last one so a
-   row box does not end in dead space. */
-.fg-summary__row > *:last-child {
-  margin-bottom: 0;
-}
-
-.fg-summary__row .ant-descriptions {
-  margin-bottom: 8px;
-}
-
 /* Header: never let the toolbar buttons fall off an edge with no way back. */
 .fg-header {
   display: flex;

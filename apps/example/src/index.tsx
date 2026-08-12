@@ -1,4 +1,5 @@
 import 'antd/dist/reset.css';
+import '@antd-form-generator/core/styles.css';
 import { App as AntdApp, ConfigProvider } from 'antd';
 import enUS from 'antd/locale/en_US';
 import { StrictMode } from 'react';
