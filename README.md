@@ -2,7 +2,7 @@
 
 Build an [Ant Design](https://github.com/ant-design/ant-design) **screen**, **table** or **workflow** in a drag-and-drop UI, get a JSON schema out, and render that JSON back into a working component.
 
-The JSON schema is the contract between the two halves. `src/renderer/` never imports anything from `src/builder/`, so it can be lifted into a standalone package as-is.
+The JSON schema is the contract between the two halves, and the two halves are now two packages. The renderer and the schema live in `packages/form-generator` and import nothing from the builder; the drag-and-drop, the stores and the panes are `apps/example`, one consumer of that library among however many you write. See [Layout](#layout).
 
 The **Screen / Table / Workflow** switch in the header chooses which document the tabs are editing. They are separate documents with separate storage, undo stacks and export files — see [Table documents](#table-documents) and [Workflow documents](#workflow-documents).
 
@@ -17,6 +17,9 @@ pnpm install
 ```bash
 pnpm dev
 ```
+
+Both run from the repo root — this is a pnpm workspace, and the root scripts forward to whichever
+package needs them.
 
 Then open http://localhost:3000. Click **Sample** in the header for the flagship demo, or use the arrow beside it to pick a preset for whichever document is active. In screen mode:
 
@@ -38,11 +41,14 @@ Between them the presets cover every feature documented below, so they double as
 | Command | What it does |
 | --- | --- |
 | `pnpm dev` | Dev server on port 3000 (set `PORT` to override) |
-| `pnpm build` | Production bundle into `dist/` |
+| `pnpm build` | Production bundle into the repo-root `dist/` — tracked on purpose; it is what GitHub Pages serves |
 | `pnpm preview` | Serve the production build |
-| `pnpm typecheck` | `tsc --noEmit` |
-| `pnpm test` | Vitest, once |
-| `pnpm test:watch` | Vitest, watching |
+| `pnpm typecheck` | `tsc --noEmit` in every workspace |
+| `pnpm test` | Vitest, once — one run, both packages |
+| `pnpm test:watch` | Vitest, watching. A library edit re-runs the app's tests too |
+| `pnpm validate <file.json> …` | Check hand-authored documents against the schema rules. Paths are relative to wherever you are |
+| `pnpm gen:schema-doc` | Rebuild the generated tables in `packages/form-generator/docs/SCHEMA.md` |
+| `pnpm gen:fixtures` | Freeze the sample presets to JSON. Read the header first — it will not reproduce the committed fixtures |
 
 ## The tabs
 
@@ -57,7 +63,7 @@ Each document is saved to its own `localStorage` key as you go, and **Export** /
 
 A screen is a tree of **nodes**. Some collect a value, some only display one, and the difference is
 the single thing that makes the merged document coherent — `collectsValue(type)` in
-`src/schema/screen.ts` decides it, and everything downstream reads that one answer.
+`packages/form-generator/src/schema/screen.ts` decides it, and everything downstream reads that one answer.
 
 | Category | Types | Collects? |
 | --- | --- | --- |
@@ -79,7 +85,7 @@ What `collectsValue` gates:
 - whether the screen needs a `<Form>` around it **at all** — a screen of pure display nodes renders
   a plain `<div>`, so nothing subscribes to form state that does not exist
 
-It deliberately lives in the schema rather than the builder registry, because `src/renderer/`
+It deliberately lives in the schema rather than the builder registry, because `packages/form-generator/src/renderer/`
 switches on `type` directly and never reads builder metadata.
 
 `group` (a plain fieldset) and `card` (an antd `Card` with a title) are **chrome only** — they
@@ -87,7 +93,7 @@ collect nothing themselves, but their children keep top-level names and do not n
 `repeatable` is a `Form.List`: it owns its name and its children become an array of objects. A
 display node is the other kind of "collects nothing": it has no children to look through either.
 Conflating the two is how you silently drop every field inside a card, which is what
-`src/renderer/payload.test.ts` exists to prevent.
+`packages/form-generator/src/renderer/payload.test.ts` exists to prevent.
 
 Cards are sections, so a card can hold other containers — including a repeatable. To keep the JSON
 legible that is capped at three containers deep: **`root > tabs > card > repeatable`**. `group` and
@@ -102,9 +108,9 @@ Every pane stays mounted, open or not. `Form.Item` carries `preserve={false}`, s
 unmounted would take its fields' values out of the payload without saying so — you would submit and
 silently lose whatever was typed in a tab you had navigated away from. A required field in an
 unopened tab still blocks the submit, which is the behaviour you want and the one
-`src/renderer/payload.test.ts` pins.
+`packages/form-generator/src/renderer/payload.test.ts` pins.
 
-The samples are checked against the drop rules too (`src/schema/samples/samples.test.ts`): a preset
+The samples are checked against the drop rules too (`packages/form-generator/src/schema/samples/samples.test.ts`): a preset
 that describes a tree the builder would refuse to assemble is worse than a broken one, because the
 app ships it, renders it, and then cannot reproduce it.
 
@@ -166,7 +172,7 @@ summary can echo what is being typed. Each one watches only the names it actuall
 than the whole form, so a paragraph naming one field costs one subscription, not a re-render per
 keystroke.
 
-**Per-type control options** — `props` is a free-form bag holding the antd props for that field's control. Everything editable lives in `src/schema/propSpecs.ts`, which drives the inspector's settings panel; the renderer reads the same keys in `src/renderer/controls.tsx`. Adding a new prop means one spec entry and one read.
+**Per-type control options** — `props` is a free-form bag holding the antd props for that field's control. Everything editable lives in `packages/form-generator/src/schema/propSpecs.ts`, which drives the inspector's settings panel; the renderer reads the same keys in `packages/form-generator/src/renderer/controls.tsx`. Adding a new prop means one spec entry and one read.
 
 | Type | `props` keys |
 | --- | --- |
@@ -189,7 +195,7 @@ keystroke.
 | tabs | `position` (`top` / `start`), `centered` |
 
 Display nodes are not in that table. Their settings are few and per-type, so the inspector edits them
-directly in `src/builder/inspector/DisplayProps.tsx` rather than through generic prop rows: `heading`
+directly in `apps/example/src/builder/inspector/DisplayProps.tsx` rather than through generic prop rows: `heading`
 takes a `level`, `callout` a `tone`, `spacer` a `height`, `data list` and `screen summary` a column
 count and a border.
 
@@ -361,7 +367,7 @@ five-letter search costs one request. One caveat worth knowing: a filter dropdow
 values it has seen, which under server paging means the current page.
 
 **Table props** live in the same free-form `props` bag as a field's, described by
-`src/schema/tablePropSpecs.ts`: `size`, `bordered`, `showHeader`, `sticky`, `tableLayout`, `virtual`,
+`packages/form-generator/src/schema/tablePropSpecs.ts`: `size`, `bordered`, `showHeader`, `sticky`, `tableLayout`, `virtual`,
 `scrollX`, `scrollY`, `emptyText`, and the pagination set (`pagination`, `pageSize`,
 `pagePlacement`, `showSizeChanger`, `showQuickJumper`, `showTotal`, `simplePagination`). Function and
 node props — `rowSelection`, `expandable`, `summary`, `onCell` — are deliberately absent.
@@ -393,7 +399,7 @@ The URL takes the same `{{token}}` templating the form's remote options use, res
 document's `params` block (the panel grows an input per token). Same rules, too: GET only, no
 headers or auth field, because the document is persisted, shown in the JSON tab and exported.
 
-Under the hood both features share one network layer — `src/renderer/remote/useFetchedBody.ts` does
+Under the hood both features share one network layer — `packages/form-generator/src/renderer/remote/useFetchedBody.ts` does
 the caching, aborting and error strings for options and rows alike.
 
 ## Workflow documents
@@ -500,8 +506,8 @@ When a use case outgrows the built-in types, the host app can supply its own con
 The component itself is registered in app code and passed to the renderer:
 
 ```tsx
-import { ScreenRenderer } from '@/renderer/ScreenRenderer';
-import type { CustomComponentRegistry } from '@/renderer/custom';
+import { ScreenRenderer } from '@antd-form-generator/core/renderer/ScreenRenderer';
+import type { CustomComponentRegistry } from '@antd-form-generator/core/renderer/custom';
 
 const components: CustomComponentRegistry = {
   colorPicker: {
@@ -523,7 +529,7 @@ const components: CustomComponentRegistry = {
 
 `value` and `onChange` are injected by `Form.Item`, exactly as for the antd controls — a component just reads one and calls the other. Anything else it needs comes from `node.props`, and each key it wants editable gets a `propSpecs` entry.
 
-Wrap a subtree in `CustomComponentsProvider` instead of passing the prop, and the builder picks the registry up too: registered components appear in the palette's **Custom** group, and the canvas renders the real component rather than a stand-in. `src/App.tsx` does exactly that with the two demos in `src/custom/` — a colour picker, and a key/value editor that holds an array while editing and submits an object through its `serialize` hook.
+Wrap a subtree in `CustomComponentsProvider` instead of passing the prop, and the builder picks the registry up too: registered components appear in the palette's **Custom** group, and the canvas renders the real component rather than a stand-in. `apps/example/src/App.tsx` does exactly that with the two demos in `apps/example/src/custom/` — a colour picker, and a key/value editor that holds an array while editing and submits an object through its `serialize` hook.
 
 Two things worth knowing:
 
@@ -539,7 +545,7 @@ There is **no summary schema**. The page is derived from the `ScreenSchema` the 
 the traversal mirrors the one in `serialize.ts`, so the page and the payload cannot drift apart:
 
 ```tsx
-import { SummaryRenderer } from '@/renderer/summary/SummaryRenderer';
+import { SummaryRenderer } from '@antd-form-generator/core/renderer/summary/SummaryRenderer';
 
 <SummaryRenderer schema={schema} values={submitted} columns={2} bordered={false} />
 ```
@@ -572,9 +578,12 @@ previewing, not part of either document, so they are never exported.
 
 ## Layout
 
+Two pnpm workspaces, and the split is the same line the JSON schema already drew: the library is
+what renders a document, the app is what edits one.
+
 ```
-src/
-  schema/      zod definitions (the single source of truth for shape, TS types, and validation),
+packages/form-generator/          @antd-form-generator/core — the library
+  src/schema/  zod definitions (the single source of truth for shape, TS types, and validation),
                nodeBase.ts  the keys every node shares, and the condition language
                screen.ts    the screen document: 39 node types, collectsValue,
                             the submit-row-versus-buttons rule
@@ -588,25 +597,50 @@ src/
                samples/     the demo presets behind the Sample button
                __fixtures__/ sample documents frozen in their pre-merge shapes,
                             the inputs the migration tests run against
-  renderer/    schema -> antd <Form> or <Table>. No builder imports.
+  src/renderer/  schema -> antd <Form> or <Table>. No builder imports.
                ScreenRenderer  the root: emits a <Form> only when something collects
                ScreenNodeView  one node, control or display
                screenContext   whether values are live or a finished payload
-               remote/   the app's only network layer: URL templating, response
+               remote/   the only network layer: URL templating, response
                          mapping, and a TTL body cache, shared by options and rows
                table/    schema -> antd <Table>: columns, cell formats, remote rows
                summary/  schema + payload -> a read-only confirmation page
                workflow/ the run engine: which branch is taken, and what comes next
-  builder/     palette, canvas, inspector, toolbar, drag-and-drop
+  src/lib/     createId, shared by the factories and the builder
+  docs/        SCHEMA.md — the authoring reference, tables regenerated from the registries
+  scripts/     validateDocument, genSchemaDoc, genFixtures
+
+apps/example/                     @antd-form-generator/example — this demo
+  src/builder/ palette, canvas, inspector, toolbar, drag-and-drop
                table/    the table builder: data source, column list, column inspector
                workflow/ the graph builder: node cards, SVG branches, node and
                          branch inspectors, and the embedded screen editor
-  custom/      the demo component registry this app passes to the renderer
-  panes/       preview, summary and JSON tabs
-  store/       one zustand store per document, each with its own localStorage
+  src/custom/  the demo component registry this app passes to the renderer
+  src/panes/   preview, summary and JSON tabs
+  src/store/   one zustand store per document, each with its own localStorage
                key and undo/redo, plus the mode switch and the summary tab's
                sample values
+  src/styles.css  every `.fg-*` rule
 ```
+
+The app imports the library as `@antd-form-generator/core/<subpath>` — `schema/screen`,
+`renderer/ScreenRenderer` and so on. Those subpaths resolve **straight to TypeScript source**: there
+is no build step between the two packages, nothing is emitted, and editing a file in the library
+hot-reloads the app. The cost is that library files are type-checked twice, once on their own and
+once inside the app's program, which is why both tsconfigs extend one `tsconfig.base.json`.
+
+Two rules keep the boundary honest:
+
+- **Library code may not use the `@/` alias.** `@/` belongs to whichever app is compiling, so inside
+  the library it would resolve into `apps/example/src`. The library's tsconfig declares no `paths` at
+  all, so any `@/` fails there immediately. To check by hand, use `/usr/bin/grep -ran "'@/"
+  packages/form-generator/src` — the `-a` matters, because two files hold a literal NUL byte (a
+  deliberate join delimiter in `useFieldVisibility.ts` and `remote/useRemoteOptions.ts`) and plain
+  grep skips them as binary.
+- **The library owns no CSS.** It emits three class names it does not style — `fg-page`,
+  `fg-summary` and `fg-summary__row` — and only the last has a rule, in this app's `styles.css`. A
+  host that imports the library and not that file gets an unstyled repeatable row in its summary.
+  Everything else the renderer draws is inline `style` props.
 
 The builder panes bind to whichever screen document `ScreenStoreContext` supplies — the app-level one
 by default, or a workflow node's embedded screen when the graph builder provides its own. That is
@@ -638,9 +672,13 @@ embedded in a saved workflow:
 
 `migrateToScreen` passes an already-migrated document straight through, so it is safe on every read
 rather than something that has to run exactly once. The pre-merge sample documents are committed
-under `src/schema/__fixtures__/` and the tests migrate them on every run, asserting that node counts,
+under `packages/form-generator/src/schema/__fixtures__/` and the tests migrate them on every run, asserting that node counts,
 payload keys and conditions all survive.
 
 ## Stack
 
-antd 6 · React 19 · Rsbuild 2 · TypeScript · zod 4 (schema + validation) · zustand 5 (state) · dnd-kit (drag and drop) · dayjs · Vitest
+antd 6 · React 19 · Rsbuild 2 · TypeScript · pnpm workspaces · zod 4 (schema + validation) · zustand 5 (state) · dnd-kit (drag and drop) · dayjs · Vitest
+
+The library half of that list is short on purpose: `@antd-form-generator/core` depends on zod and
+dayjs and peers on antd and React. zustand and dnd-kit belong to the example app, and a host that
+imports the renderer never pulls them in.
