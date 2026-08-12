@@ -1,0 +1,26 @@
+{
+  // Every workspace extends this, and they must not drift: the example app
+  // imports the library's TypeScript source directly, so library files are
+  // type-checked twice — once on their own, once inside the app's program.
+  // Identical options are what stop an error appearing in one and not the other.
+  //
+  // `baseUrl`, `paths`, `types` and `include` are deliberately absent. A
+  // `baseUrl` here would resolve against *this* file's directory, silently
+  // re-rooting every `paths` entry that extends it.
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["DOM", "DOM.Iterable", "ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "noEmit": true
+  }
+}

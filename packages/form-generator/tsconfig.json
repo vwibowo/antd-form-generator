@@ -1,0 +1,14 @@
+{
+  // No `paths`, deliberately. This package's source reaches itself with
+  // relative imports only, and the absence of an `@/*` mapping is what enforces
+  // that: an `@/` that creeps back in fails here instead of resolving into
+  // whichever app happens to be compiling these files.
+  //
+  // No `@rsbuild/core/types` either — the library imports no CSS and reads no
+  // `import.meta.env`, so it has no business seeing bundler globals.
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node"]
+  },
+  "include": ["src", "scripts"]
+}

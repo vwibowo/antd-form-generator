@@ -1,0 +1,19 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["@rsbuild/core/types", "node"],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      // The library's own `exports` map would cover this, but it leans on
+      // trying `./src/*.ts`, then `.tsx`, then `/index.ts` and taking the one
+      // that exists — behaviour every resolver here is believed to have and
+      // none of them promises. A `paths` mapping probes extensions
+      // unconditionally, and Rsbuild picks it up from this file for free
+      // (resolve.aliasStrategy defaults to 'prefer-tsconfig'). Two lines to
+      // stop caring which resolver is reading the package.
+      "@antd-form-generator/core/*": ["../../packages/form-generator/src/*"]
+    }
+  },
+  "include": ["src", "rsbuild.config.ts"]
+}

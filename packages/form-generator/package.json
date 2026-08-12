@@ -1,0 +1,32 @@
+{
+  "name": "@antd-form-generator/core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./package.json": "./package.json",
+    "./schema/__fixtures__": null,
+    "./schema/__fixtures__/*": null,
+    "./*": ["./src/*.ts", "./src/*.tsx", "./src/*/index.ts"]
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "dayjs": "^1.11.21",
+    "zod": "^4.4.3"
+  },
+  "peerDependencies": {
+    "@ant-design/icons": "^6.3.2",
+    "antd": "^6.5.3",
+    "react": "^19.2.0"
+  },
+  "devDependencies": {
+    "@ant-design/icons": "^6.3.2",
+    "@types/node": "^26.1.2",
+    "@types/react": "^19.2.18",
+    "antd": "^6.5.3",
+    "react": "^19.2.0",
+    "typescript": "^5.9.0"
+  }
+}
