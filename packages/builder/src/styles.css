@@ -114,6 +114,30 @@
   height: calc(100vh - 103px);
 }
 
+/* Header: never let the toolbar buttons fall off an edge with no way back. */
+.fg-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.fg-header > * {
+  flex-shrink: 0;
+}
+
+
+/* The same antd `lg` breakpoint the builder stylesheet stacks its panes at.
+   Once the header is tight enough to scroll, the node count is what goes. */
+@media (max-width: 991px) {
+  .fg-header__meta {
+    display: none;
+  }
+}
+
+
 /* The table builder's left pane holds a data source editor, not a palette of
    one-line buttons, so it needs the extra width. */
 .fg-builder--table {
