@@ -44,8 +44,8 @@ Between them the presets cover every feature documented below, so they double as
 | `pnpm build` | Production bundle into the repo-root `dist/` — tracked on purpose; it is what GitHub Pages serves |
 | `pnpm preview` | Serve the production build |
 | `pnpm typecheck` | `tsc --noEmit` in every workspace |
-| `pnpm test` | Vitest, once — one run, every package |
-| `pnpm test:watch` | Vitest, watching. A library edit re-runs the builder's tests too |
+| `pnpm test` | Vitest, once — one run, both packages |
+| `pnpm test:watch` | Vitest, watching. A library edit re-runs the app's tests too |
 | `pnpm validate <file.json> …` | Check hand-authored documents against the schema rules. Paths are relative to wherever you are |
 | `pnpm gen:schema-doc` | Rebuild the generated tables in `packages/form-generator/docs/SCHEMA.md` |
 | `pnpm gen:fixtures` | Freeze the sample presets to JSON. Read the header first — it will not reproduce the committed fixtures |
@@ -195,7 +195,7 @@ keystroke.
 | tabs | `position` (`top` / `start`), `centered` |
 
 Display nodes are not in that table. Their settings are few and per-type, so the inspector edits them
-directly in `packages/builder/src/inspector/DisplayProps.tsx` rather than through generic prop rows: `heading`
+directly in `apps/example/src/builder/inspector/DisplayProps.tsx` rather than through generic prop rows: `heading`
 takes a `level`, `callout` a `tone`, `spacer` a `height`, `data list` and `screen summary` a column
 count and a border.
 
@@ -583,9 +583,8 @@ previewing, not part of either document, so they are never exported.
 
 ## Layout
 
-Three pnpm workspaces, and the first split is the same line the JSON schema already drew: one
-package renders a document, one edits it. The app is what is left once both are packages — five
-files that pick a locale, register two custom components, and arrange the tabs.
+Two pnpm workspaces, and the split is the same line the JSON schema already drew: the library is
+what renders a document, the app is what edits one.
 
 ```
 packages/form-generator/          @antd-form-generator/core — the library
@@ -613,62 +612,40 @@ packages/form-generator/          @antd-form-generator/core — the library
                summary/  schema + payload -> a read-only confirmation page
                workflow/ the run engine: which branch is taken, and what comes next
   src/lib/     createId, shared by the factories and the builder
-  src/styles.css  the `.fg-summary__row` rules, and nothing else
   docs/        SCHEMA.md — the authoring reference, tables regenerated from the registries
   scripts/     validateDocument, genSchemaDoc, genFixtures
 
-packages/builder/                 @antd-form-generator/builder — the editor
-  src/          palette, canvas, inspector, toolbar, drag-and-drop. The package
-                root *is* the builder, so the subpaths read
-                `@antd-form-generator/builder/BuilderLayout`
-               inspector/ the settings panel, one editor per prop kind
+apps/example/                     @antd-form-generator/example — this demo
+  src/builder/ palette, canvas, inspector, toolbar, drag-and-drop
                table/    the table builder: data source, column list, column inspector
                workflow/ the graph builder: node cards, SVG branches, node and
                          branch inspectors, and the embedded screen editor
-               panes/    preview, summary and JSON tabs
-               store/    one zustand store per document, each with its own
-                         localStorage key and undo/redo, plus the mode switch
-                         and the summary tab's sample values
-  src/styles.css  every `.fg-*` rule the builder draws
-
-apps/example/                     @antd-form-generator/example — this demo
-  src/index.tsx   locale, theme, and the three stylesheet imports
-  src/App.tsx     the header, the mode switch and the four tabs
-  src/custom/     the demo component registry this app passes to the renderer
-  src/styles.css  the document reset and the header rules
+  src/custom/  the demo component registry this app passes to the renderer
+  src/panes/   preview, summary and JSON tabs
+  src/store/   one zustand store per document, each with its own localStorage
+               key and undo/redo, plus the mode switch and the summary tab's
+               sample values
+  src/styles.css  every `.fg-*` rule
 ```
 
-There are three import edges — app to builder, app to library, builder to library — and every one is
-written as `@antd-form-generator/<pkg>/<subpath>`: `schema/screen`, `renderer/ScreenRenderer`,
-`store/useScreenStore`. Those subpaths resolve **straight to TypeScript source**: there is no build
-step between the packages, nothing is emitted, and editing a file in either one hot-reloads the app.
-The cost is that package files are type-checked twice, once on their own and once inside the app's
-program, which is why all three tsconfigs extend one `tsconfig.base.json` — a difference between them
-would let an error appear in one pass and not the other.
+The app imports the library as `@antd-form-generator/core/<subpath>` — `schema/screen`,
+`renderer/ScreenRenderer` and so on. Those subpaths resolve **straight to TypeScript source**: there
+is no build step between the two packages, nothing is emitted, and editing a file in the library
+hot-reloads the app. The cost is that library files are type-checked twice, once on their own and
+once inside the app's program, which is why both tsconfigs extend one `tsconfig.base.json`.
 
-There is no edge back: neither package imports the app, and the library does not import the builder.
-The builder still shows the app's custom components, because it finds them through the library's
-`CustomComponentsProvider` context rather than by importing them.
+Two rules keep the boundary honest:
 
-Three rules keep the boundaries honest:
-
-- **No package may use the `@/` alias.** `@/` belongs to whichever app is compiling, so inside a
-  package it would resolve into that app's `src`. Both package tsconfigs declare no `paths` at all,
-  so an `@/` fails there immediately — and since the app dropped its own `@/*` mapping, there is now
-  no `@/` anywhere in the repo for a stray one to land on. To check by hand, use `/usr/bin/grep -ran
-  "'@/" packages/` — the `-a` matters, because two library files hold a literal NUL byte (a
+- **Library code may not use the `@/` alias.** `@/` belongs to whichever app is compiling, so inside
+  the library it would resolve into `apps/example/src`. The library's tsconfig declares no `paths` at
+  all, so any `@/` fails there immediately. To check by hand, use `/usr/bin/grep -ran "'@/"
+  packages/form-generator/src` — the `-a` matters, because two files hold a literal NUL byte (a
   deliberate join delimiter in `useFieldVisibility.ts` and `remote/useRemoteOptions.ts`) and plain
   grep skips them as binary.
-- **Each package ships the CSS it emits.** The library styles `fg-summary__row`; the builder styles
-  its 40-odd `.fg-*` classes; the app keeps the document reset and the header. So a host needs
-  **both** `@antd-form-generator/core/styles.css` and `@antd-form-generator/builder/styles.css` if it
-  uses the builder — the Summary pane renders the library's `SummaryRenderer`, which styles its own
-  rows. `fg-page` and `fg-summary` stay deliberately style-less: they are hooks for a host to target.
+- **The library owns no CSS.** It emits three class names it does not style — `fg-page`,
+  `fg-summary` and `fg-summary__row` — and only the last has a rule, in this app's `styles.css`. A
+  host that imports the library and not that file gets an unstyled repeatable row in its summary.
   Everything else the renderer draws is inline `style` props.
-- **`.fg-scroll` is duplicated on purpose.** Both the app and the builder emit it, so both ship it.
-  Letting the builder own it and the app free-ride on the import would put the app back to emitting a
-  class it does not ship. The `991px` breakpoint is written twice for the same reason, and nothing
-  keeps the two copies in sync; both say so in a comment.
 
 The builder panes bind to whichever screen document `ScreenStoreContext` supplies — the app-level one
 by default, or a workflow node's embedded screen when the graph builder provides its own. That is
@@ -707,7 +684,6 @@ payload keys and conditions all survive.
 
 antd 6 · React 19 · Rsbuild 2 · TypeScript · pnpm workspaces · zod 4 (schema + validation) · zustand 5 (state) · dnd-kit (drag and drop) · dayjs · Vitest
 
-That list is split three ways on purpose. `@antd-form-generator/core` depends on zod and dayjs and
-peers on antd and React — nothing else. zustand and dnd-kit are `@antd-form-generator/builder`'s,
-so a host that renders a document without editing one never pulls them in. The app itself declares
-only the two workspace packages, antd, React and react-dom.
+The library half of that list is short on purpose: `@antd-form-generator/core` depends on zod and
+dayjs and peers on antd and React. zustand and dnd-kit belong to the example app, and a host that
+imports the renderer never pulls them in.
