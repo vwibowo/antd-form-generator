@@ -1,95 +1,72 @@
-/**
- * The app's only network layer.
- *
- * Caches *raw response bodies* rather than mapped options, keyed by the fully
- * resolved URL: editing `labelKey` in the inspector then re-maps instantly
- * with no second request.
- */
-
-interface Entry {
-  at: number;
-  body: unknown;
-}
-
-const TTL_MS = 5 * 60_000;
-/** Enough for a session of typing in a search box without growing unbounded. */
-const MAX_ENTRIES = 200;
-
-const cache = new Map<string, Entry>();
-
-export function readCachedBody(url: string): { body: unknown } | undefined {
-  const entry = cache.get(url);
-  if (!entry) return undefined;
-  if (Date.now() - entry.at > TTL_MS) {
-    cache.delete(url);
-    return undefined;
-  }
-  return { body: entry.body };
-}
-
-function store(url: string, body: unknown): void {
-  if (cache.size >= MAX_ENTRIES) {
-    // Map iterates in insertion order, so the first key is the oldest.
-    const oldest = cache.keys().next();
-    if (!oldest.done) cache.delete(oldest.value);
-  }
-  cache.set(url, { at: Date.now(), body });
-}
-
-/** Drop everything. Exported for a future "reload options" affordance. */
-export function clearOptionsCache(): void {
-  cache.clear();
-}
+import type { RendererError } from '../config/errors';
+import { rendererError } from '../config/errors';
+import type { ResolvedRendererRequest } from '../config/types';
 
 /**
- * Fetch one URL as JSON.
+ * The app's only network call.
  *
- * `credentials: 'omit'` is load-bearing rather than cosmetic: a schema is a
- * shareable, importable file, so one user can hand another a JSON that makes
- * their browser fetch an arbitrary URL. Omitting credentials means those
- * requests can never be authenticated by the recipient's cookies.
+ * The request reaching here has already been through `config/policy.ts`, which
+ * decided whether it may carry the host's headers and credentials. Read that
+ * file before touching this one: `credentials: 'omit'` on an untrusted
+ * destination is a security property, not a default, and the policy is what
+ * preserves it now that a host can configure anything at all.
+ *
+ * Caching moved to `config/cache.ts` — a cache is per-provider now, because a
+ * shared one would let two hosts with two tokens read each other's responses.
  */
-export async function loadBody(url: string, signal: AbortSignal): Promise<unknown> {
-  let parsed: URL;
-  try {
-    parsed = new URL(url, window.location.origin);
-  } catch {
-    throw new Error('Invalid URL');
-  }
-  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-    throw new Error(`Unsupported scheme ${parsed.protocol}`);
-  }
 
+/** Fetch one URL as JSON. Rejects with a `RendererError`. */
+export async function loadBody(
+  request: ResolvedRendererRequest,
+  signal: AbortSignal,
+): Promise<unknown> {
   let response: Response;
   try {
-    response = await fetch(parsed.toString(), {
+    response = await fetch(request.url, {
       signal,
-      credentials: 'omit',
-      headers: { Accept: 'application/json' },
+      credentials: request.credentials,
+      headers: { Accept: 'application/json', ...request.headers },
     });
   } catch (error) {
     if (signal.aborted) throw error;
     // fetch rejects with a bare TypeError for both an offline network and a
     // blocked cross-origin read. The browser deliberately does not tell us
     // which, so neither can we.
-    throw new Error('Network or CORS error');
+    throw rendererError('network', 'Network or CORS error', {
+      url: request.url,
+      kind: request.kind,
+      cause: error,
+    });
   }
 
   if (!response.ok) {
-    throw new Error(`HTTP ${response.status}`);
+    // The numeric status travels alongside the prose: a host retrying a 429
+    // and a host reporting a 404 want different things, and a string cannot
+    // be branched on.
+    throw rendererError('http', `HTTP ${response.status}`, {
+      url: request.url,
+      kind: request.kind,
+      status: response.status,
+    });
   }
 
-  let body: unknown;
   try {
-    body = await response.json();
-  } catch {
-    throw new Error('Invalid JSON response');
+    return await response.json();
+  } catch (error) {
+    throw rendererError('invalid-json', 'Invalid JSON response', {
+      url: request.url,
+      kind: request.kind,
+      cause: error,
+    });
   }
-
-  store(parsed.toString(), body);
-  return body;
 }
 
+/** Prose for anything that comes back from a failed load. */
 export function describeError(error: unknown): string {
+  if (isRendererError(error)) return error.message;
   return error instanceof Error ? error.message : 'Request failed';
+}
+
+export function isRendererError(error: unknown): error is RendererError {
+  return typeof error === 'object' && error !== null && 'code' in error && 'message' in error;
 }

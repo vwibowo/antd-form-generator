@@ -130,7 +130,7 @@ export function useRemoteRows(schema: TableSchema, query: RowQuery): RemoteRowsS
     filtersKey,
   ]);
 
-  const state = useFetchedBody(active ? requestUrl : null);
+  const state = useFetchedBody(active ? requestUrl : null, 'rows');
 
   // Separate from the fetch: editing `dataPath` in the builder re-reads the
   // cached body rather than issuing a second request.
