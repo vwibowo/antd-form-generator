@@ -17,6 +17,13 @@
     // caring which resolver is reading which package.
     "paths": {
       "@antd-form-generator/builder/*": ["../../packages/builder/src/*"],
+      // The bare specifier needs its own entry: the wildcard below only matches
+      // subpaths, so `@antd-form-generator/core` alone would fall through to the
+      // `exports` map and depend on the resolver loading `.ts` out of a
+      // workspace link. One line and both resolvers agree — and, more
+      // importantly, the barrel and the subpaths then resolve to the *same*
+      // files, so `CustomComponentsContext` is one context rather than two.
+      "@antd-form-generator/core": ["../../packages/form-generator/src/index.ts"],
       "@antd-form-generator/core/*": ["../../packages/form-generator/src/*"]
     }
   },

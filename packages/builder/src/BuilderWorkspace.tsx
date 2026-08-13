@@ -15,7 +15,13 @@ import { useTableStore } from './store/useTableStore';
 import { useWorkflowStore } from './store/useWorkflowStore';
 import { TableBuilder } from './table/TableBuilder';
 import { WorkflowBuilder } from './workflow/WorkflowBuilder';
-import { CustomComponentRegistry, CustomComponentsProvider } from '@antd-form-generator/core/renderer/custom';
+// Through the barrel, not the subpath: the provider is part of the library's
+// public surface, and reaching it the way a host does is also what proves the
+// two entry points share one module. If they ever did not,
+// `CustomComponentsContext` would be two contexts and every `custom` node would
+// render its "not registered" box instead of the component.
+import type { CustomComponentRegistry } from '@antd-form-generator/core';
+import { CustomComponentsProvider } from '@antd-form-generator/core';
 import type { DocumentKind } from '@antd-form-generator/core/schema/document';
 
 const HEADER_HEIGHT = 56;
