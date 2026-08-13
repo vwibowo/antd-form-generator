@@ -76,6 +76,18 @@ export const appCustomComponents: CustomComponentRegistry = {
       Array.isArray(rows)
         ? Object.fromEntries(rows.filter((row) => row.key).map((row) => [row.key, row.value]))
         : rows,
+    // And back, or the reshape above is one-way: `KeyValueField` guards with
+    // `Array.isArray(value) ? value : []`, so an object handed back to it reads
+    // as no pairs at all. A workflow looping to a step already answered would
+    // show the field empty.
+    deserialize: (value): KeyValueRow[] => {
+      if (Array.isArray(value)) return value as KeyValueRow[];
+      if (!value || typeof value !== 'object') return [];
+      return Object.entries(value as Record<string, unknown>).map(([key, entry]) => ({
+        key,
+        value: String(entry ?? ''),
+      }));
+    },
     // Reached with the serialised object in a summary built from a payload, and
     // with the live array when a host passes raw form values — accept both.
     summary: (value: KeyValueRow[] | Record<string, unknown>) => {

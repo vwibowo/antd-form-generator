@@ -45,6 +45,20 @@ export interface CustomComponentDef<V = any> {
   /** Convert the live value into something JSON-serialisable at submit time. */
   serialize?: (value: V, node: ScreenNode) => unknown;
   /**
+   * Read `serialize`'s output back into a value the control can hold — the
+   * inverse, run whenever a payload re-enters a form.
+   *
+   * Only needed when `serialize` changes the *shape*. A component that stores a
+   * string and submits a string needs nothing here, which is why this is
+   * optional and why the value passes through untouched without it.
+   *
+   * When it is needed, its absence is silent and total rather than partial: a
+   * control that guards with `Array.isArray(value) ? value : []` and serialises
+   * to an object gets an empty array back, and the row a reader typed simply is
+   * not there when a workflow loops to that step again.
+   */
+  deserialize?: (value: unknown, node: ScreenNode) => V;
+  /**
    * How this component's value reads on a summary page. Receives the value as
    * it sits in the payload, so a serialised shape is what arrives. Omit it and
    * the summary prints `serialize`'s output instead.

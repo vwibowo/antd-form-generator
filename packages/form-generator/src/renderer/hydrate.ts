@@ -1,5 +1,7 @@
 import type { ScreenNode, ScreenSchema } from '../schema/screen';
 import { isDisplayType, isTransparentContainer } from '../schema/screen';
+import type { CustomComponentRegistry } from './custom';
+import { customDefFor } from './custom';
 import {
   isDateType,
   isDateRangeType,
@@ -17,27 +19,30 @@ import {
  * DatePicker will only accept a dayjs object.
  *
  * Walks the schema rather than the values, exactly as `serializeValues` does,
- * so nothing else is touched. `custom` fields pass through unchanged: a
- * component declares `serialize` but nothing to reverse it, and the values that
- * hook produces are almost always the shape the control already held. A
- * component that serialises into something it cannot read back needs its own
- * round trip, and this is where that would go.
+ * so nothing else is touched. Takes the same `registry` for the same reason:
+ * a custom component that reshapes its value on the way out needs the reverse
+ * on the way in, or the round trip loses the field entirely.
  */
 export function hydrateValues(
   schema: ScreenSchema,
   values: Record<string, unknown>,
+  registry?: CustomComponentRegistry,
 ): Record<string, unknown> {
   const out = { ...values };
-  applyNodes(schema.nodes, out);
+  applyNodes(schema.nodes, out, registry);
   return out;
 }
 
-function applyNodes(nodes: ScreenNode[], target: Record<string, unknown>): void {
+function applyNodes(
+  nodes: ScreenNode[],
+  target: Record<string, unknown>,
+  registry: CustomComponentRegistry | undefined,
+): void {
   for (const node of nodes) {
     if (isDisplayType(node.type)) continue;
 
     if (isTransparentContainer(node.type)) {
-      applyNodes(node.children ?? [], target);
+      applyNodes(node.children ?? [], target, registry);
       continue;
     }
 
@@ -47,13 +52,21 @@ function applyNodes(nodes: ScreenNode[], target: Record<string, unknown>): void 
       target[node.name] = rows.map((row) => {
         if (!row || typeof row !== 'object') return row;
         const copy = { ...(row as Record<string, unknown>) };
-        applyNodes(node.children ?? [], copy);
+        applyNodes(node.children ?? [], copy, registry);
         return copy;
       });
       continue;
     }
 
     if (!(node.name in target)) continue;
+
+    if (node.type === 'custom') {
+      // Mirrors `serializeValues`: no hook means the control already holds what
+      // the payload carries, which is true of most custom values.
+      const deserialize = customDefFor(node, registry)?.deserialize;
+      if (deserialize) target[node.name] = deserialize(target[node.name], node);
+      continue;
+    }
 
     if (isDateType(node.type)) {
       const valueFormat = valueFormatOf(node);
