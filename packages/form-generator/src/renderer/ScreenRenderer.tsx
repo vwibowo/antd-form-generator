@@ -125,8 +125,12 @@ function CollectingScreen({
     if (!values) return seeded;
     // Supplied values win: they are an answer, and a default is only a guess at
     // one. Keys the schema no longer has are dropped by the effect below.
-    return { ...seeded, ...hydrateValues(schema, values) };
-  }, [schema, values]);
+    //
+    // The registry matters here and nowhere else in this file: this is the only
+    // place a payload re-enters a form, so a custom component that reshaped its
+    // value on the way out gets its `deserialize` run on the way back in.
+    return { ...seeded, ...hydrateValues(schema, values, customComponents) };
+  }, [schema, values, customComponents]);
   const payloadKeys = useMemo(() => collectPayloadKeys(schema), [schema]);
 
   // The builder mutates the schema live, so re-seed on every change: new

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { screenSchemaSchema } from '../schema/screen';
 import type { CustomComponentRegistry } from './custom';
 import { hydrateValues } from './hydrate';
+import { buildInitialValues } from './initialValues';
 import { serializeValues } from './serialize';
 
 /**
@@ -58,6 +59,27 @@ describe('custom components survive a round trip', () => {
 
     // The step this whole change exists for.
     expect(hydrateValues(customScreen, payload, registry).metadata).toEqual(live);
+  });
+
+  it('is what ScreenRenderer seeds a form with', () => {
+    // `ScreenRenderer` builds `initialValues` as schema defaults with a hydrated
+    // payload laid over them, and that one expression is the only place in the
+    // product where a payload re-enters a form. It went a whole commit without
+    // the registry — the function was fixed, its tests passed, and the app still
+    // showed an empty field — so the composition is pinned here and not just the
+    // function underneath it.
+    const payload = serializeValues(
+      customScreen,
+      { metadata: [{ key: 'team', value: 'platform' }] },
+      registry,
+    );
+
+    const seeded = {
+      ...buildInitialValues(customScreen),
+      ...hydrateValues(customScreen, payload, registry),
+    };
+
+    expect(seeded.metadata).toEqual([{ key: 'team', value: 'platform' }]);
   });
 
   it('loses the field when the registry is withheld — the old behaviour', () => {
