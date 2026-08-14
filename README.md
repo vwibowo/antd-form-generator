@@ -11,17 +11,42 @@ A **screen** both asks and tells. It holds form controls, display blocks, or any
 ## Running it
 
 ```bash
-pnpm install
+npm install
 ```
 
 ```bash
-pnpm dev
+npm run dev
 ```
 
-Both run from the repo root — this is a pnpm workspace, and the root scripts forward to whichever
+Both run from the repo root — this is an npm workspace, and the root scripts forward to whichever
 package needs them.
 
-Then open http://localhost:3000. Click **Sample** in the header for the flagship demo, or use the arrow beside it to pick a preset for whichever document is active. In screen mode:
+Then open http://localhost:3000. That is **Meridian Ops** — a demo console where every page is one
+of these documents rendered at runtime. The builder is one route inside it, at `/builder`.
+
+| Route | What it shows |
+| --- | --- |
+| `/` | Counts, and a way into everything below |
+| `/builder` | The builder, full-screen, with **Publish to library** |
+| `/library` | Every document the console can render |
+| `/forms/:id` | A screen filled in for real; submitting files it in the inbox |
+| `/flows/:id` | A workflow run step by step, with an `action` node the console actually executes |
+| `/tables/:id` | A table document — one reads inline rows, one reads an API |
+| `/submissions` | The inbox, rendered through **a table document generated from the payloads** |
+| `/submissions/:id` | One submission, read back through the document it came from |
+| `/import` | Paste JSON, see `parseDocument` and `validateDocument` disagree usefully |
+| `/settings` | The request policy, adjustable — allowlist, offline stub, error log |
+
+The loop worth trying: draw something at `/builder`, press **Publish to library**, then open it from
+`/library` and fill it in. Nothing is deployed and no code is written between those two steps.
+
+Requests run against an offline stub by default, so the whole demo works with no network; turn it off
+in `/settings` to hit the real dummyjson endpoints. A production build wants
+`BASE_PATH=/<repo>/ npm run build` if it is served from a subpath — assets resolve relative to the
+page either way, but the router's basename has to be told.
+
+Inside the builder, click **Sample** in the header for the flagship demo, or use the arrow beside it
+to pick a preset for whichever document is active. In screen mode:
 
 | Preset | What it shows |
 | --- | --- |
@@ -40,15 +65,15 @@ Between them the presets cover every feature documented below, so they double as
 
 | Command | What it does |
 | --- | --- |
-| `pnpm dev` | Dev server on port 3000 (set `PORT` to override) |
-| `pnpm build` | Production bundle into the repo-root `dist/` — tracked on purpose; it is what GitHub Pages serves |
-| `pnpm preview` | Serve the production build |
-| `pnpm typecheck` | `tsc --noEmit` in every workspace |
-| `pnpm test` | Vitest, once — one run, both packages |
-| `pnpm test:watch` | Vitest, watching. A library edit re-runs the app's tests too |
-| `pnpm validate <file.json> …` | Check hand-authored documents against the schema rules. Paths are relative to wherever you are |
-| `pnpm gen:schema-doc` | Rebuild the generated tables in `packages/form-generator/docs/SCHEMA.md` |
-| `pnpm gen:fixtures` | Freeze the sample presets to JSON. Read the header first — it will not reproduce the committed fixtures |
+| `npm run dev` | Dev server on port 3000 (set `PORT` to override) |
+| `npm run build` | Production bundle into the repo-root `dist/` — tracked on purpose; it is what GitHub Pages serves |
+| `npm run preview` | Serve the production build |
+| `npm run typecheck` | `tsc --noEmit` in every workspace |
+| `npm test` | Vitest, once — one run, both packages |
+| `npm run test:watch` | Vitest, watching. A library edit re-runs the app's tests too |
+| `npm run validate <file.json> …` | Check hand-authored documents against the schema rules. Paths are relative to wherever you are |
+| `npm run gen:schema-doc` | Rebuild the generated tables in `packages/form-generator/docs/SCHEMA.md` |
+| `npm run gen:fixtures` | Freeze the sample presets to JSON. Read the header first — it will not reproduce the committed fixtures |
 
 ## The tabs
 
@@ -583,7 +608,7 @@ previewing, not part of either document, so they are never exported.
 
 ## Layout
 
-Two pnpm workspaces, and the split is the same line the JSON schema already drew: the library is
+Two npm workspaces, and the split is the same line the JSON schema already drew: the library is
 what renders a document, the app is what edits one.
 
 ```
@@ -682,7 +707,7 @@ payload keys and conditions all survive.
 
 ## Stack
 
-antd 6 · React 19 · Rsbuild 2 · TypeScript · pnpm workspaces · zod 4 (schema + validation) · zustand 5 (state) · dnd-kit (drag and drop) · dayjs · Vitest
+antd 6 · React 19 · Rsbuild 2 · TypeScript · npm workspaces · zod 4 (schema + validation) · zustand 5 (state) · dnd-kit (drag and drop) · dayjs · Vitest
 
 The library half of that list is short on purpose: `@antd-form-generator/core` depends on zod and
 dayjs and peers on antd and React. zustand and dnd-kit belong to the example app, and a host that
