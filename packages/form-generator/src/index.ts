@@ -108,6 +108,22 @@ export { hydrateValues } from './renderer/hydrate';
 export { buildInitialValues, collectPayloadKeys } from './renderer/initialValues';
 export { evaluateCondition } from './renderer/condition';
 
+/* ── Running a workflow ───────────────────────────────────────────────────── */
+
+export { WorkflowRenderer } from './renderer/workflow/WorkflowRenderer';
+export type { WorkflowRendererProps } from './renderer/workflow/WorkflowRenderer';
+export { useWorkflowRun } from './renderer/workflow/useWorkflowRun';
+export type {
+  UseWorkflowRunOptions,
+  WorkflowRunController,
+} from './renderer/workflow/useWorkflowRun';
+// The pieces, for a host that wants the run but not this arrangement of it.
+export { WorkflowStepView } from './renderer/workflow/WorkflowStepView';
+export type { WorkflowStepViewProps } from './renderer/workflow/WorkflowStepView';
+export { RunProgress } from './renderer/workflow/RunProgress';
+export type { RunProgressProps } from './renderer/workflow/RunProgress';
+export type { WorkflowAnswers, WorkflowRun } from './renderer/workflow/runHistory';
+
 /* ── The run engine, usable without any component ─────────────────────────── */
 
 export {

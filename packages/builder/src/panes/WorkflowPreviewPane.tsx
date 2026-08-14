@@ -1,27 +1,13 @@
-import { ArrowLeftOutlined, ReloadOutlined, ThunderboltOutlined } from '@ant-design/icons';
-import {
-  Alert,
-  Button,
-  Card,
-  Col,
-  Empty,
-  Result,
-  Row,
-  Space,
-  Steps,
-  Tag,
-  Timeline,
-  Typography,
-} from 'antd';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { ArrowLeftOutlined, ArrowRightOutlined, ReloadOutlined } from '@ant-design/icons';
+import { Alert, Button, Card, Col, Empty, Row, Space, Tag, Timeline, Tooltip, Typography } from 'antd';
+import { useMemo } from 'react';
 import { edgeCaption } from '../workflow/conditionText';
-import { ScreenRenderer } from '@antd-form-generator/core/renderer/ScreenRenderer';
 import type { WorkflowRunState } from '@antd-form-generator/core/renderer/workflow/engine';
-import { advanceWorkflow, describeBlock, startWorkflow } from '@antd-form-generator/core/renderer/workflow/engine';
-import type { ScreenSchema } from '@antd-form-generator/core/schema/screen';
-import { collectScreenActions, screenCollectsValues } from '@antd-form-generator/core/schema/screen';
+import { RunProgress } from '@antd-form-generator/core/renderer/workflow/RunProgress';
+import { useWorkflowRun } from '@antd-form-generator/core/renderer/workflow/useWorkflowRun';
+import { WorkflowStepView } from '@antd-form-generator/core/renderer/workflow/WorkflowStepView';
 import type { WorkflowSchema } from '@antd-form-generator/core/schema/workflow';
-import { findWorkflowNode, validateWorkflow, workflowStages } from '@antd-form-generator/core/schema/workflowGraph';
+import { findWorkflowNode, validateWorkflow } from '@antd-form-generator/core/schema/workflowGraph';
 import { nodeCaption, workflowMetaFor } from '@antd-form-generator/core/schema/workflowRegistry';
 import { usePreviewSideStore } from '../store/usePreviewSideStore';
 import { SidePanelToggle } from './SidePanelToggle';
@@ -29,54 +15,6 @@ import { jsonReplacer } from './jsonReplacer';
 
 export interface WorkflowPreviewPaneProps {
   schema: WorkflowSchema;
-}
-
-/**
- * How far along the run is — the wizard's "step 3 of 5".
- *
- * Driven entirely by the graph, so there is nothing to author and nothing that
- * can drift out of step with the flow. That is why this is not a screen node:
- * a `steps` block dropped onto a screen would have to be maintained by hand and
- * could not see the run anyway.
- *
- * A stage the run has actually visited is captioned with the step it took,
- * because that is known. One it has not is captioned generically when the
- * branches diverge — the graph cannot say which of two routes the reader will
- * be sent down, and guessing would be worse than admitting it.
- */
-function RunProgress({ schema, state }: { schema: WorkflowSchema; state: WorkflowRunState }) {
-  const stages = useMemo(() => workflowStages(schema), [schema]);
-  if (stages.length < 2) return null;
-
-  const visited = new Set(state.trace);
-  const currentIndex = stages.findIndex((stage) =>
-    stage.nodeIds.some((id) => id === state.nodeId),
-  );
-
-  return (
-    <Steps
-      size="small"
-      // A loop back makes an already-finished stage current again, so `current`
-      // is where the run *is*, not how many stages it has been through.
-      current={currentIndex === -1 ? 0 : currentIndex}
-      status={state.status === 'blocked' ? 'error' : 'process'}
-      items={stages.map((stage, index) => {
-        const takenId = stage.nodeIds.find((id) => visited.has(id));
-        const taken = takenId ? findWorkflowNode(schema, takenId) : null;
-        return {
-          title: taken ? nodeCaption(taken) : stage.label,
-          // Behind the current stage but never visited: the run went the other
-          // way, so it is not "done" — it simply does not apply.
-          status:
-            index < currentIndex && !takenId
-              ? ('wait' as const)
-              : index < currentIndex
-                ? ('finish' as const)
-                : undefined,
-        };
-      })}
-    />
-  );
 }
 
 /**
@@ -93,40 +31,18 @@ function RunProgress({ schema, state }: { schema: WorkflowSchema; state: Workflo
  * gives, and a run state is small enough that the copy costs nothing.
  */
 export function WorkflowPreviewPane({ schema }: WorkflowPreviewPaneProps) {
-  const [history, setHistory] = useState<WorkflowRunState[]>(() => [startWorkflow(schema)]);
-  const state = history[history.length - 1];
+  // The run itself is core's now — the builder's preview is one host of it,
+  // which is the point. What stays here is the authoring furniture a host has no
+  // use for: the trace timeline, and the side panel it shares with the other
+  // two previews.
+  const run = useWorkflowRun(schema);
+  const { state, furthest, node, values, stepKey, formSources } = run;
   const shown = usePreviewSideStore((entry) => entry.shown.workflow);
-
-  // A run holds node and edge ids, so it only means anything against the
-  // document it started from. Loading a sample, importing, an Undo or a JSON
-  // edit all replace that document — and a run left pointing at ids that no
-  // longer exist reports "nothing to run" instead of starting over.
-  const ranAgainst = useRef(schema);
-  useEffect(() => {
-    if (ranAgainst.current === schema) return;
-    ranAgainst.current = schema;
-    setHistory([startWorkflow(schema)]);
-  }, [schema]);
 
   const errors = useMemo(
     () => validateWorkflow(schema).filter((issue) => issue.level === 'error'),
     [schema],
   );
-
-  // A `summary` node names the step it lays out, so the run has to hand the
-  // schemas over — a payload alone carries no layout.
-  const formSources = useMemo(() => {
-    const sources: Record<string, ScreenSchema> = {};
-    for (const node of schema.nodes) {
-      if (node.kind === 'screen' && node.screen) sources[node.id] = node.screen;
-    }
-    return sources;
-  }, [schema.nodes]);
-
-  const step = (contribution?: Record<string, unknown>) =>
-    setHistory((entries) => [...entries, advanceWorkflow(schema, entries[entries.length - 1], contribution)]);
-
-  const node = state.nodeId ? findWorkflowNode(schema, state.nodeId) : null;
 
   return (
     <Row gutter={16} style={{ padding: 16, height: 'calc(100vh - 100px)' }}>
@@ -149,25 +65,46 @@ export function WorkflowPreviewPane({ schema }: WorkflowPreviewPaneProps) {
             />
           ) : null}
 
-          <RunProgress schema={schema} state={state} />
+          <RunProgress schema={schema} state={state} furthest={furthest} />
 
           <Card
             size="small"
-            title={node ? nodeCaption(node) : 'Run'}
+            title={
+              <Space size={6}>
+                {node ? nodeCaption(node) : 'Run'}
+                {/* Says why the column beside this shows more than the step does. */}
+                {run.canGoForward ? <Tag>Reviewing an earlier step</Tag> : null}
+              </Space>
+            }
             extra={
               <Space size={4}>
                 <Button
                   size="small"
                   icon={<ArrowLeftOutlined />}
-                  disabled={history.length < 2}
-                  onClick={() => setHistory((entries) => entries.slice(0, -1))}
+                  disabled={!run.canGoBack}
+                  onClick={run.back}
                 >
                   Back
                 </Button>
+                {/* Navigation, not submission: it returns to the step the run had
+                    reached, which exists precisely because it was answered. An
+                    edit made on a step you came back to takes effect when you
+                    submit that step — which is also what puts the run back on the
+                    branch it belongs on. */}
+                <Tooltip title="Return to the step this run reached. Submit to keep an edit.">
+                  <Button
+                    size="small"
+                    icon={<ArrowRightOutlined />}
+                    disabled={!run.canGoForward}
+                    onClick={run.forward}
+                  >
+                    Forward
+                  </Button>
+                </Tooltip>
                 <Button
                   size="small"
                   icon={<ReloadOutlined />}
-                  onClick={() => setHistory([startWorkflow(schema)])}
+                  onClick={run.restart}
                 >
                   Restart
                 </Button>
@@ -177,7 +114,14 @@ export function WorkflowPreviewPane({ schema }: WorkflowPreviewPaneProps) {
               </Space>
             }
           >
-            <StepBody schema={schema} state={state} onStep={step} formSources={formSources} />
+            <WorkflowStepView
+              state={state}
+              node={node}
+              values={values}
+              stepKey={stepKey}
+              formSources={formSources}
+              onStep={run.step}
+            />
           </Card>
         </Space>
       </Col>
@@ -185,8 +129,14 @@ export function WorkflowPreviewPane({ schema }: WorkflowPreviewPaneProps) {
       {shown ? (
         <Col xs={24} lg={10}>
           <Space orientation="vertical" size={12} style={{ width: '100%' }}>
+            {/* The run's payload, not the cursor's. `history[cursor].values`
+                holds what was known on the way *into* that step, so stepping
+                back to the first one would empty this panel — indistinguishable
+                from the answer having been lost, which is the very bug the
+                cursor exists to fix. The card on the left says where you are;
+                this says what the run has. */}
             <Card size="small" title="Collected so far">
-              {Object.keys(state.values).length > 0 ? (
+              {Object.keys(furthest.values).length > 0 ? (
                 <pre
                   data-testid="workflow-values"
                   style={{
@@ -197,7 +147,7 @@ export function WorkflowPreviewPane({ schema }: WorkflowPreviewPaneProps) {
                     wordBreak: 'break-word',
                   }}
                 >
-                  {JSON.stringify(state.values, jsonReplacer, 2)}
+                  {JSON.stringify(furthest.values, jsonReplacer, 2)}
                 </pre>
               ) : (
                 <Empty
@@ -211,169 +161,16 @@ export function WorkflowPreviewPane({ schema }: WorkflowPreviewPaneProps) {
               )}
             </Card>
 
+            {/* Furthest for the same reason, and because the two cards are two
+                halves of one answer — a payload from one moment beside a route
+                from another explains nothing. */}
             <Card size="small" title="Path taken">
-              <RunTrace schema={schema} state={state} />
+              <RunTrace schema={schema} state={furthest} />
             </Card>
           </Space>
         </Col>
       ) : null}
     </Row>
-  );
-}
-
-/** What the current node asks of the person driving the run. */
-function StepBody({
-  schema,
-  state,
-  onStep,
-  formSources,
-}: {
-  schema: WorkflowSchema;
-  state: WorkflowRunState;
-  onStep: (contribution?: Record<string, unknown>) => void;
-  formSources: Record<string, ScreenSchema>;
-}) {
-  const node = state.nodeId ? findWorkflowNode(schema, state.nodeId) : null;
-
-  if (state.status === 'blocked') {
-    return (
-      <Alert
-        type="warning"
-        showIcon
-        title="The run stopped here"
-        description={
-          <>
-            <Typography.Paragraph style={{ marginBottom: 4 }}>
-              {describeBlock(state.blocked?.reason ?? 'no-match')}
-            </Typography.Paragraph>
-            {node ? (
-              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                Last step: {nodeCaption(node)}
-              </Typography.Text>
-            ) : null}
-          </>
-        }
-      />
-    );
-  }
-
-  if (!node) {
-    return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Nothing to run" />;
-  }
-
-  if (state.status === 'done') {
-    return (
-      <Result
-        status="success"
-        title={nodeCaption(node)}
-        subTitle={node.description || 'The run finished here.'}
-      />
-    );
-  }
-
-  if (node.kind === 'screen') {
-    if (!node.screen || node.screen.nodes.length === 0) {
-      return (
-        <Space orientation="vertical" size={12} style={{ width: '100%' }}>
-          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="This step is empty" />
-          <Button type="primary" onClick={() => onStep()}>
-            Skip this step
-          </Button>
-        </Space>
-      );
-    }
-
-    const actions = collectScreenActions(node.screen);
-    return (
-      <Space orientation="vertical" size={12} style={{ width: '100%' }}>
-        {/* Keyed by node so a loop back to a step it already visited gets a
-            fresh form instance; `values` is what puts the earlier answers back
-            into it. */}
-        <ScreenRenderer
-          key={node.id}
-          schema={node.screen}
-          values={state.values}
-          formSources={formSources}
-          onSubmit={(submitted) => onStep(submitted)}
-          // A button is an outcome carrying whatever the screen also collected:
-          // the same merge an approval does, which is why a branch tests it
-          // with an ordinary condition.
-          onAction={(actionId, collected) =>
-            onStep({ ...collected, [node.name || 'choice']: actionId })
-          }
-        />
-        {actions.length === 0 && !screenCollectsValues(node.screen) ? (
-          // Nothing to submit and no button to press — the validator warns
-          // about this, but a run that hit it still needs a way out.
-          <Button type="primary" onClick={() => onStep()}>
-            Continue
-          </Button>
-        ) : null}
-      </Space>
-    );
-  }
-
-  if (node.kind === 'approval') {
-    const outcomes = node.outcomes ?? [];
-    return (
-      <Space orientation="vertical" size={12} style={{ width: '100%' }}>
-        <Typography.Text type="secondary">
-          {node.description || 'Pick an outcome. It is stored as'}{' '}
-          <Typography.Text code>{node.name || 'decision'}</Typography.Text>
-          {' — that is what the branches below this step test.'}
-        </Typography.Text>
-        <Space wrap>
-          {outcomes.map((outcome) => (
-            <Button
-              key={outcome.id}
-              type={outcome.danger ? 'default' : 'primary'}
-              danger={outcome.danger}
-              onClick={() => onStep({ [node.name || 'decision']: outcome.id })}
-            >
-              {outcome.label || outcome.id}
-            </Button>
-          ))}
-          {outcomes.length === 0 ? (
-            <Typography.Text type="warning">
-              This approval has no outcomes, so it cannot be answered.
-            </Typography.Text>
-          ) : null}
-        </Space>
-      </Space>
-    );
-  }
-
-  if (node.kind === 'action') {
-    return (
-      <Space orientation="vertical" size={12} style={{ width: '100%' }}>
-        <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-          {node.description ||
-            'The app embedding this workflow handles this step. The document carries the intent only.'}
-        </Typography.Paragraph>
-        <Space size={6} wrap>
-          <Tag>{node.action?.id || 'no action id'}</Tag>
-          {Object.entries(node.action?.params ?? {}).map(([key, value]) => (
-            <Tag key={key}>
-              {key}={value}
-            </Tag>
-          ))}
-        </Space>
-        <Button type="primary" icon={<ThunderboltOutlined />} onClick={() => onStep()}>
-          {node.action?.label || 'Continue'}
-        </Button>
-      </Space>
-    );
-  }
-
-  // `start` and `decision` are chained through by the engine, so reaching one
-  // here means the graph changed under a running preview.
-  return (
-    <Space orientation="vertical" size={12} style={{ width: '100%' }}>
-      <Typography.Text type="secondary">{node.description || 'Nothing to answer here.'}</Typography.Text>
-      <Button type="primary" onClick={() => onStep()}>
-        Continue
-      </Button>
-    </Space>
   );
 }
 
