@@ -3,12 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@11.9.0",
+  "packageManager": "npm@12.0.2",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
   "scripts": {
-    "dev": "pnpm --filter @antd-form-generator/example dev",
-    "build": "pnpm --filter @antd-form-generator/example build",
-    "preview": "pnpm --filter @antd-form-generator/example preview",
-    "typecheck": "pnpm -r --stream typecheck && tsc --noEmit",
+    "dev": "npm run dev --workspace @antd-form-generator/example",
+    "build": "npm run build --workspace @antd-form-generator/example",
+    "preview": "npm run preview --workspace @antd-form-generator/example",
+    "typecheck": "npm run typecheck --workspaces && tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "validate": "vite-node packages/form-generator/scripts/validateDocument.ts",

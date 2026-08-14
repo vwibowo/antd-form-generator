@@ -6,7 +6,7 @@ import { validateDocument } from '../src/schema/validate';
  * Check a document the way the app would.
  *
  * ```bash
- * pnpm validate path/to/screen.json [more.json …]
+ * npm run validate path/to/screen.json [more.json …]
  * ```
  *
  * The JSON is the product, and it can arrive from anywhere — hand-authored,
@@ -32,7 +32,7 @@ const paint = (code: string, text: string) =>
 const files = process.argv.slice(2).filter((arg) => !arg.startsWith('-'));
 
 if (files.length === 0) {
-  console.error('Usage: pnpm validate <file.json> [more.json ...]');
+  console.error('Usage: npm run validate <file.json> [more.json ...]');
   process.exit(2);
 }
 

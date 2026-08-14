@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 /**
  * The sample documents, frozen to JSON as the pre-merge contracts produced them.
  *
- * Written once by `pnpm gen:fixtures` and then left alone — see the header of
+ * Written once by `npm run gen:fixtures` and then left alone — see the header of
  * `scripts/genFixtures.ts`. Tests treat these as *inputs* rather than snapshots:
  * they are the legacy `form` and `page` shapes that must keep loading after the
  * merge, which is the only evidence that migrating them lost nothing.

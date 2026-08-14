@@ -7,14 +7,14 @@ can be imported straight into the app.
 **Check your work.** The rules below are enforced by a real verifier:
 
 ```bash
-pnpm validate path/to/document.json
+npm run validate path/to/document.json
 ```
 
 It exits non-zero on an error, prints warnings without failing, and every check
 it runs is the same code the app runs. Write the file, validate, fix, repeat.
 Do not skip this — most of the ways to be wrong parse cleanly.
 
-The tables here are generated from the registries by `pnpm gen:schema-doc`, so
+The tables here are generated from the registries by `npm run gen:schema-doc`, so
 they cannot drift from the code. The prose is hand-written.
 
 ---
@@ -310,7 +310,7 @@ A screen that asks and tells, with buttons instead of a submit row.
 ```
 
 ```bash
-pnpm validate order.json    # ✓ order.json (screen)
+npm run validate order.json    # ✓ order.json (screen)
 ```
 
 ## Worked example: a workflow
@@ -354,7 +354,7 @@ Two steps and a branch on what was collected.
 ```
 
 ```bash
-pnpm validate claim.json    # ✓ claim.json (workflow)
+npm run validate claim.json    # ✓ claim.json (workflow)
 ```
 
 Note `e4`: the approval branches on a condition and has a **default**, so a run
@@ -365,5 +365,5 @@ that stops halfway.
 
 ## Getting it into the app
 
-`pnpm dev`, then **Import** in the header. The file's own `kind` selects the
+`npm run dev`, then **Import** in the header. The file's own `kind` selects the
 mode, so there is nothing to pick first. The Preview tab runs it for real.

@@ -8,7 +8,7 @@ const at = (path: string) => fileURLToPath(new URL(path, import.meta.url));
  * step between the packages either: `@antd-form-generator/core` resolves
  * through the workspace symlink to the same `.ts`/`.tsx` files the app compiles.
  *
- * One config with three projects rather than one config per package, so `pnpm
+ * One config with three projects rather than one config per package, so `npm
  * test` stays a single run with a single summary, and watch mode re-runs the
  * builder's tests when library source changes — `packages/builder/src/store` is
  * checked against rules that live in the library.
@@ -42,7 +42,7 @@ export default defineConfig({
       },
       {
         // No test files today, and kept anyway: without this project a test
-        // added under apps/example would be silently skipped by `pnpm test`
+        // added under apps/example would be silently skipped by `npm test`
         // rather than run. Vitest only reports "no test files" when the
         // aggregate across projects is empty, so an empty one stays quiet.
         resolve: {

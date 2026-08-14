@@ -1,8 +1,8 @@
 {
   // No `paths`, for the same reason the library has none: this package's source
   // reaches itself with relative imports only, and the absence of an `@/*`
-  // mapping is what enforces that. A stray `@/` fails here, in `pnpm -r
-  // typecheck`, rather than resolving into whichever app is compiling these
+  // mapping is what enforces that. A stray `@/` fails here, in `npm run
+  // typecheck --workspaces`, rather than resolving into whichever app is compiling these
   // files — which it silently would, because Rsbuild hands rspack the *app's*
   // tsconfig and applies its `paths` to the whole module graph.
   //
